@@ -43,9 +43,6 @@ int wallet(const char *urlport, const char *cmd, char *userpwd, char **answer) {
     curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(curl_handle, CURLOPT_USE_SSL, CURLUSESSL_TRY);
 
-    if (DEBUG) fprintf(stderr, "%s\n", urlport);
-    if (DEBUG) fprintf(stderr, "%s\n", userpwd);
-    if (DEBUG) fprintf(stderr, "%s\n", cmd);
     struct MemoryStruct chunk;
     chunk.memory = malloc(1);
     chunk.size = 0;
