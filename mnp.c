@@ -53,7 +53,7 @@ static const struct option options[] = {
 
 static char *optstring = "hu:r:i:p:a:vd";
 static void usage(int status);
-static int handler(void *user, const char *section, 
+static int handler(void *user, const char *section,
                    const char *name, const char *value);
 static int daemonize(void);
 static void printmnp(void);
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     }
     free(ini);
 
-   /* get command line options */ 
+   /* get command line options */
     while((opt = getopt_long(argc, argv, optstring, options, &lindex)) != -1) {
         switch(opt) {
             case 'h':
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 
     asprintf(&urlport,"http://%s:%s/json_rpc", rpc_host, rpc_port);
     asprintf(&userpwd,"%s:%s", rpc_user, rpc_password);
-    
+
     if (verbose)
     {
         fprintf(stdout, "Starting ... \n");
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
     }
-    
+
     if (verbose) fprintf(stdout, "%d bytes received\n", ret);
 
     const cJSON *result = NULL;
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
     unsigned int minor = (version & MINOR_MASK);
     char *jresult = cJSON_Print(result);
     if (verbose) fprintf(stdout, "rpc version: v%d.%d.\n", major, minor);
-    fprintf(stdout, "Done\n"); 
+    fprintf(stdout, "Done\n");
     if (daemonflag == 1) {
         int retd = daemonize();
         if (verbose && (retd == 0)) fprintf(stdout, "daemon started.\n");
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
     free(answer);
 }
 
-/* 
+/*
  * Print user help.
  */
 static void usage(int status)
@@ -236,8 +236,8 @@ int daemonize(void)
     return(0);
 }
 
-/* 
- * Parse INI file handler 
+/*
+ * Parse INI file handler
  */
 static int handler(void *user, const char *section, const char *name,
                    const char *value)

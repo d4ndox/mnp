@@ -24,15 +24,15 @@
 #include "globaldefs.h"
 
 int wallet(const char *urlport, const char *cmd, char *userpwd, char **answer) {
-                
+
     CURL *curl_handle;
     CURLcode res;
-   
+
     curl_global_init(CURL_GLOBAL_ALL);
     curl_handle = curl_easy_init();
-    
+
     struct curl_slist *headers = NULL;
-    curl_slist_append(headers, CONTENT_TYPE); 
+    curl_slist_append(headers, CONTENT_TYPE);
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl_handle, CURLOPT_URL, urlport);
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) strlen(cmd));

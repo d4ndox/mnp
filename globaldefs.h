@@ -24,7 +24,7 @@ struct Config {
 };
 
 #define CONTENT_TYPE    "Content-Type: application/json"
-#define GET_VERSION     "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_version\"}" 
+#define GET_VERSION     "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_version\"}"
 #define GET_HEIGHT      "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_height\"}"
 #define MAJOR_MASK      (0xFFFF0000)
 #define MINOR_MASK      (0x0000FFFF)
