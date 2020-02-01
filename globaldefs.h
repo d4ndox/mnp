@@ -6,6 +6,7 @@
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
 extern int verbose;
+extern int daemonflag;
 
 struct MemoryStruct {
   char *memory;
