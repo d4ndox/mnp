@@ -24,6 +24,8 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
@@ -33,6 +35,8 @@
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
 int verbose = 0;
+/* daemon is extern @ globaldefs.h. Run in background */
+int daemonflag = 0;
 
 static const struct option options[] = {
 	{"help"         , no_argument      , NULL, 'h'},
@@ -43,13 +47,15 @@ static const struct option options[] = {
         {"account"      , required_argument, NULL, 'a'},
         {"version"      , no_argument      , NULL, 'v'},
 	{"verbose"      , no_argument      , &verbose, 1},
+	{"daemon"       , no_argument      , &daemonflag, 'd'},
 	{NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:v";
+static char *optstring = "hu:r:i:p:a:vd";
 static void usage(int status);
 static int handler(void *user, const char *section, 
                    const char *name, const char *value);
+static int daemonize(void);
 static void printmnp(void);
 
 int main(int argc, char **argv)
@@ -60,10 +66,8 @@ int main(int argc, char **argv)
     char *rpc_password = NULL;
     char *rpc_host = NULL;
     char *rpc_port = NULL;
-    char *url = NULL;
     char *account = NULL;
     char *answer = NULL;
-    int length = 0;
 
     /* get home directory from environment */
     const char *homedir;
@@ -74,6 +78,7 @@ int main(int argc, char **argv)
     char *home = strndup(homedir, MAX_DATA_SIZE);
     asprintf(&ini, "%s/%s", home, CONFIG_FILE);
     free(home);
+
     /* parse config ini file */
     struct Config config;
 
@@ -93,7 +98,7 @@ int main(int argc, char **argv)
 	    case 'u':
                 rpc_user = strndup(optarg, MAX_DATA_SIZE);
                 break;
-            case 'd':
+            case 'r':
                 rpc_password = strndup(optarg, MAX_DATA_SIZE);
                 break;
             case 'i':
@@ -107,6 +112,9 @@ int main(int argc, char **argv)
             case 'v':
                 printmnp();
                 exit(EXIT_SUCCESS);
+                break;
+            case 'd':
+                daemonflag = 1;
                 break;
             case 0:
 	        break;
@@ -128,6 +136,10 @@ int main(int argc, char **argv)
         asprintf(&rpc_host, "%s", config.rpc_host);
     } if (rpc_port == NULL) {
         asprintf(&rpc_port, "%s", config.rpc_port);
+    } if (verbose == 0) {
+        verbose = atoi(config.mnp_verbose);
+    } if (daemonflag == 0) {
+        daemonflag = atoi(config.mnp_daemon);
     }
 
     char *urlport = NULL;
@@ -135,20 +147,20 @@ int main(int argc, char **argv)
 
     asprintf(&urlport,"http://%s:%s/json_rpc", rpc_host, rpc_port);
     asprintf(&userpwd,"%s:%s", rpc_user, rpc_password);
-
+    
     if (verbose)
     {
         fprintf(stdout, "Starting ... \n");
         printmnp();
-        fprintf(stdout, "Connecting: %s\n", urlport);;
     }
+    fprintf(stdout, "Connecting: %s\n", urlport);;
 
     if (0 > (ret = wallet(urlport, GET_VERSION, userpwd, &answer))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
     }
     
-    if (verbose) fprintf(stdout, "%d bytes retrieved\n", ret);
+    if (verbose) fprintf(stdout, "%d bytes received\n", ret);
 
     const cJSON *result = NULL;
     //const cJSON *version = NULL;
@@ -159,9 +171,17 @@ int main(int argc, char **argv)
     unsigned int minor = (version & MINOR_MASK);
     char *jresult = cJSON_Print(result);
     if (verbose) fprintf(stdout, "rpc version: v%d.%d.\n", major, minor);
+    fprintf(stdout, "Done\n"); 
+    if (daemonflag == 1) {
+        int retd = daemonize();
+        if (verbose && (retd == 0)) fprintf(stdout, "daemon started.\n");
+        sleep(5);
+        fprintf(stdout, "daemon end\n");
+    }
+
     char *jstr = cJSON_Print(j_answer);
     if (DEBUG) fprintf(stdout, "%s\n", jstr);
-    free(url);
+    free(answer);
 }
 
 /* 
@@ -186,19 +206,34 @@ static void usage(int status)
     "      --rpc_port [RPC_PORT]\n"
     "               rpc port to cennect to.\n\n"
     "  -d, --daemon]\n"
-    "               run mnp as daemon. NOT IMPLEMENTED\n\n"
+    "               run mnp as daemon.\n\n"
     "  -v, --version\n"
     "               Display the version number of mnp.\n\n"
     "      --verbose\n"
     "               Display verbose information to stderr.\n\n"
     "  -h, --help   Display this help message.\n"
-
     );
     else
     fprintf(stderr,
     "Use mnp --help for more information\n"
     "Monero Named Pipes.\n"
     );
+}
+
+/*
+ * Daemonize
+ */
+int daemonize(void)
+{
+    pid_t   pid;
+
+    if ((pid = fork()) < 0)
+        return(-1);
+    else if (pid !=0)
+        exit(0);
+
+    setsid();
+    return(0);
 }
 
 /* 
