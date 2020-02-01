@@ -69,11 +69,13 @@ int main(int argc, char **argv)
     char *account = NULL;
     char *answer = NULL;
 
-    /* get home directory from environment */
+    /* prepare for reading the config ini file */
     const char *homedir;
+
     if ((homedir = getenv("home")) == NULL) {
         homedir = getpwuid(getuid())->pw_dir;
     }
+
     char *ini = NULL;
     char *home = strndup(homedir, MAX_DATA_SIZE);
     asprintf(&ini, "%s/%s", home, CONFIG_FILE);
@@ -96,6 +98,7 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
                 break;
 	    case 'u':
+                //asprintf(&rpc_user, "%s", optarg);
                 rpc_user = strndup(optarg, MAX_DATA_SIZE);
                 break;
             case 'r':
@@ -123,9 +126,7 @@ int main(int argc, char **argv)
         }
     }
 
-    int ret = 0;
-
-    /* if no command option is set - use the config file */
+    /* if no command line option is set - use the config ini file */
     if (account == NULL) {
         asprintf(&account, "%s", config.mnp_account);
     } if (rpc_user == NULL) {
@@ -142,19 +143,43 @@ int main(int argc, char **argv)
         daemonflag = atoi(config.mnp_daemon);
     }
 
+    /* Prepare url and port to connect to the wallet */
     char *urlport = NULL;
+
+    if (rpc_host != NULL && rpc_port != NULL)
+    {
+        asprintf(&urlport,"http://%s:%s/json_rpc", rpc_host, rpc_port);
+    } else {
+        fprintf(stderr, "rpc_host and/or rpc_port is missing\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    /* Prepare rpc_user and rpc_password to connect to the wallet */
     char *userpwd = NULL;
 
-    asprintf(&urlport,"http://%s:%s/json_rpc", rpc_host, rpc_port);
-    asprintf(&userpwd,"%s:%s", rpc_user, rpc_password);
+    if (rpc_user != NULL && rpc_password != NULL)
+    {
+        asprintf(&userpwd,"%s:%s", rpc_user, rpc_password);
+    } else {
+        fprintf(stderr, "rpc_user and/or rpc_password is missing\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* if no account is set - use the default account 0 */
+    if (account == NULL)
+    {
+        asprintf(&account, "0");
+    }
 
     if (verbose)
     {
         fprintf(stdout, "Starting ... \n");
         printmnp();
     }
+
     fprintf(stdout, "Connecting: %s\n", urlport);;
 
+    int ret = 0;
     if (0 > (ret = wallet(urlport, GET_VERSION, userpwd, &answer))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
@@ -171,7 +196,7 @@ int main(int argc, char **argv)
     unsigned int minor = (version & MINOR_MASK);
     char *jresult = cJSON_Print(result);
     if (verbose) fprintf(stdout, "rpc version: v%d.%d.\n", major, minor);
-    fprintf(stdout, "Done\n");
+    fprintf(stdout, "Running\n");
     if (daemonflag == 1) {
         int retd = daemonize();
         if (verbose && (retd == 0)) fprintf(stdout, "daemon started.\n");
