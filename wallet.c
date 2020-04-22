@@ -23,7 +23,7 @@
 #include "wallet.h"
 #include "globaldefs.h"
 
-int wallet(const char *urlport, const char *cmd, char *userpwd, char **answer) {
+int wallet(const char *urlport, const char *cmd, const char *userpwd, char **answer) {
 
     CURL *curl_handle;
     CURLcode res;
