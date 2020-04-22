@@ -30,6 +30,7 @@
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
 #include "wallet.h"
+#include "rpc_call.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 
@@ -177,9 +178,10 @@ int main(int argc, char **argv)
         printmnp();
     }
 
-    fprintf(stdout, "Connecting: %s\n", urlport);;
+    fprintf(stdout, "Connecting: %s\n", urlport);
 
     int ret = 0;
+
     if (0 > (ret = wallet(urlport, GET_VERSION, userpwd, &answer))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
@@ -206,6 +208,29 @@ int main(int argc, char **argv)
 
     char *jstr = cJSON_Print(j_answer);
     if (DEBUG) fprintf(stdout, "%s\n", jstr);
+
+    cJSON *bc_height = NULL;
+    ret = 0;
+    if (0 > (ret = rpc_call(GET_HEIGHT, NOPARAMS, urlport, userpwd, &bc_height))) {
+        fprintf(stderr, "could not connect to host: %s\n", urlport);
+        exit(EXIT_FAILURE);
+    }
+    char *s= cJSON_Print(bc_height);
+    char *height = cJSON_Print(bc_height);
+    fprintf(stdout, "height = %s\n", height);
+    cJSON_Delete(bc_height);
+    free(height);
+
+/*    const cJSON *r = NULL;
+    r = cJSON_GetObjectItem(bc_height, "result");
+    const cJSON *height = cJSON_GetObjectItemCaseSensitive(r, "height");
+    if (cJSON_IsString(height) && (height->valuestring != NULL))
+    {
+        printf("Checking monitor \"%s\"\n", height->valuestring);
+    }
+
+    if (verbose) fprintf(stdout, "bc_height: %s\n", height->valuestring);
+    */
     free(answer);
 }
 
