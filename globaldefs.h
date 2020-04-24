@@ -21,6 +21,7 @@ struct Config {
     const char  *mnp_daemon;
     const char  *mnp_verbose;
     const char  *mnp_account;
+    const char  *cfg_workdir;
 };
 
 #define GET_HEIGHT      "get_height"
