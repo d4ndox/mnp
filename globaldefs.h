@@ -27,7 +27,8 @@ struct Config {
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"
-#define GET_VERSION     "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_version\"}"
+//#define GET_VERSION     "{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_version\"}"
+#define GET_VERSION     "get_version"
 #define MAJOR_MASK      (0xFFFF0000)
 #define MINOR_MASK      (0x0000FFFF)
 
