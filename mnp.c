@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <curl/curl.h>
 #include <getopt.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -31,6 +32,7 @@
 #include "./cjson/cJSON.h"
 #include "wallet.h"
 #include "rpc_call.h"
+#include "out_version.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 
@@ -38,6 +40,8 @@
 int verbose = 0;
 /* daemon is extern @ globaldefs.h. Run in background */
 int daemonflag = 0;
+
+static volatile sig_atomic_t running = 1;
 
 static const struct option options[] = {
 	{"help"         , no_argument      , NULL, 'h'},
@@ -57,10 +61,18 @@ static void usage(int status);
 static int handler(void *user, const char *section,
                    const char *name, const char *value);
 static int daemonize(void);
+static void initshutdown(int);
 static void printmnp(void);
 
 int main(int argc, char **argv)
 {
+    /* signal handler for shutdown */
+    signal(SIGHUP, initshutdown);
+    signal(SIGINT, initshutdown);
+    signal(SIGQUIT, initshutdown);
+    signal(SIGTERM, initshutdown);
+    signal(SIGPIPE, SIG_IGN);
+
     /* variables are set by getopt and/or config parser handler()*/
     int opt, lindex = -1;
     char *rpc_user = NULL;
@@ -68,7 +80,6 @@ int main(int argc, char **argv)
     char *rpc_host = NULL;
     char *rpc_port = NULL;
     char *account = NULL;
-    char *answer = NULL;
 
     /* prepare for reading the config ini file */
     const char *homedir;
@@ -180,24 +191,21 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "Connecting: %s\n", urlport);
 
+     /* GET_VERSION rpc call for version of rpc protocol*/
     int ret = 0;
-
-    if (0 > (ret = wallet(urlport, GET_VERSION, userpwd, &answer))) {
+    cJSON *version = NULL;
+    ret = 0;
+    if (0 > (ret = rpc_call(GET_VERSION, NOPARAMS, urlport, userpwd, &version))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
     }
+    if (0 > (out_version(&version))) {
+        fprintf(stderr, "could not parse JSON object version\n");
+        exit(EXIT_FAILURE);
+    }
+    char *rpc_version = cJSON_Print(version);
 
-    if (verbose) fprintf(stdout, "%d bytes received\n", ret);
-
-    const cJSON *result = NULL;
-    //const cJSON *version = NULL;
-    const cJSON *j_answer = cJSON_Parse(answer);
-    result = cJSON_GetObjectItem(j_answer, "result");
-    unsigned int version = cJSON_GetObjectItem(result, "version")->valueint;
-    unsigned int major = (version & MAJOR_MASK) >> 16;
-    unsigned int minor = (version & MINOR_MASK);
-    char *jresult = cJSON_Print(result);
-    if (verbose) fprintf(stdout, "rpc version: v%d.%d.\n", major, minor);
+    /* Start */
     fprintf(stdout, "Running\n");
     if (daemonflag == 1) {
         int retd = daemonize();
@@ -206,8 +214,8 @@ int main(int argc, char **argv)
         fprintf(stdout, "daemon end\n");
     }
 
-    char *jstr = cJSON_Print(j_answer);
-    if (DEBUG) fprintf(stdout, "%s\n", jstr);
+    while (running) {   }
+    if (DEBUG) fprintf(stdout, "%s\n", rpc_version);
 
     cJSON *bc_height = NULL;
     ret = 0;
@@ -215,23 +223,14 @@ int main(int argc, char **argv)
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
     }
-    char *s= cJSON_Print(bc_height);
-    char *height = cJSON_Print(bc_height);
-    fprintf(stdout, "height = %s\n", height);
+    const cJSON *bc_result = NULL;
+    bc_result = cJSON_GetObjectItem(bc_height, "result");
+
+    char *res = cJSON_Print(bc_result);
+    fprintf(stdout, "result = %s\n", res);
+
+    cJSON_Delete(version);
     cJSON_Delete(bc_height);
-    free(height);
-
-/*    const cJSON *r = NULL;
-    r = cJSON_GetObjectItem(bc_height, "result");
-    const cJSON *height = cJSON_GetObjectItemCaseSensitive(r, "height");
-    if (cJSON_IsString(height) && (height->valuestring != NULL))
-    {
-        printf("Checking monitor \"%s\"\n", height->valuestring);
-    }
-
-    if (verbose) fprintf(stdout, "bc_height: %s\n", height->valuestring);
-    */
-    free(answer);
 }
 
 /*
@@ -313,6 +312,12 @@ static int handler(void *user, const char *section, const char *name,
         return 0;  /* unknown section/name, error */
     }
     return 1;
+}
+
+/* Stop the mainloop and destroy all fifo's */
+static void initshutdown(int sig)
+{
+    running = 0;
 }
 
 /*
