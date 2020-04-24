@@ -50,13 +50,14 @@ static const struct option options[] = {
         {"rpc_host"     , required_argument, NULL, 'i'},
         {"rpc_port"     , required_argument, NULL, 'p'},
         {"account"      , required_argument, NULL, 'a'},
+        {"workdir"      , required_argument, NULL, 'w'},
         {"version"      , no_argument      , NULL, 'v'},
 	{"verbose"      , no_argument      , &verbose, 1},
 	{"daemon"       , no_argument      , &daemonflag, 'd'},
 	{NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:vd";
+static char *optstring = "hu:r:i:p:a:w:vd";
 static void usage(int status);
 static int handler(void *user, const char *section,
                    const char *name, const char *value);
@@ -80,6 +81,7 @@ int main(int argc, char **argv)
     char *rpc_host = NULL;
     char *rpc_port = NULL;
     char *account = NULL;
+    char *workdir = NULL;
 
     /* prepare for reading the config ini file */
     const char *homedir;
@@ -124,6 +126,9 @@ int main(int argc, char **argv)
             case 'a':
                 account = strndup(optarg, MAX_DATA_SIZE);
                 break;
+            case 'w':
+                workdir = strndup(optarg, MAX_DATA_SIZE);
+                break;
             case 'v':
                 printmnp();
                 exit(EXIT_SUCCESS);
@@ -149,6 +154,8 @@ int main(int argc, char **argv)
         asprintf(&rpc_host, "%s", config.rpc_host);
     } if (rpc_port == NULL) {
         asprintf(&rpc_port, "%s", config.rpc_port);
+    } if (workdir == NULL) {
+        asprintf(&workdir, "%s", config.cfg_workdir);
     } if (verbose == 0) {
         verbose = atoi(config.mnp_verbose);
     } if (daemonflag == 0) {
@@ -189,6 +196,21 @@ int main(int argc, char **argv)
         printmnp();
     }
 
+    /* TEST if directory does exist */
+    struct stat sb;
+
+    if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+        fprintf(stderr, "Could not open workdir: %s. Directory does exists already.\n", workdir);
+        exit(EXIT_FAILURE); 
+    } else {
+        if(mkdir(workdir, 0666) && errno != EEXIST)
+        {
+            fprintf(stderr, "Could not open workdir %s.\n", workdir); 
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    fprintf(stdout, "Working directory: %s\n", workdir);
     fprintf(stdout, "Connecting: %s\n", urlport);
 
      /* GET_VERSION rpc call for version of rpc protocol*/
@@ -254,6 +276,8 @@ static void usage(int status)
     "               rpc host ip address or domain.\n\n"
     "      --rpc_port [RPC_PORT]\n"
     "               rpc port to cennect to.\n\n"
+    "  -w, --workdir]\n"
+    "               open Monero Named Pipes here.\n\n"
     "  -d, --daemon]\n"
     "               run mnp as daemon.\n\n"
     "  -v, --version\n"
@@ -308,6 +332,8 @@ static int handler(void *user, const char *section, const char *name,
         pconfig->mnp_verbose = strndup(value, MAX_DATA_SIZE);
     } else if (MATCH("mnp", "account")) {
         pconfig->mnp_account = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("cfg", "workdir")) {
+        pconfig->cfg_workdir = strndup(value, MAX_DATA_SIZE);
     } else {
         return 0;  /* unknown section/name, error */
     }
