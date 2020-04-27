@@ -33,7 +33,7 @@
 #include "./cjson/cJSON.h"
 #include "wallet.h"
 #include "rpc_call.h"
-#include "out_version.h"
+#include "version.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 
@@ -147,7 +147,6 @@ int main(int argc, char **argv)
     /* if no command line option is set - use the config ini file */
     if (account == NULL) {
         account = strndup(config.mnp_account, MAX_DATA_SIZE);
-        //asprintf(&account, "%s", config.mnp_account);
     } if (rpc_user == NULL) {
         rpc_user = strndup(config.rpc_user, MAX_DATA_SIZE);
     } if (rpc_password == NULL) {
@@ -227,10 +226,13 @@ int main(int argc, char **argv)
     ret = 0;
     if (0 > (ret = rpc_call(GET_VERSION, NOPARAMS, urlport, userpwd, &version))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
+        remove_directory(workdir);
+        cJSON_Delete(version);
         exit(EXIT_FAILURE);
-    }
-    if (0 > (out_version(&version))) {
+    } if (0 > (version(&version))) {
         fprintf(stderr, "could not parse JSON object version\n");
+        remove_directory(workdir);
+        cJSON_Delete(version);
         exit(EXIT_FAILURE);
     }
     char *rpc_version = cJSON_Print(version);

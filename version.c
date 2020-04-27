@@ -19,10 +19,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "./cjson/cJSON.h"
-#include "out_version.h"
+#include "version.h"
 #include "globaldefs.h"
 
-int out_version(cJSON **version) {
+int version(cJSON **version) {
     
     int ret = 0;
     const cJSON *result = NULL;

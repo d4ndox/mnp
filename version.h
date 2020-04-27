@@ -1,8 +1,8 @@
-#ifndef OUT_VERSION_H
-#define OUT_VERSION_H
+#ifndef VERSION_H
+#define VERSION_H
 
 #include "./cjson/cJSON.h"
 
-int out_version(cJSON **version);
+int version(cJSON **version);
 
 #endif
