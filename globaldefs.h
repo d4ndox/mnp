@@ -22,6 +22,7 @@ struct Config {
     const char  *mnp_verbose;
     const char  *mnp_account;
     const char  *cfg_workdir;
+    const char  *cfg_mode;
 };
 
 #define GET_HEIGHT      "get_height"
