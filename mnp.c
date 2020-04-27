@@ -222,20 +222,20 @@ int main(int argc, char **argv)
 
      /* GET_VERSION rpc call */
     int ret = 0;
-    cJSON *version = NULL;
+    cJSON *ver = NULL;
     ret = 0;
-    if (0 > (ret = rpc_call(GET_VERSION, NOPARAMS, urlport, userpwd, &version))) {
+    if (0 > (ret = rpc_call(GET_VERSION, NOPARAMS, urlport, userpwd, &ver))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         remove_directory(workdir);
-        cJSON_Delete(version);
+        cJSON_Delete(ver);
         exit(EXIT_FAILURE);
-    } if (0 > (version(&version))) {
+    } if (0 > (version(&ver))) {
         fprintf(stderr, "could not parse JSON object version\n");
         remove_directory(workdir);
-        cJSON_Delete(version);
+        cJSON_Delete(ver);
         exit(EXIT_FAILURE);
     }
-    char *rpc_version = cJSON_Print(version);
+    char *rpc_version = cJSON_Print(ver);
 
     /* Start loop */
     fprintf(stdout, "Running\n");
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 
     /* delete json + workdir and exit */
     remove_directory(workdir);
-    cJSON_Delete(version);
+    cJSON_Delete(ver);
     cJSON_Delete(bc_height);
 }
 
