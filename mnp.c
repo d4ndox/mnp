@@ -27,6 +27,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <errno.h>
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
@@ -63,6 +64,7 @@ static int handler(void *user, const char *section,
                    const char *name, const char *value);
 static int daemonize(void);
 static void initshutdown(int);
+static int remove_directory(const char *path);
 static void printmnp(void);
 
 int main(int argc, char **argv)
@@ -112,7 +114,6 @@ int main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
                 break;
 	    case 'u':
-                //asprintf(&rpc_user, "%s", optarg);
                 rpc_user = strndup(optarg, MAX_DATA_SIZE);
                 break;
             case 'r':
@@ -145,24 +146,31 @@ int main(int argc, char **argv)
 
     /* if no command line option is set - use the config ini file */
     if (account == NULL) {
-        asprintf(&account, "%s", config.mnp_account);
+        account = strndup(config.mnp_account, MAX_DATA_SIZE);
+        //asprintf(&account, "%s", config.mnp_account);
     } if (rpc_user == NULL) {
-        asprintf(&rpc_user, "%s", config.rpc_user);
+        rpc_user = strndup(config.rpc_user, MAX_DATA_SIZE);
     } if (rpc_password == NULL) {
-        asprintf(&rpc_password, "%s", config.rpc_password);
+        rpc_password = strndup(config.rpc_password, MAX_DATA_SIZE);
     } if (rpc_host == NULL) {
-        asprintf(&rpc_host, "%s", config.rpc_host);
+        rpc_host = strndup(config.rpc_host, MAX_DATA_SIZE);
     } if (rpc_port == NULL) {
-        asprintf(&rpc_port, "%s", config.rpc_port);
+        rpc_port = strndup(config.rpc_port, MAX_DATA_SIZE);
     } if (workdir == NULL) {
-        asprintf(&workdir, "%s", config.cfg_workdir);
+        workdir = strndup(config.cfg_workdir, MAX_DATA_SIZE);
     } if (verbose == 0) {
         verbose = atoi(config.mnp_verbose);
     } if (daemonflag == 0) {
         daemonflag = atoi(config.mnp_daemon);
     }
+    const char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
+    mode_t mode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
+                  (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
+                  (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
 
-    /* Prepare url and port to connect to the wallet */
+    if (DEBUG) fprintf(stderr, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
+
+    /* prepare url and port to connect to the wallet */
     char *urlport = NULL;
 
     if (rpc_host != NULL && rpc_port != NULL)
@@ -172,8 +180,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "rpc_host and/or rpc_port is missing\n");
         exit(EXIT_FAILURE);
     }
-    
-    /* Prepare rpc_user and rpc_password to connect to the wallet */
+
+    /* prepare rpc_user and rpc_password to connect to the wallet */
     char *userpwd = NULL;
 
     if (rpc_user != NULL && rpc_password != NULL)
@@ -196,16 +204,16 @@ int main(int argc, char **argv)
         printmnp();
     }
 
-    /* TEST if directory does exist */
+    /* create workdir directory. TEST if directory does exist */
     struct stat sb;
 
     if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
         fprintf(stderr, "Could not open workdir: %s. Directory does exists already.\n", workdir);
-        exit(EXIT_FAILURE); 
+        exit(EXIT_FAILURE);
     } else {
-        if(mkdir(workdir, 0666) && errno != EEXIST)
+        if(mkdir(workdir, mode) && errno != EEXIST)
         {
-            fprintf(stderr, "Could not open workdir %s.\n", workdir); 
+            fprintf(stderr, "Could not open workdir %s.\n", workdir);
             exit(EXIT_FAILURE);
         }
     }
@@ -213,7 +221,7 @@ int main(int argc, char **argv)
     fprintf(stdout, "Working directory: %s\n", workdir);
     fprintf(stdout, "Connecting: %s\n", urlport);
 
-     /* GET_VERSION rpc call for version of rpc protocol*/
+     /* GET_VERSION rpc call */
     int ret = 0;
     cJSON *version = NULL;
     ret = 0;
@@ -227,7 +235,7 @@ int main(int argc, char **argv)
     }
     char *rpc_version = cJSON_Print(version);
 
-    /* Start */
+    /* Start loop */
     fprintf(stdout, "Running\n");
     if (daemonflag == 1) {
         int retd = daemonize();
@@ -251,6 +259,8 @@ int main(int argc, char **argv)
     char *res = cJSON_Print(bc_result);
     fprintf(stdout, "result = %s\n", res);
 
+    /* delete json + workdir and exit */
+    remove_directory(workdir);
     cJSON_Delete(version);
     cJSON_Delete(bc_height);
 }
@@ -334,6 +344,8 @@ static int handler(void *user, const char *section, const char *name,
         pconfig->mnp_account = strndup(value, MAX_DATA_SIZE);
     } else if (MATCH("cfg", "workdir")) {
         pconfig->cfg_workdir = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("cfg", "mode")) {
+        pconfig->cfg_mode = strndup(value, MAX_DATA_SIZE);
     } else {
         return 0;  /* unknown section/name, error */
     }
@@ -344,6 +356,59 @@ static int handler(void *user, const char *section, const char *name,
 static void initshutdown(int sig)
 {
     running = 0;
+}
+
+/* remove the workdir */
+static int remove_directory(const char *path)
+{
+    DIR *d = opendir(path);
+    size_t path_len = strlen(path);
+    int r = -1;
+
+    if (d) {
+        struct dirent *p;
+        r = 0;
+
+        while (!r && (p=readdir(d)))
+        {
+            int r2 = -1;
+            char *buf;
+            size_t len;
+
+            /* Skip the names "." and ".." as we don't want to recurse on them. */
+            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
+                continue;
+            }
+
+            len = path_len + strlen(p->d_name) + 2;
+            buf = malloc(len);
+
+            if (buf) {
+                struct stat statbuf;
+
+                snprintf(buf, len, "%s/%s", path, p->d_name);
+
+                if (!stat(buf, &statbuf)) {
+                    if (S_ISDIR(statbuf.st_mode)) {
+                        r2 = remove_directory(buf);
+                    } else {
+                        r2 = unlink(buf);
+                    }
+                }
+
+                free(buf);
+            }
+
+            r = r2;
+        }
+
+        closedir(d);
+    }
+
+    if (!r) {
+        r = rmdir(path);
+    }
+    return r;
 }
 
 /*
