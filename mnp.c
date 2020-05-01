@@ -1,6 +1,7 @@
 /*
  * Monero Named Pipes (mnp) is a Unix Monero wallet client.
- * Copyright (C) 2019 https://github.com/nonie-sys/mnp
+ * Copyright (C) 2019-2020
+ * http://mnp4i54qnixz336alilggo4zkxgf35oj7kodkli2as4q6gpvvy5lxrad.onion
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

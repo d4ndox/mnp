@@ -1,6 +1,7 @@
 /*
  * Monero Named Pipes (mnp) is a Unix Monero wallet client.
- * Copyright (C) 2019 https://github.com/nonie-sys/mnp
+ * Copyright (C) 2019-2020
+ * http://mnp4i54qnixz336alilggo4zkxgf35oj7kodkli2as4q6gpvvy5lxrad.onion
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,13 +24,13 @@
 #include "rpc_call.h"
 #include "globaldefs.h"
 
-int rpc_call(const char *method, const char *params, const char *urlport, const char *userpwd, cJSON **rpc_reply) {
-    
+int rpc_call(const char *method, const char *params, const char *urlport, const char *userpwd, cJSON **rpc_reply)
+{
     int ret = 0;
-   
+
     /*
      * Pack the method string into a JSON frame for rpc call.
-     */ 
+     */
     cJSON *rpc_frame = cJSON_CreateObject();
 
     if (cJSON_AddStringToObject(rpc_frame, "jsonrpc", JSON_RPC) == NULL) ret = -1;
@@ -37,6 +38,7 @@ int rpc_call(const char *method, const char *params, const char *urlport, const 
     if (cJSON_AddStringToObject(rpc_frame, "method", method) == NULL) ret = -1;
 
     char *method_call = cJSON_Print(rpc_frame);
+
     if (method_call == NULL) ret = -1;
 
     /*
@@ -47,22 +49,20 @@ int rpc_call(const char *method, const char *params, const char *urlport, const 
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         ret = -1;
     }
-   
+
     /*
      * rpc_reply is the return value of this function
      * testing for errors while parseing the JSON string.
-     */ 
+     */
     *rpc_reply = cJSON_Parse(reply);
-    if (rpc_reply == NULL)
-    {
+    if (rpc_reply == NULL) {
         const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL)
-        {
+        if (error_ptr != NULL) {
             fprintf(stderr, "Error before: %s\n", error_ptr);
             ret = -1;
         }
-    } 
-    
+    }
+
     /*
      * Check for error code returned from wallet(rpc) call
      * test rpc_reply for any error codes.
@@ -76,6 +76,7 @@ int rpc_call(const char *method, const char *params, const char *urlport, const 
     }
 
     if (verbose) fprintf(stdout, "%d bytes received\n", ret);
+
     cJSON_Delete(rpc_frame);
     cJSON_Delete(error);
     free(method_call);
