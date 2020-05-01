@@ -172,8 +172,7 @@ int main(int argc, char **argv)
     /* prepare url and port to connect to the wallet */
     char *urlport = NULL;
 
-    if (rpc_host != NULL && rpc_port != NULL)
-    {
+    if (rpc_host != NULL && rpc_port != NULL) {
         asprintf(&urlport,"http://%s:%s/json_rpc", rpc_host, rpc_port);
     } else {
         fprintf(stderr, "rpc_host and/or rpc_port is missing\n");
@@ -183,8 +182,7 @@ int main(int argc, char **argv)
     /* prepare rpc_user and rpc_password to connect to the wallet */
     char *userpwd = NULL;
 
-    if (rpc_user != NULL && rpc_password != NULL)
-    {
+    if (rpc_user != NULL && rpc_password != NULL) {
         asprintf(&userpwd,"%s:%s", rpc_user, rpc_password);
     } else {
         fprintf(stderr, "rpc_user and/or rpc_password is missing\n");
@@ -192,13 +190,9 @@ int main(int argc, char **argv)
     }
 
     /* if no account is set - use the default account 0 */
-    if (account == NULL)
-    {
-        asprintf(&account, "0");
-    }
+    if (account == NULL) asprintf(&account, "0");
 
-    if (verbose)
-    {
+    if (verbose) {
         fprintf(stdout, "Starting ... \n");
         printmnp();
     }
@@ -209,12 +203,9 @@ int main(int argc, char **argv)
     if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
         fprintf(stderr, "Could not open workdir: %s. Directory does exists already.\n", workdir);
         exit(EXIT_FAILURE);
-    } else {
-        if(mkdir(workdir, mode) && errno != EEXIST)
-        {
-            fprintf(stderr, "Could not open workdir %s.\n", workdir);
-            exit(EXIT_FAILURE);
-        }
+    } else if (mkdir(workdir, mode) && errno != EEXIST) {
+        fprintf(stderr, "Could not open workdir %s.\n", workdir);
+        exit(EXIT_FAILURE);
     }
 
     fprintf(stdout, "Working directory: %s\n", workdir);
@@ -229,35 +220,38 @@ int main(int argc, char **argv)
         remove_directory(workdir);
         cJSON_Delete(ver);
         exit(EXIT_FAILURE);
-    } if (0 > (version(&ver))) {
+    }
+
+    if (0 > (version(&ver))) {
         fprintf(stderr, "could not parse JSON object version\n");
         remove_directory(workdir);
         cJSON_Delete(ver);
         exit(EXIT_FAILURE);
     }
+
     char *rpc_version = cJSON_Print(ver);
 
-    /* Start loop */
-    fprintf(stdout, "Running\n");
+    /* Start daemon */
     if (daemonflag == 1) {
         int retd = daemonize();
         if (verbose && (retd == 0)) fprintf(stdout, "daemon started.\n");
-        sleep(5);
-        fprintf(stdout, "daemon end\n");
     }
 
+    /* Start loop */
+    fprintf(stdout, "Running\n");
     while (running) {   }
     if (DEBUG) fprintf(stdout, "%s\n", rpc_version);
 
     cJSON *bc_height = NULL;
     ret = 0;
+
     if (0 > (ret = rpc_call(GET_HEIGHT, NOPARAMS, urlport, userpwd, &bc_height))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
     }
+
     const cJSON *bc_result = NULL;
     bc_result = cJSON_GetObjectItem(bc_height, "result");
-
     char *res = cJSON_Print(bc_result);
     fprintf(stdout, "result = %s\n", res);
 
@@ -312,10 +306,11 @@ int daemonize(void)
 {
     pid_t   pid;
 
-    if ((pid = fork()) < 0)
+    if ((pid = fork()) < 0) {
         return(-1);
-    else if (pid !=0)
+    } else if (pid !=0) {
         exit(0);
+    }
 
     setsid();
     return(0);
@@ -354,13 +349,17 @@ static int handler(void *user, const char *section, const char *name,
     return 1;
 }
 
-/* Stop the mainloop and destroy all fifo's */
+/*
+ * Stop the mainloop and destroy all fifo's
+ */
 static void initshutdown(int sig)
 {
     running = 0;
 }
 
-/* remove the workdir */
+/*
+ * remove the workdir
+ */
 static int remove_directory(const char *path)
 {
     DIR *d = opendir(path);
@@ -410,13 +409,15 @@ static int remove_directory(const char *path)
     if (!r) {
         r = rmdir(path);
     }
+
     return r;
 }
 
 /*
  * Print version of Monero Named Pipes.
  */
-static void printmnp(void) {
+static void printmnp(void)
+{
                 printf("\033[0;32m"
                 "       __        \n"
                 "  w  c(..)o    ( \n"
