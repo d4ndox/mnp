@@ -26,12 +26,10 @@
 int version(cJSON **version)
 {
     int ret = 0;
-    const cJSON *result = NULL;
-    result = cJSON_GetObjectItem(*version, "result");
+    cJSON *result = result = cJSON_GetObjectItem(*version, "result");
     unsigned int v = cJSON_GetObjectItem(result, "version")->valueint;
     unsigned int major = (v & MAJOR_MASK) >> 16;
     unsigned int minor = (v & MINOR_MASK);
-    char *res = cJSON_Print(result);
     if (verbose) fprintf(stdout, "rpc version: v%d.%d.\n", major, minor);
 
     return 0;
