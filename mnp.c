@@ -230,7 +230,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    char *rpc_version = cJSON_Print(ver);
+    cJSON_Delete(ver);
 
     /* Start daemon */
     if (daemonflag == 1) {
@@ -241,7 +241,6 @@ int main(int argc, char **argv)
     /* Start loop */
     fprintf(stdout, "Running\n");
     while (running) {   }
-    if (DEBUG) fprintf(stdout, "%s\n", rpc_version);
 
     cJSON *bc_height = NULL;
     ret = 0;
