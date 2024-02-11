@@ -26,6 +26,7 @@
 #include "./cjson/cJSON.h"
 #include "bc_height.h"
 #include "globaldefs.h"
+#include <unistd.h>
 
 char* blockchainheight(cJSON **reply, char *bc_height_fifo, char *status_bc_height)
 {
