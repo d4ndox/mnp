@@ -1,12 +1,12 @@
 #Monero Named Pipes
 
-Monero named pipes (mnp) is a payment processor, using named pipes, to monitor incoming payments on a bash shell.
-mnp is developed with the *UNIX-philosophy* in mind and allows interaction through named pipes. I was inspired by *Irc it (ii)* from [tools.suckless.org](https://tools.suckless.org/ii/).
+Monero named pipes (mnp) is a payment processor, using named pipes, to monitor incoming payments on bash.
+mnp is developed with the *UNIX-philosophy* in mind and allows interaction through named pipes.
 
 
 ## Getting started
 
-Run mnp and it will create a set of files and directories allowing you to control the client.
+mnp will create a set of files and directories allowing you to control the client with command line tools.
 default = /tmp/mywallet
 
 
@@ -29,7 +29,7 @@ default = /tmp/mywallet
 ```
 
 **Example:**
-Start to monitor the blockchain height:
+Monitor the blockchain height:
 
 ```bash
 $ inotifywait /tmp/mywallet/bc_height
@@ -57,14 +57,14 @@ $ make install
 
 ### Verify
 
-My public gpg_key : [nonie.asc](http://mnp4i54qnixz336alilggo4zkxgf35oj7kodkli2as4q6gpvvy5lxrad.onion/nonie.asc)
+My public gpg_key :
 
 *Please audit the source code.*
 
 
 ## How to run mnp?
 
- Monero Named Pipes uses monero-wallet-rpc which comes with the Monero Command-line Tools. Download here: getmonero.org .
+ Monero Named Pipes uses monero-wallet-rpc which comes with the Monero Command-line Tools. Download @ getmonero.org.
 
 ```bash
 
@@ -100,7 +100,7 @@ $ mnp --rpc_host 127.0.0.1 --rpc_port 18083 --rpc_password password --rpc_user u
 
 ### Config
 
-The config file ~/.mnp.ini can be used instead of the command line options. 
+The config file ~/.mnp.ini:
 
 ```bash
 ; Monero named pipes (mnp)
@@ -121,11 +121,6 @@ account = 0                     ;choose account
 workdir = /tmp/mywallet         ;wallet working directory
 mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 ```
-
-## Contact q[-O_o-]p
-
-d4ndo@proton.me
-
 
 ## Information
 
