@@ -35,6 +35,7 @@
 #include "wallet.h"
 #include "rpc_call.h"
 #include "version.h"
+#include "bc_height.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 
@@ -42,6 +43,7 @@
 int verbose = 0;
 /* daemon is extern @ globaldefs.h. Run in background */
 int daemonflag = 0;
+
 
 static volatile sig_atomic_t running = 1;
 
@@ -70,6 +72,12 @@ static void printmnp(void);
 
 int main(int argc, char **argv)
 {
+    /* keeps the old status of blockchain hight
+     * needs to be compared with every rpc call
+     * write to fifo pipe if value changed
+     */
+    char *status_bc_height = NULL;
+
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
     signal(SIGINT, initshutdown);
@@ -85,6 +93,8 @@ int main(int argc, char **argv)
     char *rpc_port = NULL;
     char *account = NULL;
     char *workdir = NULL;
+
+    int ret = 0;
 
     /* prepare for reading the config ini file */
     const char *homedir;
@@ -163,6 +173,7 @@ int main(int argc, char **argv)
     } if (daemonflag == 0) {
         daemonflag = atoi(config.mnp_daemon);
     }
+
     const char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
     mode_t mode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
@@ -170,6 +181,75 @@ int main(int argc, char **argv)
 
     if (DEBUG) fprintf(stderr, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
 
+    struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
+    if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
+    if (DEBUG) printf("GET_VERSION = %d\n", GET_VERSION);
+    monero_wallet[0].monero_rpc_method = GET_VERSION;
+
+    /* initialise monero_wallet with NULL */
+    for (int i = 0; i < END_RPC_SIZE; i++) {
+        monero_wallet[i].monero_rpc_method = i;
+        monero_wallet[i].params = NULL;
+        monero_wallet[i].account = NULL;
+        monero_wallet[i].host = NULL;
+        monero_wallet[i].port = NULL;
+        monero_wallet[i].user = NULL;
+        monero_wallet[i].pwd = NULL;
+        monero_wallet[i].reply = NULL;
+    } 
+
+    for (int i = 0; i < END_RPC_SIZE; i++) {
+
+        if (account != NULL) {
+            monero_wallet[i].account = strndup(account, MAX_DATA_SIZE);
+        } else {
+            monero_wallet[i].account = strndup("0", MAX_DATA_SIZE);        
+        }
+        if (rpc_host != NULL) {
+            monero_wallet[i].host = strndup(rpc_host, MAX_DATA_SIZE);
+        } else {
+            fprintf(stderr, "rpc_host is missing\n");
+            exit(EXIT_FAILURE);
+        }
+        if (rpc_port != NULL) {
+            monero_wallet[i].port = strndup(rpc_port, MAX_DATA_SIZE);
+        } else {
+            fprintf(stderr, "rpc_port is missing\n");
+            exit(EXIT_FAILURE);
+        }
+        if (rpc_user != NULL) {
+            monero_wallet[i].user = strndup(rpc_user, MAX_DATA_SIZE);
+        } else {
+            fprintf(stderr, "rpc_user is missing\n");
+            exit(EXIT_FAILURE);
+        }
+        if (rpc_password != NULL) {
+            monero_wallet[i].pwd = strndup(rpc_password, MAX_DATA_SIZE);
+        } else {
+            fprintf(stderr, "rpc_password is missing\n");
+            exit(EXIT_FAILURE);
+        }
+
+        switch (i) {
+            case GET_VERSION:
+                        break;
+            case GET_HEIGHT:
+                        break;
+            case GET_BALANCE:
+                        break;
+            default:
+                        break;
+        }
+    }
+
+    if (DEBUG) {
+    for (int i = 0; i < END_RPC_SIZE; i++) {
+        printf("monero_rpc_method[%d] = %d\n", i, monero_wallet[i].monero_rpc_method);
+        printf("account[%d] = %s\n", i, monero_wallet[i].account);
+        printf("port[%d] = %s\n", i, monero_wallet[i].port);
+    }}
+
+    //monero_rpc_wallet.
     /* prepare url and port to connect to the wallet */
     char *urlport = NULL;
 
@@ -212,53 +292,71 @@ int main(int argc, char **argv)
     fprintf(stdout, "Working directory: %s\n", workdir);
     fprintf(stdout, "Connecting: %s\n", urlport);
 
-     /* GET_VERSION rpc call */
-    int ret = 0;
-    cJSON *ver = NULL;
-    ret = 0;
-    if (0 > (ret = rpc_call(GET_VERSION, NOPARAMS, urlport, userpwd, &ver))) {
-        fprintf(stderr, "could not connect to host: %s\n", urlport);
-        remove_directory(workdir);
-        cJSON_Delete(ver);
-        exit(EXIT_FAILURE);
-    }
-
-    if (0 > (version(&ver))) {
-        fprintf(stderr, "could not parse JSON object version\n");
-        remove_directory(workdir);
-        cJSON_Delete(ver);
-        exit(EXIT_FAILURE);
-    }
-
-    cJSON_Delete(ver);
-
     /* Start daemon */
     if (daemonflag == 1) {
         int retd = daemonize();
         if (verbose && (retd == 0)) fprintf(stdout, "daemon started.\n");
     }
 
+    /* 
+     * declare and initalise BC_HEIGHT
+     * named pipe »bc_height_fifo«
+     * cJSON object »bc_height«
+     */
+    char *bc_height_fifo = NULL;
+    //cJSON *bc_height = NULL;
+
+    ret = 0;
+    asprintf(&bc_height_fifo, "%s/%s", workdir, BC_HEIGHT_FILE);
+
+    if (mkfifo(bc_height_fifo, mode)) {
+            fprintf(stderr, "Could not create named pipe bc_height %s\n", bc_height_fifo);
+            exit(EXIT_FAILURE);
+    }
+   
     /* Start loop */
     fprintf(stdout, "Running\n");
-    while (running) {   }
+    while (running) {
 
-    cJSON *bc_height = NULL;
-    ret = 0;
-
-    if (0 > (ret = rpc_call(GET_HEIGHT, NOPARAMS, urlport, userpwd, &bc_height))) {
+    for (int i = 0; i < (END_RPC_SIZE-1); i++) {
+    if (0 > (ret = rpc_call(&monero_wallet[i]))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
     }
+   
+    switch (i) {
+        case GET_VERSION:
+            if (0 > (version(&(monero_wallet[i]).reply))) {
+                fprintf(stderr, "could not parse JSON object version\n");
+                remove_directory(workdir);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case GET_HEIGHT:
+            status_bc_height = blockchainheight(&(monero_wallet[i]).reply, bc_height_fifo, status_bc_height);
 
-    const cJSON *bc_result = NULL;
-    bc_result = cJSON_GetObjectItem(bc_height, "result");
-    char *res = cJSON_Print(bc_result);
-    fprintf(stdout, "result = %s\n", res);
+            if (status_bc_height == NULL) {
+                fprintf(stderr, "could not parse JSON object height\n");
+                remove_directory(workdir);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case GET_BALANCE:
+                    break;
+        default:
+                    break;
+    }
+    }
+ 
+    ret = usleep(SLEEPTIME); 
+    }
 
     /* delete json + workdir and exit */
     remove_directory(workdir);
-    cJSON_Delete(ver);
-    cJSON_Delete(bc_height);
+    unlink(bc_height_fifo);
+    free(monero_wallet);
+    //cJSON_Delete(bc_height);
+    free(status_bc_height);
 }
 
 /*
