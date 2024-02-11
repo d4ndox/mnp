@@ -18,7 +18,7 @@ default = /tmp/mywallet
 │   └── subaddress2
 ├── payment
 │   ├── paymentID1
-│ 	└── paymentID2
+│   └── paymentID2
 ├── setup
 │   ├── transaction
 │   └── payment
