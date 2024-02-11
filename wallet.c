@@ -34,6 +34,7 @@ int wallet(const char *urlport, const char *cmd, const char *userpwd, char **ans
 
     struct curl_slist *headers = NULL;
     curl_slist_append(headers, CONTENT_TYPE);
+
     curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl_handle, CURLOPT_URL, urlport);
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDSIZE, (long) strlen(cmd));
