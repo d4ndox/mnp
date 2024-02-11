@@ -20,7 +20,7 @@ default = /tmp/mywallet
 │   ├── paymentID1
 │   └── paymentID2
 ├── setup
-│   ├── transaction
+│   ├── transfer
 │   └── payment
 ├── total-balance
 ├── total-unlocked-balance
