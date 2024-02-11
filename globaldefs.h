@@ -25,12 +25,13 @@ struct Config {
     const char  *cfg_mode;
 };
 
-#define GET_HEIGHT      "get_height"
+#define GET_HEIGHT_CMD  "get_height"
+#define BC_HEIGHT_FILE  "bc_height"
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"
-#define GET_VERSION     "get_version"
+#define GET_VERSION_CMD "get_version"
 #define MAJOR_MASK      (0xFFFF0000)
 #define MINOR_MASK      (0x0000FFFF)
-
+#define SLEEPTIME       (5000)
 #endif
