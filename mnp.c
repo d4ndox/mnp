@@ -355,7 +355,6 @@ int main(int argc, char **argv)
     remove_directory(workdir);
     unlink(bc_height_fifo);
     free(monero_wallet);
-    //cJSON_Delete(bc_height);
     free(status_bc_height);
 }
 
