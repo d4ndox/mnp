@@ -39,11 +39,20 @@ or read the total balance:
 
 ```bash
 $ cat total-balance
-0000000000000
+599990
 ```
 
 This allows interaction with any scripting language (perl, python, php, bash, zsh, ...)
+Please be aware that a Unix command reads in BLOCKING mode - until mnp writes to the pipe. 
+With "bc_height" this is done every 2 minutes on avarage. 
+"inotifywait" notifies you if a file or pipe is modified.
 
+```bash
+$ inotifywait -m /tmp/mywallet/payment/ -e close_write -r |
+    while read dir action file; do
+        python check_payment.py ${dir}/${file}
+    done
+```
 
 ### Compile
 
@@ -106,7 +115,7 @@ The config file ~/.mnp.ini:
 ; Monero named pipes (mnp)
 ; Configuration file for mnp.
 
-[rpc]							;rpc host configuration
+[rpc]                           ;rpc host configuration
 user = username                 ;rpc user
 password = password             ;rpc password
 host = 127.0.0.1                ;rpc ip address or domain
