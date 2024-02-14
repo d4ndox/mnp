@@ -22,10 +22,8 @@ default = /tmp/mywallet
 ├── setup
 │   ├── transfer
 │   └── payment
-├── total-balance
-├── total-unlocked-balance
-├── bc_height
-└── version
+├── balance
+└── bc_height
 ```
 
 **Example:**
@@ -37,7 +35,7 @@ Read the blockchain height:
 $ cat /tmp/mywallet/bc_height
 ```
 
-or monitor the total balance:
+Monitor the total balance and write it to a logfile:
 
 ```bash
 #!/bin/bash
@@ -46,7 +44,7 @@ while inotifywait -e modify /tmp/mywallet/balance; do
 done
 ```
 
-This allows interaction with any scripting language (perl, python, php, bash, zsh, ...)
+This allows interaction with any scripting language (perl, python, bash, ...)
 Please be aware that a Unix command reads in BLOCKING mode - BLOCKED until mnp writes to the pipe. 
 mnp writes the blockchain height to the pipe named "bc_height". This is done every 2 minutes on avarage. 
 "inotifywait" notifies you if a file or pipe is modified.
