@@ -29,17 +29,21 @@ default = /tmp/mywallet
 ```
 
 **Example:**
-Monitor the blockchain height:
+
+Read the blockchain height:
 
 ```bash
-$ inotifywait /tmp/mywallet/bc_height
+# wait 2 minutes for reply
+$ cat /tmp/mywallet/bc_height
 ```
 
-or read the total balance:
+or monitor the total balance:
 
 ```bash
-$ cat total-balance
-599990
+#!/bin/bash
+while inotifywait -e modify /tmp/mywallet/balance; do
+    cat /tmp/mywallet/balance >> logfile;
+done
 ```
 
 This allows interaction with any scripting language (perl, python, php, bash, zsh, ...)
