@@ -6,8 +6,8 @@ mnp is developed with the *UNIX-philosophy* in mind and allows interaction throu
 
 ## Getting started
 
-mnp will create a set of files and directories allowing you to control the client with command line tools.
-default = /tmp/mywallet
+mnp will create a set of files and directories - allowing you to control and check for incoming payments with command line tools.
+Default = /tmp/mywallet
 
 
 ```bash
