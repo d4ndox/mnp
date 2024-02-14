@@ -43,12 +43,12 @@ $ cat total-balance
 ```
 
 This allows interaction with any scripting language (perl, python, php, bash, zsh, ...)
-Please be aware that a Unix command reads in BLOCKING mode - until mnp writes to the pipe. 
-With "bc_height" this is done every 2 minutes on avarage. 
+Please be aware that a Unix command reads in BLOCKING mode - BLOCKED until mnp writes to the pipe. 
+mnp writes the blockchain height to the pipe named "bc_height". This is done every 2 minutes on avarage. 
 "inotifywait" notifies you if a file or pipe is modified.
 
 ```bash
-$ inotifywait -m /tmp/mywallet/payment/ -e close_write -r |
+$ inotifywait -m /tmp/mywallet/ -e close_write -r |
     while read dir action file; do
         python check_payment.py ${dir}/${file}
     done
