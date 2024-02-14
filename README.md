@@ -51,9 +51,9 @@ mnp writes the blockchain height to the pipe named "bc_height". This is done eve
 
 ```bash
 $ inotifywait -m /tmp/mywallet/ -e close_write -r |
-    while read dir action file; do
-        python check_payment.py ${dir}/${file}
-    done
+  while read dir action file; do
+      python check_payment.py ${dir}/${file}
+  done
 ```
 
 ### Compile
