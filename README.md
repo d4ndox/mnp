@@ -26,16 +26,21 @@ Default = /tmp/mywallet
 └── bc_height
 ```
 
-**Example:**
+### Example:
 
-Read the blockchain height:
+#### Read the blockchain height:
+
+Please be aware that a Unix command reads in BLOCKING mode - BLOCKED until mnp writes to the pipe. 
+mnp writes the blockchain height to the pipe named "bc_height". This is done every 2 minutes on avarage. 
 
 ```bash
 # wait 2 minutes for reply
 $ cat /tmp/mywallet/bc_height
 ```
 
-Monitor the total balance and write it to a logfile:
+#### Monitor the balance:
+
+"inotifywait" notifies you if a file or pipe is modified.
 
 ```bash
 #!/bin/bash
@@ -44,10 +49,10 @@ while inotifywait -e modify /tmp/mywallet/balance; do
 done
 ```
 
+#### Monitor /tmp/wallet:
+
 This allows interaction with any scripting language (perl, python, bash, ...)
-Please be aware that a Unix command reads in BLOCKING mode - BLOCKED until mnp writes to the pipe. 
-mnp writes the blockchain height to the pipe named "bc_height". This is done every 2 minutes on avarage. 
-"inotifywait" notifies you if a file or pipe is modified.
+Use "--exclude <pattern>" to exclude files from beeing monitored.
 
 ```bash
 $ inotifywait -m /tmp/mywallet/ -e close_write -r |
@@ -55,6 +60,7 @@ $ inotifywait -m /tmp/mywallet/ -e close_write -r |
       python check_payment.py ${dir}/${file}
   done
 ```
+
 
 ### Compile
 
