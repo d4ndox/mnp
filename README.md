@@ -40,7 +40,8 @@ $ cat /tmp/mywallet/bc_height
 
 #### Monitor the balance:
 
-"inotifywait" notifies you if a file or pipe is modified.
+"inotifywait" notifies you if a file or pipe is modified. ```sudo apt-get install inotify-tools```
+inotifywait works passiv - the operating system takes care.
 
 ```bash
 #!/bin/bash
