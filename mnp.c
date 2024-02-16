@@ -1,5 +1,4 @@
-/*
- * Monero Named Pipes (mnp) is a Unix Monero wallet client.
+/* * Monero Named Pipes (mnp) is a Unix Monero wallet client.
  * Copyright (C) 2019-2020
  * http://mnp4i54qnixz336alilggo4zkxgf35oj7kodkli2as4q6gpvvy5lxrad.onion
  *
@@ -36,6 +35,7 @@
 #include "rpc_call.h"
 #include "version.h"
 #include "bc_height.h"
+#include "balance.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 
@@ -77,6 +77,7 @@ int main(int argc, char **argv)
      * write to fifo pipe if value changed
      */
     char *status_bc_height = NULL;
+    char *status_balance = NULL;
 
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
@@ -203,7 +204,7 @@ int main(int argc, char **argv)
         if (account != NULL) {
             monero_wallet[i].account = strndup(account, MAX_DATA_SIZE);
         } else {
-            monero_wallet[i].account = strndup("0", MAX_DATA_SIZE);        
+            monero_wallet[i].account = strndup("0", MAX_DATA_SIZE);
         }
         if (rpc_host != NULL) {
             monero_wallet[i].host = strndup(rpc_host, MAX_DATA_SIZE);
@@ -236,6 +237,8 @@ int main(int argc, char **argv)
             case GET_HEIGHT:
                         break;
             case GET_BALANCE:
+                        //asprintf(&(monero_wallet[i]).monero_rpc_method, "%s", GET_BALANCE_CMD);
+                        //monero_wallet[i].params = strndup(/sprintrpc_user, MAX_DATA_SIZE);
                         break;
             default:
                         break;
@@ -299,26 +302,33 @@ int main(int argc, char **argv)
     }
 
     /* 
-     * declare and initalise BC_HEIGHT
+     * declare and initalise 
+     * BC_HEIGHT
+     * BALANCE
      * named pipe »bc_height_fifo«
      * cJSON object »bc_height«
      */
     char *bc_height_fifo = NULL;
-    //cJSON *bc_height = NULL;
+    char *balance_fifo = NULL;
 
     ret = 0;
     asprintf(&bc_height_fifo, "%s/%s", workdir, BC_HEIGHT_FILE);
+    asprintf(&balance_fifo, "%s/%s", workdir, BALANCE_FILE);
 
     if (mkfifo(bc_height_fifo, mode)) {
             fprintf(stderr, "Could not create named pipe bc_height %s\n", bc_height_fifo);
             exit(EXIT_FAILURE);
     }
-   
+    if (mkfifo(balance_fifo, mode)) {
+            fprintf(stderr, "Could not create named pipe balance %s\n", balance_fifo);
+            exit(EXIT_FAILURE);
+    }
+
     /* Start loop */
     fprintf(stdout, "Running\n");
     while (running) {
 
-    for (int i = 0; i < (END_RPC_SIZE-1); i++) {
+    for (int i = 0; i < (END_RPC_SIZE-3); i++) {
     if (0 > (ret = rpc_call(&monero_wallet[i]))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
@@ -342,9 +352,18 @@ int main(int argc, char **argv)
             }
             break;
         case GET_BALANCE:
-                    break;
+            status_balance = balance(&(monero_wallet[i]).reply, balance_fifo, status_balance);
+
+            if (status_balance == NULL) {
+                fprintf(stderr, "could not parse JSON object balance\n");
+                remove_directory(workdir);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        //case GET_NONLOCKED_BALANCE:
+        //    break;
         default:
-                    break;
+            break;
     }
     }
  
@@ -356,6 +375,7 @@ int main(int argc, char **argv)
     unlink(bc_height_fifo);
     free(monero_wallet);
     free(status_bc_height);
+    free(status_balance);
 }
 
 /*
