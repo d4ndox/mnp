@@ -28,12 +28,12 @@ Default = /tmp/mywallet
 
 ### Three tiny example
 
-To get an idea on how mnp works I recommend to study the three examples.
+To get an idea on how mnp works please study those three examples.
 For more details see "How to setup a payment".
 
 #### 1. Read the blockchain height:
 
-Please be aware that a Unix command reads in BLOCKING mode - A new block is found every 2 minutes on avarage.
+A new block is found every 2 minutes on avarage.
 
 ```bash
 # wait 2 minutes for reply
@@ -42,7 +42,7 @@ $ cat /tmp/mywallet/bc_height
 
 #### 2. Monitor the balance:
 
-"inotifywait" returns if the pipe is modified. ```sudo apt-get install inotify-tools```
+```sudo apt-get install inotify-tools```
 inotifywait works passiv - the operating system takes care of the rest.
 
 ```bash
@@ -55,7 +55,6 @@ done
 #### 3. Monitor /tmp/wallet:
 
 This allows interaction with any scripting language (perl, python, ...)
-Use "--exclude <pattern>" to exclude files from beeing monitored.
 
 ```bash
 $ inotifywait -m /tmp/mywallet/ -e close_write -r |
