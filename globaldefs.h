@@ -27,6 +27,9 @@ struct Config {
 
 #define GET_HEIGHT_CMD  "get_height"
 #define BC_HEIGHT_FILE  "bc_height"
+#define GET_BALANCE_CMD "get_balance"
+#define BALANCE_FILE    "total-balance"
+#define GET_SUBADDR_CMD "get_address"
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"
