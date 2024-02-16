@@ -146,8 +146,9 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 
 ## How to setup a payment
 
-Three ways to monitor a payment. But you start by listing all subaddresses and decide which address
-to use. I do NOT recommend the subaddress on index 0.
+Three ways to monitor a payment. You start by listing all subaddresses and decide which address
+to use (index 0 is NOT recommend).
+
 List all subaddresses and indices with the command mnp-payment:
 
 ```bash
