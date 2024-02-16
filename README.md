@@ -26,8 +26,9 @@ Default = /tmp/mywallet
 └── bc_height
 ```
 
-### Three tiny example to get an idea.
+### Three tiny example
 
+To get an idea on how mnp works I recommend to study the three examples.
 For more details see "How to setup a payment".
 
 #### 1. Read the blockchain height:
