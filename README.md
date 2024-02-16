@@ -65,6 +65,8 @@ $ inotifywait -m /tmp/mywallet/ -e close_write -r |
 
 ### Compile
 
+libcurl is required to build mnp.
+
 ```bash
 $ cd mnp
 $ mkdir build
@@ -75,7 +77,7 @@ $ make install
 
 ### Verify
 
-My public gpg_key :
+My public gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 *Please audit the source code.*
 
