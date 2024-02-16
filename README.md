@@ -120,8 +120,7 @@ $ mnp --rpc_host 127.0.0.1 --rpc_port 18083 --rpc_password password --rpc_user u
 
 ### Config file ~/.mnp.ini:
 
-The config file makes things easier. The config file is used by both `mnp` and `mnp-payment`.
-`make install` copies this template of .mnp.ini to your HOME directory.
+The config file makes things easier. It is used by both `mnp` and `mnp-payment`.
 
 ```bash
 ; Monero named pipes (mnp)
