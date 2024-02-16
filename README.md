@@ -78,9 +78,9 @@ $ make install
 
 ### Verify
 
-My public gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
+To verify a release you can use the gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
-*Please audit the source code.*
+*Please also help audit the source code.*
 
 
 ## How to run mnp?
@@ -119,9 +119,9 @@ $ monero-wallet-rpc --testnet --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rp
 $ mnp --rpc_host 127.0.0.1 --rpc_port 18083 --rpc_password password --rpc_user username --workdir="/tmp/mywallet"
 ```
 
-### Config
+### Config file ~/.mnp.ini:
 
-The config file ~/.mnp.ini:
+The config file makes things easier. The config file is used by both `mnp` and `mnp-payment`.
 
 ```bash
 ; Monero named pipes (mnp)
@@ -145,7 +145,9 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 
 ## How to setup a payment
 
-List all subaddresses and indices.
+Three ways to monitor a payment. But you start by listing all subaddresses and decide which address
+to use. I do NOT recommend the subaddress on index 0.
+List all subaddresses and indices with the command mnp-payment:
 
 ```bash
 $ ./mnp-payment --list
