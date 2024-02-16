@@ -64,7 +64,7 @@ $ inotifywait -m /tmp/mywallet/ -e close_write -r |
   done
 ```
 
-## Hot to build mnp
+## How to build mnp
 
 'libcurl' is required to build mnp.
 
