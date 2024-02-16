@@ -142,7 +142,7 @@ workdir = /tmp/mywallet         ;wallet working directory
 mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 ```
 
-###Payment
+### Payment
 
 List all subaddresses and indices.
 
