@@ -26,9 +26,11 @@ Default = /tmp/mywallet
 └── bc_height
 ```
 
-### Example:
+### Three tiny example to get an idea.
 
-#### Read the blockchain height:
+For more details see "How to setup a payment".
+
+#### 1. Read the blockchain height:
 
 Please be aware that a Unix command reads in BLOCKING mode - BLOCKED until mnp writes to the pipe. 
 mnp writes the blockchain height to the pipe named "bc_height". This is done every 2 minutes on avarage. 
@@ -38,7 +40,7 @@ mnp writes the blockchain height to the pipe named "bc_height". This is done eve
 $ cat /tmp/mywallet/bc_height
 ```
 
-#### Monitor the balance:
+#### 2. Monitor the balance:
 
 "inotifywait" notifies you if a file or pipe is modified. ```sudo apt-get install inotify-tools```
 inotifywait works passiv - the operating system takes care.
@@ -50,7 +52,7 @@ while inotifywait -e modify /tmp/mywallet/balance; do
 done
 ```
 
-#### Monitor /tmp/wallet:
+#### 3. Monitor /tmp/wallet:
 
 This allows interaction with any scripting language (perl, python, bash, ...)
 Use "--exclude <pattern>" to exclude files from beeing monitored.
@@ -62,10 +64,9 @@ $ inotifywait -m /tmp/mywallet/ -e close_write -r |
   done
 ```
 
+## Hot to build mnp
 
-### Compile
-
-libcurl is required to build mnp.
+'libcurl' is required to build mnp.
 
 ```bash
 $ cd mnp
