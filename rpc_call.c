@@ -47,20 +47,48 @@ int rpc_call(struct rpc_wallet *monero_wallet)
         fprintf(stderr, "rpc_user and/or rpc_password is missing\n");
         return -1;
     }
-    
-    char *method = helperfunction(monero_wallet->monero_rpc_method);
 
-    /*
+     /*
      * Pack the method string into a JSON frame for rpc call.
      */
-    cJSON *rpc_frame = cJSON_CreateObject();
+    char *method = get_method(monero_wallet->monero_rpc_method);
 
+
+    /*
+     * Pack the param string into a JSON frame for rpc call
+     * accoring method used
+     */
+    cJSON *rpc_params = cJSON_CreateObject();
+
+    if (DEBUG) fprintf(stderr, "para %s\n", monero_wallet[GET_LIST].params);
+    switch (monero_wallet->monero_rpc_method) {
+        case GET_VERSION:
+            rpc_params = NULL;
+            break;
+        case GET_HEIGHT:
+            rpc_params = NULL;
+            break;
+        case GET_BALANCE:
+            if (DEBUG) fprintf(stderr, "Here is BALANCE\n");
+            if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
+            break;
+        case GET_LIST:
+            if (DEBUG) fprintf(stderr, "Here is GET_LIST\n");
+            if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
+           break;
+        default:
+            rpc_params = NULL;
+            break;
+    }
+
+    cJSON *rpc_frame = cJSON_CreateObject();
     if (cJSON_AddStringToObject(rpc_frame, "jsonrpc", JSON_RPC) == NULL) ret = -1;
     if (cJSON_AddStringToObject(rpc_frame, "id", "0") == NULL) ret = -1;
     if (cJSON_AddStringToObject(rpc_frame, "method", method) == NULL) ret = -1;
+    if (rpc_params != NULL) cJSON_AddItemToObject(rpc_frame, "params", rpc_params);
 
     char *method_call = cJSON_Print(rpc_frame);
-
+    if (DEBUG) fprintf(stderr, "method_call = %s\n", method_call);
     if (method_call == NULL) ret = -1;
 
     /*
@@ -103,72 +131,11 @@ int rpc_call(struct rpc_wallet *monero_wallet)
     cJSON_Delete(error);
     free(method);
     free(method_call);
-    free(reply);
-    return ret;
-}
-
-int rpc_call2(const char *method, const char *params, const char *urlport, const char *userpwd, cJSON **rpc_reply)
-{
-    int ret = 0;
-
-    /*
-     * Pack the method string into a JSON frame for rpc call.
-     */
-    cJSON *rpc_frame = cJSON_CreateObject();
-
-    if (cJSON_AddStringToObject(rpc_frame, "jsonrpc", JSON_RPC) == NULL) ret = -1;
-    if (cJSON_AddStringToObject(rpc_frame, "id", "0") == NULL) ret = -1;
-    if (cJSON_AddStringToObject(rpc_frame, "method", method) == NULL) ret = -1;
-
-    char *method_call = cJSON_Print(rpc_frame);
-
-    if (method_call == NULL) ret = -1;
-
-    /*
-     * rpc method call send to the wallet
-     */
-    char *reply = NULL;
-    if (0 > (ret = wallet(urlport, method_call, userpwd, &reply))) {
-        fprintf(stderr, "could not connect to host: %s\n", urlport);
-        ret = -1;
-    }
-
-    /*
-     * rpc_reply is the return value of this function
-     * testing for errors while parseing the JSON string.
-     */
-    *rpc_reply = cJSON_Parse(reply);
-    if (rpc_reply == NULL) {
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL) {
-            fprintf(stderr, "Error before: %s\n", error_ptr);
-            ret = -1;
-        }
-    }
-
-    /*
-     * Check for error code returned from wallet(rpc) call
-     * test rpc_reply for any error codes.
-     */
-    cJSON *error = cJSON_GetObjectItemCaseSensitive(*rpc_reply, "error");
-    const cJSON *mesg = cJSON_GetObjectItemCaseSensitive(error, "message");
-
-    if (error != NULL && mesg->valuestring != NULL) {
-        fprintf(stderr, "error message rpc: %s\n", mesg->valuestring);
-        ret = -1;
-    }
-
-    if (DEBUG) fprintf(stdout, "%d bytes received\n", ret);
-
-    cJSON_Delete(rpc_frame);
-    cJSON_Delete(error);
-    free(method_call);
-    free(reply);
     return ret;
 }
 
 
-char* helperfunction(enum monero_rpc_method method)
+char* get_method(enum monero_rpc_method method)
 {
     char *mtd = NULL;
 
@@ -180,10 +147,13 @@ char* helperfunction(enum monero_rpc_method method)
             asprintf(&mtd, "%s", GET_HEIGHT_CMD);
                 break;
         case GET_BALANCE:
+            asprintf(&mtd, "%s", GET_BALANCE_CMD);
+                break;
+        case GET_LIST:
+            asprintf(&mtd, "%s", GET_SUBADDR_CMD);
                 break;
         default:
                 break;
-
     }        
     return mtd;
 }
