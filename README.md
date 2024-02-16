@@ -77,7 +77,7 @@ $ make install
 
 ### Verify
 
-To verify a release you can use the gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
+gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 *Please also help audit the source code.*
 
