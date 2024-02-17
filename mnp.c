@@ -328,7 +328,7 @@ int main(int argc, char **argv)
     fprintf(stdout, "Running\n");
     while (running) {
 
-    for (int i = 0; i < (END_RPC_SIZE-3); i++) {
+    for (int i = 0; i < (END_RPC_SIZE-2); i++) {
     if (0 > (ret = rpc_call(&monero_wallet[i]))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
