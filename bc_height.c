@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include "./cjson/cJSON.h"
 #include "bc_height.h"
@@ -71,6 +72,7 @@ char* blockchainheight(cJSON **reply, char *bc_height_fifo, char *status_bc_heig
     }
 
     if (pid > 0 && cmp != 0) {
+           signal(SIGCHLD,SIG_IGN);
            status_bc_height = strndup(oheight, MAX_DATA_SIZE);
            if (verbose) fprintf(stderr, "bc_height increased: %s\n", oheight);
     }
