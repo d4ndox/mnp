@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include "./cjson/cJSON.h"
 #include "balance.h"
@@ -48,10 +49,10 @@ char* balance(cJSON **reply, char *balance_fifo, char *status_balance)
 
     cmp = strncmp(obalance, status_balance, MAX_DATA_SIZE);
     
-    if(DEBUG) fprintf(stderr, "total-balance = %s\n", obalance);
     if (cmp == 0) {
         return status_balance;
     } else {
+        if (verbose) fprintf(stderr, "total-balance = %s\n", obalance);
         fd = open(balance_fifo, O_NONBLOCK, O_RDONLY);
         ret = read(fd, dummy, MAX_DATA_SIZE);
         close(fd);
@@ -72,6 +73,7 @@ char* balance(cJSON **reply, char *balance_fifo, char *status_balance)
     }
 
     if (pid > 0 && cmp != 0) {
+           signal(SIGCHLD,SIG_IGN);
            status_balance = strndup(obalance, MAX_DATA_SIZE);
            if (verbose) fprintf(stderr, "balance total: %s\n", obalance);
     }
