@@ -147,12 +147,53 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 Three ways to monitor a payment. You start by listing all subaddresses and decide which address
 to use (index 0 is NOT recommend).
 
+### Without paymentID
+
+Typically used for donations.
+
 List all subaddresses and indices with the command mnp-payment:
 
 ```bash
 $ ./mnp-payment --list
 0 "A13iyF9bN7ReDPWW7FZoqd1Nwvhfh2UbAMBR4UeGPi1aWpERgmE3ChMeJZJ2RnkMueHdL7XXwdkQJ5As8XRhTKAhSwjahXd"
 1 "Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB"
+```
+
+Return the subaddress at index x. 
+Prepare subaddr for incoming transfer.
+Create a QR code for the payment.
+
+
+```bash
+$ ./mnp-payment --subaddr 1
+Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
+
+$ ./mnp-payment --subaddr 1 > /tmp/mywallet/setup/transfer
+
+$ ./mnp-payment --subaddr 1 > qrencode -tUTF8
+█████████████████████████████████████████████
+█████████████████████████████████████████████
+████ ▄▄▄▄▄ █▀█ █▄█▄ ▄▀ █▄▀▄█▀ █ ▄█ ▄▄▄▄▄ ████
+████ █   █ █▀▀▀█ ▀ █▄▀█▄█ ▀▄ ▀ ▄▀█ █   █ ████
+████ █▄▄▄█ █▀ █▀▀█▄▀▄▀▀█▄█▀██▀▀ ▄█ █▄▄▄█ ████
+████▄▄▄▄▄▄▄█▄▀ ▀▄█ █▄█ ▀▄▀▄▀ █▄█ █▄▄▄▄▄▄▄████
+████  ▄▄ █▄   ▀▄▀▀▄  ▀██ ▀▀▀▄▄▄ ▀ ▀ █ █▄█████
+████▀▀  ▀ ▄██ ▄█▀█ ▄██ ▀█ ▄▀▄█ ▄███   ▄▄ ████
+█████▄█ █▀▄█▄▄▄█▄ ▄▄  ▄▀▀▀▄▄▄█ ▀  ▄▀▄█▄▀█████
+████▄█▄▀▄ ▄▄█▀█ ▄▄ ▄▀█▄█▄▀█▀██▀▄▄▄▄█ ██ ▄████
+████ █▄▄▀▀▄████▄▀▄▀▄▀▄▄ ▀▄ ▀█ ▄█▀   ▄███▄████
+████▄▄ ▀▀█▄█ ███▀▄▀▄▄▄ ▀▀ ▀▀█▄▀ █▄ ▄▀█▄▄ ████
+████▄█ █▀▀▄██▀▀█▄▄ ▄ ▀▀▀▀█▀██▄      ▄  ▀█████
+██████▀ █▀▄▀▄▄█ ▄█  █▄ ██ ▀▀▀██▄ █ ▀ █▄▄ ████
+████ ▄▀▀▀▀▄▄▄██▄▀▄▄▀ ▄█▄▀▄ ▀▄▄ ▄▀▄▄▀█▄█▄▄████
+████ █▀ ▄█▄  █▀█▀▄█  ▄██▄ ▀█▀▄ ▄ ▀▀ █▀█▄▄████
+████▄█▄█▄▄▄▄ █ █▄▀▄▀▀ ██▀▄ ▀▀█   ▄▄▄ ▀ █ ████
+████ ▄▄▄▄▄ █▄▄▀ ▄█▄▄▄▄ █▀ █▀█▄▀▄ █▄█  █▄ ████
+████ █   █ █ ██▄ █▄   ▀▀▀▄ ▀█▀▄▄     █▄█▄████
+████ █▄▄▄█ █ ▄ ▀ ▄█ ▄███▄ ▀████ ▀▀█▄█▄█▄ ████
+████▄▄▄▄▄▄▄█▄▄█▄▄██▄███▄▄███▄▄▄█████▄▄█▄▄████
+█████████████████████████████████████████████
+█████████████████████████████████████████████
 ```
 
 ## Information

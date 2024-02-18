@@ -20,6 +20,7 @@ struct rpc_wallet {
        char *port;
        char *user;
        char *pwd;
+       int   idx;
        cJSON *reply;
 };
  
