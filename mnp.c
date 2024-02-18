@@ -342,17 +342,23 @@ int main(int argc, char **argv)
 
     /* 
      * declare and initalise 
+     * named pipe (mkfifo)
      * BC_HEIGHT
      * BALANCE
-     * named pipe »bc_height_fifo«
+     * SETUP_TRANSFER
+     * SETUP_PAYMENT
      * cJSON object »bc_height«
      */
     char *bc_height_fifo = NULL;
     char *balance_fifo = NULL;
+    char *setup_transfer_fifo = NULL;
+    char *setup_payment_fifo = NULL;
 
     ret = 0;
     asprintf(&bc_height_fifo, "%s/%s", workdir, BC_HEIGHT_FILE);
     asprintf(&balance_fifo, "%s/%s", workdir, BALANCE_FILE);
+    asprintf(&setup_transfer_fifo, "%s/%s", setupdir, SETUP_TRANSFER);
+    asprintf(&setup_payment_fifo, "%s/%s", setupdir, SETUP_PAYMENT);
 
     if (mkfifo(bc_height_fifo, mode)) {
             fprintf(stderr, "Could not create named pipe bc_height %s\n", bc_height_fifo);
@@ -360,6 +366,14 @@ int main(int argc, char **argv)
     }
     if (mkfifo(balance_fifo, mode)) {
             fprintf(stderr, "Could not create named pipe balance %s\n", balance_fifo);
+            exit(EXIT_FAILURE);
+    }
+    if (mkfifo(setup_transfer_fifo, mode)) {
+            fprintf(stderr, "Could not create named pipe transfer %s\n", setup_transfer_fifo);
+            exit(EXIT_FAILURE);
+    }
+    if (mkfifo(setup_payment_fifo, mode)) {
+            fprintf(stderr, "Could not create named pipe payment %s\n", setup_payment_fifo);
             exit(EXIT_FAILURE);
     }
 

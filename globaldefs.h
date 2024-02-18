@@ -32,6 +32,9 @@ struct Config {
 #define GET_SUBADDR_CMD "get_address"
 
 #define SETUP_DIR       "setup"
+#define SETUP_TRANSFER  "transfer"
+#define SETUP_PAYMENT   "payment"
+
 #define TRANSFER_DIR    "transfer"
 #define PAYMENT_DIR     "payment"
 
