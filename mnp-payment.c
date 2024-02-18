@@ -53,6 +53,7 @@ static int handler(void *user, const char *section,
 static char *optstring = "hu:r:i:p:a:s:vl";
 static void usage(int status);
 static void printmnp(void);
+char* delQuotes(char *str);
 
 int main(int argc, char **argv)
 {
@@ -201,7 +202,7 @@ int main(int argc, char **argv)
     if (account == NULL) asprintf(&account, "0");
 
     if (list == 1) {
-          asprintf(&(monero_wallet[GET_LIST]).params, "{\"account_index\":%s}", account);
+          //asprintf(&(monero_wallet[GET_LIST]).params, "{\"account_index\":%s}", account);
 
           if (0 > (ret = rpc_call(&monero_wallet[GET_LIST]))) {
               fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_LIST].host,
@@ -219,14 +220,29 @@ int main(int argc, char **argv)
               cJSON *subadr = cJSON_GetArrayItem(address, i);
               idx = cJSON_GetObjectItem(subadr, "address_index");
               adr = cJSON_GetObjectItem(subadr, "address");
-              fprintf(stderr, "%s %s\n", cJSON_Print(idx),
+
+              fprintf(stdout, "%s %s\n", cJSON_Print(idx),
                                                     cJSON_Print(adr));
           }
     }
-
+    
     if (subaddr >= 0) {
+          monero_wallet[GET_SUBADDR].idx = subaddr;
 
+          if (0 > (ret = rpc_call(&monero_wallet[GET_SUBADDR]))) {
+              fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_SUBADDR].host,
+                                                                    monero_wallet[GET_SUBADDR].port);
+              exit(EXIT_FAILURE);
+          }
+          cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_SUBADDR].reply, "result");
+          cJSON *address = cJSON_GetObjectItem(result, "addresses");
+          cJSON *subadr = cJSON_GetArrayItem(address, 0);
+          cJSON *adr = cJSON_GetObjectItem(subadr, "address");
+          char *retaddr = delQuotes(cJSON_Print(adr));
+          fprintf(stdout, "%s\n", retaddr);
+          free(retaddr);
     }
+
     return 0;
 }
 
@@ -293,6 +309,28 @@ static void usage(int status)
     "Use mnp --help for more information\n"
     "Monero Named Pipes.\n"
     );
+}
+
+
+/*
+ * Delete Quotes
+ * first and last character in string
+ * is removed
+ */
+char* delQuotes(char *str) {
+    int length = strlen(str);
+    char* ret = malloc((length-2) * sizeof(char));
+
+    /* Return empty string */
+    if (length <= 2) {
+        char* empty =  malloc(1 * sizeof(char));
+        empty[0] = '\0';
+        return empty;
+    } else {
+        strncpy(ret, str+1, length-2);
+    }
+
+    return ret;
 }
 
 
