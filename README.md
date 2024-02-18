@@ -147,10 +147,6 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 Three ways to monitor a payment. You start by listing all subaddresses and decide which address
 to use.
 
-### Without paymentId
-
-Typically used for donations.
-
 List all subaddresses: (index 0 = Primary Address).
 
 ```bash
@@ -159,13 +155,17 @@ $ ./mnp-payment --list
 1 "Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB"
 ```
 
-Return the subaddress at index x. 
+### Without paymentId
+
+A simple transfer. Typically used for donations.
+Using mnp-payment to return the subaddress at index x. 
 
 ```bash
 $ ./mnp-payment --subaddr 1
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 
 # Setup mnp to watch for incoming transfer on address.
+# mnp will create a new pipe on /tmp/mywallet/Bdxcxb...3ubLB
 $ ./mnp-payment --subaddr 1 > /tmp/mywallet/setup/transfer
 
 # Create a QR code for the payment.
