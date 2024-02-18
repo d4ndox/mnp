@@ -30,6 +30,11 @@ struct Config {
 #define GET_BALANCE_CMD "get_balance"
 #define BALANCE_FILE    "balance"
 #define GET_SUBADDR_CMD "get_address"
+
+#define SETUP_DIR       "setup"
+#define TRANSFER_DIR    "transfer"
+#define PAYMENT_DIR     "payment"
+
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"

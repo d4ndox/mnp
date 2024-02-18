@@ -95,6 +95,9 @@ int main(int argc, char **argv)
     char *account = NULL;
     char *workdir = NULL;
 
+    char *setupdir = NULL;
+    char *transferdir = NULL;
+    char *paymentdir = NULL;
     int ret = 0;
 
     /* prepare for reading the config ini file */
@@ -289,6 +292,42 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     } else if (mkdir(workdir, mode) && errno != EEXIST) {
         fprintf(stderr, "Could not open workdir %s.\n", workdir);
+        exit(EXIT_FAILURE);
+    }
+
+    /* create setupdir directory. TEST if directory does exist */
+    struct stat setup;
+
+    asprintf(&setupdir, "%s/%s", workdir, SETUP_DIR);
+    if (stat(setupdir, &setup) == 0 && S_ISDIR(setup.st_mode)) {
+        fprintf(stderr, "Could not open setupdir: %s. Directory does exists already.\n", setupdir);
+        exit(EXIT_FAILURE);
+    } else if (mkdir(setupdir, mode) && errno != EEXIST) {
+        fprintf(stderr, "Could not open setupdir %s.\n", setupdir);
+        exit(EXIT_FAILURE);
+    }
+
+    /* create transferdir directory. TEST if directory does exist */
+    struct stat transfer;
+
+    asprintf(&transferdir, "%s/%s", workdir, TRANSFER_DIR);
+    if (stat(transferdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
+        fprintf(stderr, "Could not open transferdir: %s. Directory does exists already.\n", transferdir);
+        exit(EXIT_FAILURE);
+    } else if (mkdir(transferdir, mode) && errno != EEXIST) {
+        fprintf(stderr, "Could not open transferdir %s.\n", transferdir);
+        exit(EXIT_FAILURE);
+    }
+
+    /* create paymentdir directory. TEST if directory does exist */
+    struct stat payment;
+
+    asprintf(&paymentdir, "%s/%s", workdir, PAYMENT_DIR);
+    if (stat(paymentdir, &payment) == 0 && S_ISDIR(payment.st_mode)) {
+        fprintf(stderr, "Could not open paymentdir: %s. Directory does exists already.\n", paymentdir);
+        exit(EXIT_FAILURE);
+    } else if (mkdir(paymentdir, mode) && errno != EEXIST) {
+        fprintf(stderr, "Could not open paymentdir %s.\n", paymentdir);
         exit(EXIT_FAILURE);
     }
 
