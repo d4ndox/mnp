@@ -144,7 +144,7 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 
 ## How to set up a payment
 
-Three ways to monitor a payment. You start by listing all subaddresses and decide which address
+Two ways to monitor a payment. You start by listing all subaddresses and decide which address
 to use.
 (index 0 = Primary Address).
 
@@ -160,15 +160,15 @@ A simple transfer. Typically used for donations.
 Using mnp-payment to return the subaddress at index x. 
 
 ```bash
-$ ./mnp-payment --subaddr 1
+$ mnp-payment --noid --subaddr 1
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 
-# Setup mnp to watch for incoming transfer on address.
+# Set up mnp to watch for incoming transfer on address index x.
 # mnp will create a new pipe on /tmp/mywallet/transfer/Bdxcxb...3ubLB
-$ ./mnp-payment --subaddr 1 > /tmp/mywallet/setup/transfer
+$ mnp-payment --noid --subaddr 1 > /tmp/mywallet/setup/transfer
 
 # Create a QR code for the payment.
-$ ./mnp-payment --subaddr 1 > qrencode -tUTF8
+$ mnp-payment --noid --subaddr 1 > qrencode -tUTF8
 █████████████████████████████████████████████
 ████ ▄▄▄▄▄ █▀█ █▄█▄ ▄▀ █▄▀▄█▀ █ ▄█ ▄▄▄▄▄ ████
 ████ █   █ █▀▀▀█ ▀ █▄▀█▄█ ▀▄ ▀ ▄▀█ █   █ ████
@@ -192,7 +192,9 @@ $ ./mnp-payment --subaddr 1 > qrencode -tUTF8
 █████████████████████████████████████████████
 
 # Read amount received. BLOCKED read until transfer is done.
-cat /tmp/mywallet/transfer/Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
+$ donation=$(cat /tmp/mywallet/transfer/Bdxcxb5Wk...Mo3ubLB)
+$ echo "Thank you for donating" $donation "piconero"
+Thank you for donating 25000 piconero
 ```
 
 ## Information
