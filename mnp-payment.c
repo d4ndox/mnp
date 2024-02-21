@@ -45,14 +45,16 @@ static const struct option options[] = {
         {"subaddr"      , required_argument, NULL, 's'},
         {"version"      , no_argument      , NULL, 'v'},
         {"list"         , no_argument      , NULL, 'l'},
+        {"noid"         , no_argument      , NULL, 'n'},
 	{NULL, 0, NULL, 0}
 };
 
 static int handler(void *user, const char *section,
                    const char *name, const char *value);
-static char *optstring = "hu:r:i:p:a:s:vl";
+static char *optstring = "hu:r:i:p:a:s:vln";
 static void usage(int status);
 static void printmnp(void);
+static char *readStdin(int *length);
 char* delQuotes(char *str);
 
 int main(int argc, char **argv)
@@ -64,9 +66,11 @@ int main(int argc, char **argv)
     char *rpc_host = NULL;
     char *rpc_port = NULL;
     char *account = NULL;
+    char *paymentId = NULL;
     int subaddr = -1;
-
+    int length = -1;
     int list = 0;
+    int noId = 0;
     int ret = 0;
 
     /* prepare for reading the config ini file */
@@ -121,6 +125,9 @@ int main(int argc, char **argv)
             case 'l':
                 list = 1;
                 break;
+            case 'n':
+                noId = 1;
+                break;
             case 0:
 	        break;
             default:
@@ -139,6 +146,16 @@ int main(int argc, char **argv)
         rpc_host = strndup(config.rpc_host, MAX_DATA_SIZE);
     } if (rpc_port == NULL) {
         rpc_port = strndup(config.rpc_port, MAX_DATA_SIZE);
+    }
+
+    if (list == 0 && noId == 0) {
+        if (optind < argc) {
+            paymentId = (char *)argv[optind];
+            length = strlen((char *)paymentId);
+        }
+        if (paymentId == NULL) {
+            paymentId = readStdin(&length);
+        }
     }
 
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
@@ -226,7 +243,7 @@ int main(int argc, char **argv)
           }
     }
     
-    if (subaddr >= 0) {
+    if (subaddr >= 0 && noId == 1) {
           monero_wallet[GET_SUBADDR].idx = subaddr;
 
           if (0 > (ret = rpc_call(&monero_wallet[GET_SUBADDR]))) {
@@ -243,8 +260,48 @@ int main(int argc, char **argv)
           free(retaddr);
     }
 
+    if (subaddr >= 0 && length > 0) {
+        if (length != 17) {
+            fprintf(stderr, "Invalid payment Id. (16 characters hex)\n");
+            exit(EXIT_FAILURE);
+        }
+        fprintf(stderr, "length = %d\n", length);
+
+    }
+
     return 0;
 }
+
+
+/* 
+ * read paymentId from stdin 
+ */
+static char *readStdin(int *length)
+{
+    char *buffer;
+    int ret;
+
+    buffer = (char *)malloc(MAX_DATA_SIZE + 1);
+    if(buffer == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    ret = fread(buffer, 1, MAX_DATA_SIZE, stdin);
+    if(ret == 0) {
+        fprintf(stderr, "No input data.\n");
+        exit(EXIT_FAILURE);
+    }
+    if(feof(stdin) == 0) {
+        fprintf(stderr, "Input data is too large.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    buffer[ret] = '\0';
+    *length = ret;
+
+    return buffer;
+}
+
 
 
 /*
@@ -300,6 +357,8 @@ static void usage(int status)
     "               list all subaddresses + address_indices.\n\n"
     "  -s  --subaddr [INDEX]\n"
     "               returns subaddress on INDEX.\n\n"
+    "  -n  --noid\n"
+    "               no paymentId. Ignore Stdin. returns the subaddress.\n\n"
     "  -v, --version\n"
     "               Display the version number of mnp.\n\n"
     "  -h, --help   Display this help message.\n"
