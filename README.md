@@ -1,4 +1,4 @@
-#Monero Named Pipes
+# Monero Named Pipes
 
 Monero named pipes (mnp) is a payment processor, using named pipes, to monitor incoming payments on 
 a shell like bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and allows interaction through named pipes.
@@ -28,12 +28,12 @@ Default = /tmp/mywallet
 
 ### Three tiny example
 
-To get an idea on how mnp works please study those three examples.
-For more details see "How to setup a payment".
+To get an idea on how mnp works, please study those three examples.
+For more details, see "How to set up a payment".
 
 #### 1. Read the blockchain height:
 
-A new block is found every 2 minutes on avarage.
+A new block is found every 2 minutes on average.
 
 ```bash
 # wait 2 minutes for reply
@@ -43,7 +43,7 @@ $ cat /tmp/mywallet/bc_height
 #### 2. Monitor the balance:
 
 ```sudo apt-get install inotify-tools```
-inotifywait works passiv - the operating system takes care of the rest.
+inotifywait works passive - the operating system takes care of the rest.
 
 ```bash
 #!/bin/bash
@@ -54,7 +54,7 @@ done
 
 #### 3. Monitor /tmp/wallet:
 
-This allows interaction with any scripting language (perl, python, ...)
+This allows interaction with any scripting language (Perl, Python, ...)
 
 ```bash
 $ inotifywait -m /tmp/mywallet/ -e close_write -r |
@@ -142,7 +142,7 @@ workdir = /tmp/mywallet         ;wallet working directory
 mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 ```
 
-## How to setup a payment
+## How to set up a payment
 
 Three ways to monitor a payment. You start by listing all subaddresses and decide which address
 to use.
@@ -197,7 +197,7 @@ cat /tmp/mywallet/transfer/Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4
 
 ## Information
 
-License: »GPLv3«
+Licence: »GPLv3«
 
 Author: »Unknown« (d4ndo)
 
