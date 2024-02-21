@@ -27,8 +27,10 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#include <poll.h>
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
 #include "wallet.h"
@@ -38,6 +40,7 @@
 #include "balance.h"
 #include "globaldefs.h"
 #include <inttypes.h>
+#include <unistd.h>
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
 int verbose = 0;
@@ -99,6 +102,9 @@ int main(int argc, char **argv)
     char *transferdir = NULL;
     char *paymentdir = NULL;
     int ret = 0;
+    
+    struct pollfd poll_setup_fds[2];
+    int timeout_msecs = 500;
 
     /* prepare for reading the config ini file */
     const char *homedir;
@@ -291,7 +297,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Could not open workdir: %s. Directory does exists already.\n", workdir);
         exit(EXIT_FAILURE);
     } else if (mkdir(workdir, mode) && errno != EEXIST) {
-        fprintf(stderr, "Could not open workdir %s.\n", workdir);
+        fprintf(stderr, "Could not create workdir %s.\n", workdir);
         exit(EXIT_FAILURE);
     }
 
@@ -303,7 +309,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Could not open setupdir: %s. Directory does exists already.\n", setupdir);
         exit(EXIT_FAILURE);
     } else if (mkdir(setupdir, mode) && errno != EEXIST) {
-        fprintf(stderr, "Could not open setupdir %s.\n", setupdir);
+        fprintf(stderr, "Could not create setupdir %s.\n", setupdir);
         exit(EXIT_FAILURE);
     }
 
@@ -315,7 +321,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Could not open transferdir: %s. Directory does exists already.\n", transferdir);
         exit(EXIT_FAILURE);
     } else if (mkdir(transferdir, mode) && errno != EEXIST) {
-        fprintf(stderr, "Could not open transferdir %s.\n", transferdir);
+        fprintf(stderr, "Could not create transferdir %s.\n", transferdir);
         exit(EXIT_FAILURE);
     }
 
@@ -327,7 +333,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Could not open paymentdir: %s. Directory does exists already.\n", paymentdir);
         exit(EXIT_FAILURE);
     } else if (mkdir(paymentdir, mode) && errno != EEXIST) {
-        fprintf(stderr, "Could not open paymentdir %s.\n", paymentdir);
+        fprintf(stderr, "Could not create paymentdir %s.\n", paymentdir);
         exit(EXIT_FAILURE);
     }
 
@@ -359,6 +365,7 @@ int main(int argc, char **argv)
     asprintf(&balance_fifo, "%s/%s", workdir, BALANCE_FILE);
     asprintf(&setup_transfer_fifo, "%s/%s", setupdir, SETUP_TRANSFER);
     asprintf(&setup_payment_fifo, "%s/%s", setupdir, SETUP_PAYMENT);
+    fprintf(stderr, "setup_transfer_fifo = %s\n", setup_transfer_fifo);
 
     if (mkfifo(bc_height_fifo, mode)) {
             fprintf(stderr, "Could not create named pipe bc_height %s\n", bc_height_fifo);
@@ -377,7 +384,15 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
-    /* Start loop */
+    /* prepare setup input for poll eveent. */
+    poll_setup_fds[0].fd = open(setup_transfer_fifo, O_RDWR);
+    poll_setup_fds[1].fd = open(setup_payment_fifo, O_RDWR);
+    poll_setup_fds[0].events = POLLIN;
+    poll_setup_fds[1].events = POLLIN;
+
+    /* 
+     * Start main loop
+     */
     fprintf(stdout, "Running\n");
     while (running) {
 
@@ -418,14 +433,50 @@ int main(int argc, char **argv)
         default:
             break;
     }
+
+    /* 
+     * PARSE SETUP transfer
+     */
+      ret = poll(poll_setup_fds, 2, timeout_msecs);
+      if (ret > 0) {
+          /* /tmp/mywallet/setup/transfer */
+          if (poll_setup_fds[0].revents & POLLIN) {
+              char *tadr = malloc(MAX_ADDR_SIZE * sizeof(char));
+              ret = read(poll_setup_fds[0].fd, tadr, MAX_ADDR_SIZE);
+              tadr[MAX_ADDR_SIZE] = '\0';
+              int len = strlen(tadr);
+              if (len == MAX_ADDR_SIZE) {
+                  if (verbose) fprintf(stderr, "setup/transfer = %s\n", tadr);
+              }
+              free(tadr);
+          }
+
+          /* /tmp/mywallet/setup/payment */
+          if (poll_setup_fds[1].revents & POLLIN) {
+              char *payId = malloc(MAX_PAYID_SIZE * sizeof(char));
+              ret = read(poll_setup_fds[1].fd, payId, MAX_PAYID_SIZE);
+              payId[MAX_PAYID_SIZE] = '\0';
+              int len = strlen(payId);
+              if (len == MAX_PAYID_SIZE) {
+                  if (verbose) fprintf(stderr, "setup/payment = %s\n", payId);
+              }
+              free(payId);
+          }
+      }
     }
  
     ret = usleep(SLEEPTIME); 
     }
 
     /* delete json + workdir and exit */
-    remove_directory(workdir);
     unlink(bc_height_fifo);
+    unlink(balance_fifo);
+    unlink(setup_transfer_fifo);
+    unlink(setup_payment_fifo);
+    remove_directory(setupdir);
+    remove_directory(transferdir);
+    remove_directory(paymentdir);
+    remove_directory(workdir);
     free(monero_wallet);
     free(status_bc_height);
     free(status_balance);
