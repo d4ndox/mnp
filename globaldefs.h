@@ -2,6 +2,8 @@
 #define GLOBALDEFS_H
 
 #define MAX_DATA_SIZE   (2048)
+#define MAX_ADDR_SIZE   (95)
+#define MAX_PAYID_SIZE  (16)
 #define VERSION         "0.0.1"
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
