@@ -23,6 +23,9 @@
 #include "wallet.h"
 #include "globaldefs.h"
 
+/* defined redundant because of static */
+static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
 int wallet(const char *urlport, const char *cmd, const char *userpwd, char **answer)
 {
     CURL *curl_handle;
@@ -40,7 +43,6 @@ int wallet(const char *urlport, const char *cmd, const char *userpwd, char **ans
     curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, cmd);
     curl_easy_setopt(curl_handle, CURLOPT_USERPWD, userpwd);
     curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, (long)CURLAUTH_DIGEST);
-    struct curl_httppost *post;
     curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(curl_handle, CURLOPT_USE_SSL, CURLUSESSL_TRY);
 

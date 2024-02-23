@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 2.8.11.2)
 
 project(mnp)
-add_definitions(-std=c99)
+add_definitions(-std=c99 -Wall)
 
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
