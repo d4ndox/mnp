@@ -33,6 +33,8 @@ struct Config {
 #define BALANCE_FILE    "balance"
 #define GET_SUBADDR_CMD "get_address"
 
+#define MK_IADDR_CMD    "make_integrated_address"
+
 #define SETUP_DIR       "setup"
 #define SETUP_TRANSFER  "transfer"
 #define SETUP_PAYMENT   "payment"
