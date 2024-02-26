@@ -208,16 +208,17 @@ $ mypaymentId=$(openssl rand -hex 8)
 $ echo $mypaymentId
 e02c381aa2227436
 
-# Create an integrated address. (subaddress including payment Id)
-$ echo $mypaymentId | mnp-payment --subaddr 1
+# Create an integrated address. No need to spezify a subaddress -
+# Priamary 0 is default by Monero spezification.
+$ echo $mypaymentId | mnp-payment
 AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
 
-# Set up mnp to watch for a incoming payment on address index x.
+# Set up mnp to watch for a incoming payment on payment Id.
 # mnp will create a new pipe on /tmp/mywallet/payment/e02c381aa2227436
-$ mnp-payment --subaddr 1 $mypaymentId  > /tmp/mywallet/setup/payment
+$ mnp-payment $mypaymentId  > /tmp/mywallet/setup/payment
 
 # Create a QR code for the payment.
-$ mnp-payment --subaddr 1 $mypaymentId | qrencode -tUTF8
+$ mnp-payment $mypaymentId | qrencode -tUTF8
 █████████████████████████████████████████████████
 ████ ▄▄▄▄▄ █▀█▄ ▀ ▀ ▄ ▄▄▄▄▀▄█▀▀▀▄ ▀█▄█ ▄▄▄▄▄ ████
 ████ █   █ █▀▀▀▄▀▄▀█▀▄▄▄▀ ▄█▀▀▀▀▄██▄▄█ █   █ ████
