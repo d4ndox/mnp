@@ -54,7 +54,7 @@ static int handler(void *user, const char *section,
 static char *optstring = "hu:r:i:p:a:s:vln";
 static void usage(int status);
 static void printmnp(void);
-static char *readStdin(int *length);
+static char *readStdin(void);
 char* delQuotes(char *str);
 
 int main(int argc, char **argv)
@@ -68,7 +68,6 @@ int main(int argc, char **argv)
     char *account = NULL;
     char *paymentId = NULL;
     int subaddr = -1;
-    int length = -1;
     int list = 0;
     int noId = 0;
     int ret = 0;
@@ -151,10 +150,11 @@ int main(int argc, char **argv)
     if (list == 0 && noId == 0) {
         if (optind < argc) {
             paymentId = (char *)argv[optind];
-            length = strlen((char *)paymentId);
+            //length = strlen((char *)paymentId);
         }
         if (paymentId == NULL) {
-            paymentId = readStdin(&length);
+            paymentId = readStdin();
+            //length = MAX_PAYID_SIZE;
         }
     }
 
@@ -245,7 +245,10 @@ int main(int argc, char **argv)
           }
     }
     
-    /* mnp-payment --subaddr 1 --noid */
+    /* 
+     * mnp-payment --subaddr 1 --noid 
+     * returns subaddress
+     */
     if (subaddr >= 0 && noId == 1) {
           monero_wallet[GET_SUBADDR].idx = subaddr;
 
@@ -263,40 +266,28 @@ int main(int argc, char **argv)
           free(retaddr);
     }
 
-    /* openssl rand --hex 8 | mnp-payment --subaddr 1 */
-    if (subaddr >= 0 && length > 0) {
-        if (length != 17) {
+    /* 
+     * openssl rand --hex 8 | mnp-payment --subaddr 1 
+     * returns integrated address.
+     */
+    if (subaddr >= 0 && paymentId != NULL) {
+        if (strlen(paymentId) != 16) {
             fprintf(stderr, "Invalid payment Id. (16 characters hex)\n");
             exit(EXIT_FAILURE);
-        }
-        fprintf(stderr, "id = %d\n", subaddr);
-        fprintf(stderr, "length = %d\n", length);
-
-        monero_wallet[GET_SUBADDR].idx = subaddr;
-
-        if (0 > (ret = rpc_call(&monero_wallet[GET_SUBADDR]))) {
-            fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_SUBADDR].host,
-                                                                  monero_wallet[GET_SUBADDR].port);
-            exit(EXIT_FAILURE);
-        }
-        cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_SUBADDR].reply, "result");
-        cJSON *address = cJSON_GetObjectItem(result, "addresses");
-        cJSON *subadr = cJSON_GetArrayItem(address, 0);
-        cJSON *adr = cJSON_GetObjectItem(subadr, "address");
-        char *retaddr = delQuotes(cJSON_Print(adr));
-        fprintf(stdout, "%s\n", retaddr);
+        }            
 
         monero_wallet[MK_IADDR].idx = subaddr;
-        monero_wallet[MK_IADDR].payid = retaddr;
-        monero_wallet[MK_IADDR].saddr = retaddr;
-
+        monero_wallet[MK_IADDR].payid = strndup(paymentId, MAX_DATA_SIZE);
         if (0 > (ret = rpc_call(&monero_wallet[MK_IADDR]))) {
             fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[MK_IADDR].host,
                                                                   monero_wallet[MK_IADDR].port);
             exit(EXIT_FAILURE);
         }
 
-        free(retaddr);
+        cJSON *result = cJSON_GetObjectItem(monero_wallet[MK_IADDR].reply, "result");
+        cJSON *integrated_address = cJSON_GetObjectItem(result, "integrated_address");
+
+        fprintf(stdout, "%s\n", delQuotes(cJSON_Print(integrated_address)));
     }
 
     return 0;
@@ -306,28 +297,23 @@ int main(int argc, char **argv)
 /* 
  * read paymentId from stdin 
  */
-static char *readStdin(int *length)
+static char *readStdin(void)
 {
     char *buffer;
     int ret;
 
-    buffer = (char *)malloc(MAX_DATA_SIZE + 1);
+    buffer = (char *)malloc(MAX_PAYID_SIZE+1);
     if(buffer == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         exit(EXIT_FAILURE);
     }
-    ret = fread(buffer, 1, MAX_DATA_SIZE, stdin);
+    ret = fread(buffer, 1, MAX_PAYID_SIZE, stdin);
     if(ret == 0) {
         fprintf(stderr, "No input data.\n");
         exit(EXIT_FAILURE);
     }
-    if(feof(stdin) == 0) {
-        fprintf(stderr, "Input data is too large.\n");
-        exit(EXIT_FAILURE);
-    }
 
     buffer[ret] = '\0';
-    *length = ret;
 
     return buffer;
 }
