@@ -34,7 +34,6 @@ char* blockchainheight(cJSON **reply, char *bc_height_fifo, char *status_bc_heig
     int ret = 0;
     int cmp = 0;
     int fd = 0;
-    FILE *fp = NULL;
 
     cJSON *result = cJSON_GetObjectItem(*reply, "result");
     cJSON *height = cJSON_GetObjectItem(result, "height");

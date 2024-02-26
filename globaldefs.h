@@ -2,6 +2,8 @@
 #define GLOBALDEFS_H
 
 #define MAX_DATA_SIZE   (2048)
+#define MAX_ADDR_SIZE   (95)
+#define MAX_PAYID_SIZE  (16)
 #define VERSION         "0.0.1"
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
@@ -30,6 +32,14 @@ struct Config {
 #define GET_BALANCE_CMD "get_balance"
 #define BALANCE_FILE    "balance"
 #define GET_SUBADDR_CMD "get_address"
+
+#define SETUP_DIR       "setup"
+#define SETUP_TRANSFER  "transfer"
+#define SETUP_PAYMENT   "payment"
+
+#define TRANSFER_DIR    "transfer"
+#define PAYMENT_DIR     "payment"
+
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"

@@ -32,6 +32,6 @@ int version(cJSON **version)
     unsigned int minor = (v & MINOR_MASK);
     //if (verbose) fprintf(stdout, "rpc version: v%d.%d\n", major, minor);
 
-    return 0;
+    return ret;
 }
 
