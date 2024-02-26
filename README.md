@@ -160,15 +160,15 @@ A simple transfer. Typically used for donations.
 Using mnp-payment to return the subaddress at index x. 
 
 ```bash
-$ mnp-payment --noid --subaddr 1
+$ mnp-payment --subaddr 1
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 
 # Set up mnp to watch for incoming transfer on address index x.
 # mnp will create a new pipe on /tmp/mywallet/transfer/Bdxcxb...3ubLB
-$ mnp-payment --noid --subaddr 1 > /tmp/mywallet/setup/transfer
+$ mnp-payment --subaddr 1 > /tmp/mywallet/setup/transfer
 
 # Create a QR code for the payment.
-$ mnp-payment --noid --subaddr 1 | qrencode -tUTF8
+$ mnp-payment --subaddr 1 | qrencode -tUTF8
 █████████████████████████████████████████████
 ████ ▄▄▄▄▄ █▀█ █▄█▄ ▄▀ █▄▀▄█▀ █ ▄█ ▄▄▄▄▄ ████
 ████ █   █ █▀▀▀█ ▀ █▄▀█▄█ ▀▄ ▀ ▄▀█ █   █ ████
