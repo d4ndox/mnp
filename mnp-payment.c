@@ -172,6 +172,9 @@ int main(int argc, char **argv)
         monero_wallet[i].port = NULL;
         monero_wallet[i].user = NULL;
         monero_wallet[i].pwd = NULL;
+        monero_wallet[i].payid = NULL;
+        monero_wallet[i].saddr = NULL;
+        monero_wallet[i].idx = 0;
         monero_wallet[i].reply = NULL;
     } 
 
@@ -218,9 +221,8 @@ int main(int argc, char **argv)
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");
 
+    /* mnp-payment --list */
     if (list == 1) {
-          //asprintf(&(monero_wallet[GET_LIST]).params, "{\"account_index\":%s}", account);
-
           if (0 > (ret = rpc_call(&monero_wallet[GET_LIST]))) {
               fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_LIST].host,
                                                                     monero_wallet[GET_LIST].port);
@@ -243,6 +245,7 @@ int main(int argc, char **argv)
           }
     }
     
+    /* mnp-payment --subaddr 1 --noid */
     if (subaddr >= 0 && noId == 1) {
           monero_wallet[GET_SUBADDR].idx = subaddr;
 
@@ -260,13 +263,40 @@ int main(int argc, char **argv)
           free(retaddr);
     }
 
+    /* openssl rand --hex 8 | mnp-payment --subaddr 1 */
     if (subaddr >= 0 && length > 0) {
         if (length != 17) {
             fprintf(stderr, "Invalid payment Id. (16 characters hex)\n");
             exit(EXIT_FAILURE);
         }
+        fprintf(stderr, "id = %d\n", subaddr);
         fprintf(stderr, "length = %d\n", length);
 
+        monero_wallet[GET_SUBADDR].idx = subaddr;
+
+        if (0 > (ret = rpc_call(&monero_wallet[GET_SUBADDR]))) {
+            fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_SUBADDR].host,
+                                                                  monero_wallet[GET_SUBADDR].port);
+            exit(EXIT_FAILURE);
+        }
+        cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_SUBADDR].reply, "result");
+        cJSON *address = cJSON_GetObjectItem(result, "addresses");
+        cJSON *subadr = cJSON_GetArrayItem(address, 0);
+        cJSON *adr = cJSON_GetObjectItem(subadr, "address");
+        char *retaddr = delQuotes(cJSON_Print(adr));
+        fprintf(stdout, "%s\n", retaddr);
+
+        monero_wallet[MK_IADDR].idx = subaddr;
+        monero_wallet[MK_IADDR].payid = retaddr;
+        monero_wallet[MK_IADDR].saddr = retaddr;
+
+        if (0 > (ret = rpc_call(&monero_wallet[MK_IADDR]))) {
+            fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[MK_IADDR].host,
+                                                                  monero_wallet[MK_IADDR].port);
+            exit(EXIT_FAILURE);
+        }
+
+        free(retaddr);
     }
 
     return 0;
