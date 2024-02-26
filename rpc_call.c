@@ -52,14 +52,12 @@ int rpc_call(struct rpc_wallet *monero_wallet)
      */
     char *method = get_method(monero_wallet->monero_rpc_method);
 
-
     /*
      * Pack the param string into a JSON frame for rpc call
      * accoring method used
      */
     cJSON *rpc_params = cJSON_CreateObject();
 
-    if (DEBUG) fprintf(stderr, "para %s\n", monero_wallet[GET_LIST].params);
     switch (monero_wallet->monero_rpc_method) {
         case GET_VERSION:
             rpc_params = NULL;
@@ -80,6 +78,11 @@ int rpc_call(struct rpc_wallet *monero_wallet)
             cJSON_AddItemToArray(subarray, index);
             cJSON_AddItemToObject(rpc_params, "address_index", subarray);
             break;
+        case MK_IADDR:
+              if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddNumberToObject(rpc_params, "address_index", monero_wallet->idx) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "payment_id", monero_wallet->payid) == NULL) ret = -1;
+            break;
         default:
             rpc_params = NULL;
             break;
@@ -92,7 +95,6 @@ int rpc_call(struct rpc_wallet *monero_wallet)
     if (rpc_params != NULL) cJSON_AddItemToObject(rpc_frame, "params", rpc_params);
 
     char *method_call = cJSON_Print(rpc_frame);
-    if (DEBUG) fprintf(stderr, "method_call = %s\n", method_call);
     if (method_call == NULL) ret = -1;
 
     /*
@@ -155,8 +157,12 @@ char* get_method(enum monero_rpc_method method)
                 break;
         case GET_LIST:
             asprintf(&mtd, "%s", GET_SUBADDR_CMD);
+                break;
         case GET_SUBADDR:
             asprintf(&mtd, "%s", GET_SUBADDR_CMD);
+                break;
+        case MK_IADDR:
+            asprintf(&mtd, "%s", MK_IADDR_CMD);
                 break;
         default:
                 break;
