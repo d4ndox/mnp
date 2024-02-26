@@ -45,13 +45,12 @@ static const struct option options[] = {
         {"subaddr"      , required_argument, NULL, 's'},
         {"version"      , no_argument      , NULL, 'v'},
         {"list"         , no_argument      , NULL, 'l'},
-        {"noid"         , no_argument      , NULL, 'n'},
 	{NULL, 0, NULL, 0}
 };
 
 static int handler(void *user, const char *section,
                    const char *name, const char *value);
-static char *optstring = "hu:r:i:p:a:s:vln";
+static char *optstring = "hu:r:i:p:a:s:vl";
 static void usage(int status);
 static void printmnp(void);
 static char *readStdin(void);
@@ -69,7 +68,6 @@ int main(int argc, char **argv)
     char *paymentId = NULL;
     int subaddr = -1;
     int list = 0;
-    int noId = 0;
     int ret = 0;
 
     /* prepare for reading the config ini file */
@@ -124,9 +122,6 @@ int main(int argc, char **argv)
             case 'l':
                 list = 1;
                 break;
-            case 'n':
-                noId = 1;
-                break;
             case 0:
 	        break;
             default:
@@ -147,7 +142,7 @@ int main(int argc, char **argv)
         rpc_port = strndup(config.rpc_port, MAX_DATA_SIZE);
     }
 
-    if (list == 0 && noId == 0) {
+    if (list == 0 && subaddr < 0) {
         if (optind < argc) {
             paymentId = (char *)argv[optind];
             //length = strlen((char *)paymentId);
@@ -246,10 +241,10 @@ int main(int argc, char **argv)
     }
     
     /* 
-     * mnp-payment --subaddr 1 --noid 
+     * mnp-payment --subaddr 1 
      * returns subaddress
      */
-    if (subaddr >= 0 && noId == 1) {
+    if (subaddr >= 0) {
           monero_wallet[GET_SUBADDR].idx = subaddr;
 
           if (0 > (ret = rpc_call(&monero_wallet[GET_SUBADDR]))) {
@@ -267,16 +262,16 @@ int main(int argc, char **argv)
     }
 
     /* 
-     * openssl rand --hex 8 | mnp-payment --subaddr 1 
+     * openssl rand --hex 8 | mnp-payment 
      * returns integrated address.
      */
-    if (subaddr >= 0 && paymentId != NULL) {
+    if (paymentId != NULL) {
         if (strlen(paymentId) != 16) {
             fprintf(stderr, "Invalid payment Id. (16 characters hex)\n");
             exit(EXIT_FAILURE);
         }            
 
-        monero_wallet[MK_IADDR].idx = subaddr;
+        monero_wallet[MK_IADDR].idx = 0;
         monero_wallet[MK_IADDR].payid = strndup(paymentId, MAX_DATA_SIZE);
         if (0 > (ret = rpc_call(&monero_wallet[MK_IADDR]))) {
             fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[MK_IADDR].host,
@@ -373,8 +368,6 @@ static void usage(int status)
     "               list all subaddresses + address_indices.\n\n"
     "  -s  --subaddr [INDEX]\n"
     "               returns subaddress on INDEX.\n\n"
-    "  -n  --noid\n"
-    "               no paymentId. Ignore Stdin. returns the subaddress.\n\n"
     "  -v, --version\n"
     "               Display the version number of mnp.\n\n"
     "  -h, --help   Display this help message.\n"
