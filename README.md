@@ -154,7 +154,7 @@ $ ./mnp-payment --list
 1 "Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB"
 ```
 
-### Without paymentId
+### Without payment Id
 
 A simple transfer. Typically used for donations.
 Using mnp-payment to return the subaddress at index x. 
@@ -168,7 +168,7 @@ Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASM
 $ mnp-payment --noid --subaddr 1 > /tmp/mywallet/setup/transfer
 
 # Create a QR code for the payment.
-$ mnp-payment --noid --subaddr 1 > qrencode -tUTF8
+$ mnp-payment --noid --subaddr 1 | qrencode -tUTF8
 █████████████████████████████████████████████
 ████ ▄▄▄▄▄ █▀█ █▄█▄ ▄▀ █▄▀▄█▀ █ ▄█ ▄▄▄▄▄ ████
 ████ █   █ █▀▀▀█ ▀ █▄▀█▄█ ▀▄ ▀ ▄▀█ █   █ ████
@@ -195,6 +195,57 @@ $ mnp-payment --noid --subaddr 1 > qrencode -tUTF8
 $ donation=$(cat /tmp/mywallet/transfer/Bdxcxb5Wk...Mo3ubLB)
 $ echo "Thank you for donating" $donation "piconero"
 Thank you for donating 25000 piconero
+```
+
+### Include a payment Id
+
+A retailer would use this to be able to match their orders to the payment.
+Something like an invoice number.
+
+```bash
+# Create a random paymentid (16 hex character)
+$ mypaymentId=$(openssl rand -hex 8)
+$ echo $mypaymentId
+e02c381aa2227436
+
+# Create an integrated address. (subaddress including payment Id)
+$ echo $mypaymentId | mnp-payment --subaddr 1
+AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
+
+# Set up mnp to watch for a incoming payment on address index x.
+# mnp will create a new pipe on /tmp/mywallet/payment/e02c381aa2227436
+$ mnp-payment --subaddr 1 $mypaymentId  > /tmp/mywallet/setup/payment
+
+# Create a QR code for the payment.
+$ mnp-payment --subaddr 1 $mypaymentId | qrencode -tUTF8
+█████████████████████████████████████████████████
+████ ▄▄▄▄▄ █▀█▄ ▀ ▀ ▄ ▄▄▄▄▀▄█▀▀▀▄ ▀█▄█ ▄▄▄▄▄ ████
+████ █   █ █▀▀▀▄▀▄▀█▀▄▄▄▀ ▄█▀▀▀▀▄██▄▄█ █   █ ████
+████ █▄▄▄█ █▀█ ▀▄ █ ▀▀▄█▀ ▀▄█▄█▀   █▄█ █▄▄▄█ ████
+████▄▄▄▄▄▄▄█▄█▄▀ █▄▀▄█▄█▄▀ █▄█▄█▄█ █ █▄▄▄▄▄▄▄████
+████▄   ▄█▄  ▄█ ▀▄▀  ▄▀█ ▄▄██ ▀█▀▄▀█▀▄▀ ▀▄▀▄█████
+████ ▀▄█  ▄▄ ██▄▄█▀▄██▄█ ▀██▄▄▄ ██▄▀ ██▀█ ▄█▀████
+████▄▄▀▄█▄▄█▀▀▀█▄█▀▀▀▀▄█▀ █▀▄▄▄█▀ ▀█ ▀█▄▀▄▀▀▀████
+████ ▄▄▀ █▄██ ▀ ▄▄██▀██ ▀▀ ██▄█ █▄████▀██▀███████
+██████▀▀▄▀▄█ ▄▀▄▄▀ ▀▀▀▀▄▀▄  ▀▀ █▀ █ ▄▀▀▀ ▄█▄▀████
+████▄ ▄▀▄▄▄ ▄█ ██ ▄   ▀███▄▀ ▄ ▄▀█ ▀ ▄█▄▄▀█ █████
+████▄█▄▄▀█▄▄█▄ █▀█▄ ▄█▀█▄ ▄█▄▄ ▄ ▄▀▀▀█▀▀ ▄ ▀▄████
+████▄   ▀ ▄██▀██▀▄█ ▄███▄ ████  ▄█▄▀███▄ ▀███████
+████▀▄█ ▀▄▄▄▀  ▀▄▄▄▄▀▄▄▀ ▀▄▄█▄▄▄ ▄▀█ ▀█ ▀▄  █████
+████▄▀▄ ▄█▄▀  ████▀  █▄▀  ▀▀ █ ▄ ▄▀▀ ▄▀  █▄▀█████
+████ ▄ ▄ █▄█ █▀█▄▀▀▀▀█▄█▀▄▀█▄▄▀▄ ███ ▄▀   ▄▀█████
+████ █▀▀▄▄▄▀█▀▀ ▄▄▄█▀▄▄ ▀ ▀▀█▄█▄▄█▀██▀█▄█ ▄█▀████
+████▄██▄▄▄▄▄ ██ █ ▄▀▀▀▀▄ █▀█▄█▄█ ▄▄  ▄▄▄ █▄  ████
+████ ▄▄▄▄▄ █▄████ ▄ █ ▀█▄█▄██▄ ▄▀█▀▀ █▄█  ▄▀█████
+████ █   █ █  ▄▄▀▀▄▀▄█▀█▄ ▄ ▄▄▀█▀▄▄█▄▄▄ ▄ ▄  ████
+████ █▄▄▄█ █ █▄█▀▄▀ ▄▄▄█▄ ▀█ █▀  █▄▀█▀▀▀ ▀█▀█████
+████▄▄▄▄▄▄▄█▄█▄█▄█▄▄█▄████▄▄▄█▄▄███▄█▄████▄██████
+█████████████████████████████████████████████████
+
+# Read amount received. BLOCKED read until transfer is done.
+$ payment=$(cat /tmp/mywallet/payment/"$mypaymentId")
+$ echo "Thank you for your payment" $payment "piconero"
+Thank you for your payment 25000 piconero
 ```
 
 ## Information
