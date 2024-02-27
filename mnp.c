@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     int ret = 0;
     
     struct pollfd poll_setup_fds[2];
-    int timeout_msecs = 500;
+    int timeout_msecs = POLLTIMEOUT;
 
     /* prepare for reading the config ini file */
     const char *homedir;
@@ -439,28 +439,26 @@ int main(int argc, char **argv)
      */
       ret = poll(poll_setup_fds, 2, timeout_msecs);
       if (ret > 0) {
+          FILE *fp;
+          char *line = NULL;
+          size_t len = 0;
+          ssize_t r;
+
+
           /* /tmp/mywallet/setup/transfer */
           if (poll_setup_fds[0].revents & POLLIN) {
-              char *tadr = malloc(MAX_ADDR_SIZE * sizeof(char));
-              ret = read(poll_setup_fds[0].fd, tadr, MAX_ADDR_SIZE);
-              tadr[MAX_ADDR_SIZE] = '\0';
-              int len = strlen(tadr);
-              if (len == MAX_ADDR_SIZE) {
-                  if (verbose) fprintf(stderr, "setup/transfer = %s\n", tadr);
-              }
-              free(tadr);
+              fp = fdopen(poll_setup_fds[0].fd,  "r");
+              r = getline(&line, &len, fp);
+              if (verbose) fprintf(stderr, "setup/transfer = %s", line);
+              free(line);
           }
 
           /* /tmp/mywallet/setup/payment */
           if (poll_setup_fds[1].revents & POLLIN) {
-              char *payId = malloc(MAX_PAYID_SIZE * sizeof(char));
-              ret = read(poll_setup_fds[1].fd, payId, MAX_PAYID_SIZE);
-              payId[MAX_PAYID_SIZE] = '\0';
-              int len = strlen(payId);
-              if (len == MAX_PAYID_SIZE) {
-                  if (verbose) fprintf(stderr, "setup/payment = %s\n", payId);
-              }
-              free(payId);
+              fp = fdopen(poll_setup_fds[1].fd,  "r");
+              r = getline(&line, &len, fp);
+              if (verbose) fprintf(stderr, "setup/payment = %s", line);
+              free(line);
           }
       }
     }
