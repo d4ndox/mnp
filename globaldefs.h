@@ -2,6 +2,7 @@
 #define GLOBALDEFS_H
 
 #define MAX_DATA_SIZE   (2048)
+#define MAX_IADDR_SIZE  (105)
 #define MAX_ADDR_SIZE   (95)
 #define MAX_PAYID_SIZE  (16)
 #define VERSION         "0.0.1"
@@ -49,4 +50,5 @@ struct Config {
 #define MAJOR_MASK      (0xFFFF0000)
 #define MINOR_MASK      (0x0000FFFF)
 #define SLEEPTIME       (5000)
+#define POLLTIMEOUT     (500)
 #endif
