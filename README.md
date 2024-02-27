@@ -26,7 +26,7 @@ Default = /tmp/mywallet
 └── bc_height
 ```
 
-### Three tiny example
+### Example
 
 To get an idea on how mnp works, please study those three examples.
 For more details, see "How to set up a payment".
