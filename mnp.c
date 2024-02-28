@@ -438,8 +438,8 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
             break;
-        //case GET_NONLOCKED_BALANCE:
-        //    break;
+        case GET_BULK_PAYMENTS:
+            break;
         default:
             fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
             break;
