@@ -271,8 +271,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }            
 
-        monero_wallet[MK_IADDR].idx = 0;
-        monero_wallet[MK_IADDR].payid = strndup(paymentId, MAX_DATA_SIZE);
+        monero_wallet[MK_IADDR].payid = strndup(paymentId, MAX_PAYID_SIZE);
         if (0 > (ret = rpc_call(&monero_wallet[MK_IADDR]))) {
             fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[MK_IADDR].host,
                                                                   monero_wallet[MK_IADDR].port);
@@ -297,7 +296,7 @@ static char *readStdin(void)
     char *buffer;
     int ret;
 
-    buffer = (char *)malloc(MAX_PAYID_SIZE+1);
+    buffer = (char *)malloc(MAX_PAYID_SIZE);
     if(buffer == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         exit(EXIT_FAILURE);
