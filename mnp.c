@@ -65,12 +65,6 @@ static const struct option options[] = {
 	{NULL, 0, NULL, 0}
 };
 
-struct payment {
-    char *payid;
-    char *iaddr;
-    char *amount;
-};
-
 static char *optstring = "hu:r:i:p:a:w:vd";
 static void usage(int status);
 static int handler(void *user, const char *section,
@@ -397,7 +391,6 @@ int main(int argc, char **argv)
     poll_setup_fds[0].events = POLLIN;
     poll_setup_fds[1].events = POLLIN;
 
-    struct payment *paymentlist = NULL;
     int paylistsize = 0;
 
     /* 
@@ -439,6 +432,15 @@ int main(int argc, char **argv)
             }
             break;
         case GET_BULK_PAYMENTS:
+            /* prepare the payment Id array */
+            //cJSON_CreateArray("[0,1,2]");
+            //if (0 > (ret = rpc_call(&monero_wallet[GET_BULK_PAYMENTS]))) {
+            //    fprintf(stderr, "BULK: could not connect to host: %s\n", urlport);
+            //    exit(EXIT_FAILURE);
+            //}
+
+            //cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
+
             break;
         default:
             fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
@@ -472,21 +474,21 @@ int main(int argc, char **argv)
 
             /* check for duplicate iaddr in paymentlist */
             for (int i = paylistsize; i > 0; i--) {
-                cmp = strncmp(line, paymentlist[i-1].iaddr, MAX_IADDR_SIZE);
+                cmp = strncmp(line, monero_wallet[GET_BULK_PAYMENTS].paymentlist[i-1].iaddr, MAX_IADDR_SIZE);
                 if (cmp == 0) break;
             }
             if (cmp != 0 || paylistsize == 0) {
-                paymentlist = (struct payment *) realloc(paymentlist, (paylistsize+1) * sizeof(struct payment));
-                paymentlist[paylistsize].payid = malloc(MAX_PAYID_SIZE * sizeof(char));
-                paymentlist[paylistsize].payid = strndup("noid", MAX_PAYID_SIZE);
-                paymentlist[paylistsize].iaddr = malloc(MAX_IADDR_SIZE * sizeof(char));
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist = (struct payment *) realloc(monero_wallet[GET_BULK_PAYMENTS].paymentlist, (paylistsize+1) * sizeof(struct payment));
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].payid = malloc(MAX_PAYID_SIZE * sizeof(char));
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].payid = strndup("noid", MAX_PAYID_SIZE);
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].iaddr = malloc(MAX_IADDR_SIZE * sizeof(char));
                 /* good thing strndup removes \n here */
-                paymentlist[paylistsize].iaddr = strndup(line, MAX_IADDR_SIZE);
-                paymentlist[paylistsize].amount = malloc(32 * sizeof(char));
-                paymentlist[paylistsize].amount = strndup("0", 32);
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].iaddr = strndup(line, MAX_IADDR_SIZE);
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].amount = malloc(32 * sizeof(char));
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].amount = strndup("0", 32);
 
                 /* interessted in payment Id */
-                monero_wallet[SPLIT_IADDR].iaddr = strndup(paymentlist[paylistsize].iaddr, MAX_IADDR_SIZE);
+                monero_wallet[SPLIT_IADDR].iaddr = strndup(monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].iaddr, MAX_IADDR_SIZE);
 
                 if (0 > (ret = rpc_call(&monero_wallet[SPLIT_IADDR]))) {
                     fprintf(stderr, "SPLIT: could not connect to host: %s\n", urlport);
@@ -495,10 +497,10 @@ int main(int argc, char **argv)
 
                 cJSON *result = cJSON_GetObjectItem(monero_wallet[SPLIT_IADDR].reply, "result");
                 cJSON *payment_id = cJSON_GetObjectItem(result, "payment_id");
-                paymentlist[paylistsize].payid = strndup(delQuotes(cJSON_Print(payment_id)), MAX_PAYID_SIZE);
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].payid = strndup(delQuotes(cJSON_Print(payment_id)), MAX_PAYID_SIZE);
                
-                if (verbose) fprintf(stdout, "setup/paymentId added: %s\n", paymentlist[paylistsize].payid);
-                if (verbose) fprintf(stderr, "setup/paymentlist[%d] = %s\n", paylistsize, paymentlist[paylistsize].iaddr);
+                if (verbose) fprintf(stdout, "setup/paymentId added: %s\n", monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].payid);
+                if (verbose) fprintf(stderr, "setup/paymentlist[%d] = %s\n", paylistsize, monero_wallet[GET_BULK_PAYMENTS].paymentlist[paylistsize].iaddr);
                 paylistsize++;
                 if (verbose) fprintf(stderr, "setup/The size of paymentlist = %d\n", paylistsize);
             } else {
@@ -521,7 +523,6 @@ int main(int argc, char **argv)
     remove_directory(transferdir);
     remove_directory(paymentdir);
     remove_directory(workdir);
-    free(paymentlist);
     free(monero_wallet);
     free(status_bc_height);
     free(status_balance);

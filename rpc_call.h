@@ -3,6 +3,12 @@
 
 #include "./cjson/cJSON.h"
 
+struct payment {
+    char *payid;
+    char *iaddr;
+    char *amount;
+};
+
 enum monero_rpc_method {
     GET_VERSION,
     GET_HEIGHT,
@@ -27,9 +33,11 @@ struct rpc_wallet {
        char *saddr;
        char *iaddr;
        int   idx;
+       struct payment *paymentlist;
        cJSON *reply;
 };
- 
+
+
 //for ( int i = 0; i != END_RPC_SIZE; i++ )
 //{
 //   monero_rpc_method monero_method = static_cast<monero_rpc_type>(i);
