@@ -80,7 +80,6 @@ int rpc_call(struct rpc_wallet *monero_wallet)
             break;
         case MK_IADDR:
               if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddNumberToObject(rpc_params, "address_index", monero_wallet->idx) == NULL) ret = -1;
               if (cJSON_AddStringToObject(rpc_params, "payment_id", monero_wallet->payid) == NULL) ret = -1;
             break;
         case SPLIT_IADDR:
