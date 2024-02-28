@@ -83,6 +83,10 @@ int rpc_call(struct rpc_wallet *monero_wallet)
               if (cJSON_AddNumberToObject(rpc_params, "address_index", monero_wallet->idx) == NULL) ret = -1;
               if (cJSON_AddStringToObject(rpc_params, "payment_id", monero_wallet->payid) == NULL) ret = -1;
             break;
+        case SPLIT_IADDR:
+              if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "integrated_address", monero_wallet->iaddr) == NULL) ret = -1;
+            break;
         default:
             rpc_params = NULL;
             break;
@@ -163,6 +167,9 @@ char* get_method(enum monero_rpc_method method)
                 break;
         case MK_IADDR:
             asprintf(&mtd, "%s", MK_IADDR_CMD);
+                break;
+        case SPLIT_IADDR:
+            asprintf(&mtd, "%s", SP_IADDR_CMD);
                 break;
         default:
                 break;

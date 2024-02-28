@@ -2,8 +2,8 @@
 #define GLOBALDEFS_H
 
 #define MAX_DATA_SIZE   (2048)
-#define MAX_IADDR_SIZE  (105)
-#define MAX_ADDR_SIZE   (95)
+#define MAX_IADDR_SIZE  (106)
+#define MAX_ADDR_SIZE   (96)
 #define MAX_PAYID_SIZE  (16)
 #define VERSION         "0.0.1"
 #define DEBUG           (0)
@@ -35,6 +35,7 @@ struct Config {
 #define GET_SUBADDR_CMD "get_address"
 
 #define MK_IADDR_CMD    "make_integrated_address"
+#define SP_IADDR_CMD    "split_integrated_address"
 
 #define SETUP_DIR       "setup"
 #define SETUP_TRANSFER  "transfer"

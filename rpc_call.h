@@ -7,10 +7,11 @@ enum monero_rpc_method {
     GET_VERSION,
     GET_HEIGHT,
     GET_BALANCE,
+    GET_PAYMENTID,
     GET_LIST,
     GET_SUBADDR,
-    GET_PAYMENTID,
     MK_IADDR,
+    SPLIT_IADDR,
     END_RPC_SIZE
 };
 
@@ -24,6 +25,7 @@ struct rpc_wallet {
        char *pwd;
        char *payid;
        char *saddr;
+       char *iaddr;
        int   idx;
        cJSON *reply;
 };
