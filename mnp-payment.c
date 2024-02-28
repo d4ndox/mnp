@@ -29,6 +29,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <inttypes.h>
+#include "delquotes.h"
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
 #include "rpc_call.h"
@@ -54,7 +55,6 @@ static char *optstring = "hu:r:i:p:a:s:vl";
 static void usage(int status);
 static void printmnp(void);
 static char *readStdin(void);
-char* delQuotes(char *str);
 
 int main(int argc, char **argv)
 {
@@ -377,28 +377,6 @@ static void usage(int status)
     "Use mnp --help for more information\n"
     "Monero Named Pipes.\n"
     );
-}
-
-
-/*
- * Delete Quotes
- * first and last character in string
- * is removed
- */
-char* delQuotes(char *str) {
-    int length = strlen(str);
-    char* ret = malloc((length-2) * sizeof(char));
-
-    /* Return empty string */
-    if (length <= 2) {
-        char* empty =  malloc(1 * sizeof(char));
-        empty[0] = '\0';
-        return empty;
-    } else {
-        strncpy(ret, str+1, length-2);
-    }
-
-    return ret;
 }
 
 
