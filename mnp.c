@@ -31,6 +31,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <poll.h>
+#include "delquotes.h"
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
 #include "wallet.h"
@@ -440,6 +441,7 @@ int main(int argc, char **argv)
         //case GET_NONLOCKED_BALANCE:
         //    break;
         default:
+            fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
             break;
     }
     } /* end for loop */
@@ -485,8 +487,7 @@ int main(int argc, char **argv)
 
                 /* interessted in payment Id */
                 monero_wallet[SPLIT_IADDR].iaddr = strndup(paymentlist[paylistsize].iaddr, MAX_IADDR_SIZE);
-                if (verbose) fprintf(stderr, "monero_wallet[%d].iaddr = %s\n", SPLIT_IADDR, monero_wallet[SPLIT_IADDR].iaddr);
-             
+
                 if (0 > (ret = rpc_call(&monero_wallet[SPLIT_IADDR]))) {
                     fprintf(stderr, "SPLIT: could not connect to host: %s\n", urlport);
                     exit(EXIT_FAILURE);
@@ -494,9 +495,9 @@ int main(int argc, char **argv)
 
                 cJSON *result = cJSON_GetObjectItem(monero_wallet[SPLIT_IADDR].reply, "result");
                 cJSON *payment_id = cJSON_GetObjectItem(result, "payment_id");
-                
-                if (verbose) fprintf(stdout, "%s\n", cJSON_Print(payment_id));
-
+                paymentlist[paylistsize].payid = strndup(delQuotes(cJSON_Print(payment_id)), MAX_PAYID_SIZE);
+               
+                if (verbose) fprintf(stdout, "setup/paymentId added: %s\n", paymentlist[paylistsize].payid);
                 if (verbose) fprintf(stderr, "setup/paymentlist[%d] = %s\n", paylistsize, paymentlist[paylistsize].iaddr);
                 paylistsize++;
                 if (verbose) fprintf(stderr, "setup/The size of paymentlist = %d\n", paylistsize);
