@@ -296,7 +296,7 @@ static char *readStdin(void)
     char *buffer;
     int ret;
 
-    buffer = (char *)malloc(MAX_PAYID_SIZE);
+    buffer = (char *)malloc(MAX_PAYID_SIZE+1);
     if(buffer == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         exit(EXIT_FAILURE);
