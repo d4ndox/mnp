@@ -240,19 +240,6 @@ int main(int argc, char **argv)
             fprintf(stderr, "rpc_password is missing\n");
             exit(EXIT_FAILURE);
         }
-
-        switch (i) {
-            case GET_VERSION:
-                        break;
-            case GET_HEIGHT:
-                        break;
-            case GET_BALANCE:
-                        //asprintf(&(monero_wallet[i]).monero_rpc_method, "%s", GET_BALANCE_CMD);
-                        //monero_wallet[i].params = strndup(/sprintrpc_user, MAX_DATA_SIZE);
-                        break;
-            default:
-                        break;
-        }
     }
 
     if (DEBUG) {
@@ -432,14 +419,13 @@ int main(int argc, char **argv)
             }
             break;
         case GET_BULK_PAYMENTS:
-            /* prepare the payment Id array */
-            //cJSON_CreateArray("[0,1,2]");
-            //if (0 > (ret = rpc_call(&monero_wallet[GET_BULK_PAYMENTS]))) {
-            //    fprintf(stderr, "BULK: could not connect to host: %s\n", urlport);
-            //    exit(EXIT_FAILURE);
-            //}
+            monero_wallet[GET_BULK_PAYMENTS].plsize = plsize;
+            if (0 > (ret = rpc_call(&monero_wallet[GET_BULK_PAYMENTS]))) {
+                fprintf(stderr, "BULK: could not connect to host: %s\n", urlport);
+                exit(EXIT_FAILURE);
+            }
 
-            //cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
+            cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
 
             break;
         default:
@@ -501,13 +487,26 @@ int main(int argc, char **argv)
                 cJSON *result = cJSON_GetObjectItem(monero_wallet[SPLIT_IADDR].reply, "result");
                 cJSON *payment_id = cJSON_GetObjectItem(result, "payment_id");
                 monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid = strndup(delQuotes(cJSON_Print(payment_id)), MAX_PAYID_SIZE);
-               
+                
+                /* Create a new fifo named pipe */
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo = NULL;
+                char *temp = NULL;
+                asprintf(&temp, "%s/payment/%s", workdir, monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid);
+                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo = strndup(temp, MAX_DATA_SIZE);
+
+                if (mkfifo(monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo, mode)) {
+                    fprintf(stderr, "Could not create named pipe payments[%d] =  %s\n", plsize, 
+                            monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo);
+                    exit(EXIT_FAILURE);
+                }
+
+                /* verbose */
                 if (verbose) fprintf(stdout, "setup/paymentId added: %s\n", 
                                              monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid);
                 if (verbose) fprintf(stderr, "setup/paymentlist[%d] = %s\n", 
                                              plsize, monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].iaddr);
-                plsize++;
-                if (verbose) fprintf(stderr, "setup/The size of paymentlist = %d\n", plsize);
+                monero_wallet[GET_BULK_PAYMENTS].plsize = ++plsize;
+                if (verbose) fprintf(stderr, "setup/The size of paymentlist = %d\n", monero_wallet[GET_BULK_PAYMENTS].plsize);
             } else {
                 if (verbose) fprintf(stderr, "setup/integrated address is already listed: %s", line);
             }

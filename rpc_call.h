@@ -7,6 +7,7 @@ struct payment {
     char *payid;
     char *iaddr;
     char *amount;
+    char *payment_fifo;
 };
 
 enum monero_rpc_method {
@@ -34,6 +35,7 @@ struct rpc_wallet {
        char *iaddr;
        int   idx;
        struct payment *paymentlist;
+       int    plsize;
        cJSON *reply;
 };
 
