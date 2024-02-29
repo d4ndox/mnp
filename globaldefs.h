@@ -37,6 +37,8 @@ struct Config {
 #define MK_IADDR_CMD    "make_integrated_address"
 #define SP_IADDR_CMD    "split_integrated_address"
 
+#define GET_PAYMENT_CMD "get_bulk_payments"
+
 #define SETUP_DIR       "setup"
 #define SETUP_TRANSFER  "transfer"
 #define SETUP_PAYMENT   "payment"
