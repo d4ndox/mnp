@@ -156,8 +156,8 @@ $ ./mnp-payment --list
 
 ### Without payment Id
 
-A simple transfer. Typically used for donations.
-Using mnp-payment to return the subaddress at index x. 
+A simple transfer. Typically used for donations. If you have a small business or only issue a few 
+invoices a month, it is advised to create a sub-address for each invoice. This has privacy benefits.
 
 ```bash
 $ mnp-payment --subaddr 1
@@ -250,6 +250,12 @@ Thank you for your payment 25000 piconero
 ```
 
 ## Information
+
+You might consider to change the default color for 'ls' by adding this to your bashrc:
+```bash
+ echo 'LS_COLORS=$LS_COLORS:"pi=00;35"' >> ~/.bashrc
+```
+The default color of named pipes set by Ubuntu is a pain:
 
 Licence: »GPLv3«
 
