@@ -251,6 +251,12 @@ Thank you for your payment 25000 piconero
 
 ## Information
 
+You might consider to change the default color for 'ls' by adding this to your bashrc:
+```bash
+ echo 'LS_COLORS=$LS_COLORS:"pi=00;35"' >> ~/.bashrc
+```
+The default color of named pipes set by Ubuntu is a pain:
+
 Licence: »GPLv3«
 
 Author: »Unknown« (d4ndo)
