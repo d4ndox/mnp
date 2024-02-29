@@ -156,8 +156,8 @@ $ ./mnp-payment --list
 
 ### Without payment Id
 
-A simple transfer. Typically used for donations.
-Using mnp-payment to return the subaddress at index x. 
+A simple transfer. Typically used for donations. If you have a small business or only issue a few 
+invoices a month, it is advised to create a sub-address for each invoice. This has privacy benefits.
 
 ```bash
 $ mnp-payment --subaddr 1
