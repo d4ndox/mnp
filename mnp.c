@@ -96,8 +96,8 @@ int main(int argc, char **argv)
     char *rpc_host = NULL;
     char *rpc_port = NULL;
     char *account = NULL;
-    char *workdir = NULL;
 
+    char *workdir = NULL;
     char *setupdir = NULL;
     char *transferdir = NULL;
     char *paymentdir = NULL;
@@ -382,7 +382,7 @@ int main(int argc, char **argv)
     fprintf(stdout, "Running\n");
     while (running) {
 
-    for (int i = 0; i < (END_RPC_SIZE-6); i++) {
+    for (int i = 0; i < (END_RPC_SIZE-5); i++) {
     if (0 > (ret = rpc_call(&monero_wallet[i]))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
@@ -406,12 +406,8 @@ int main(int argc, char **argv)
             }
             break;
         case GET_BULK_PAYMENTS:
-            monero_wallet[GET_BULK_PAYMENTS].plsize = plsize;
-            if (0 > (ret = rpc_call(&monero_wallet[GET_BULK_PAYMENTS]))) {
-                fprintf(stderr, "BULK: could not connect to host: %s\n", urlport);
-                exit(EXIT_FAILURE);
-            }
-            cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
+            //monero_wallet[GET_BULK_PAYMENTS].plsize = plsize;
+            //cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
             break;
         default:
             fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
