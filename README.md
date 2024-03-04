@@ -48,7 +48,7 @@ inotifywait works passive - the operating system takes care of the rest.
         echo "incoming txid:" $file;
     done
 
-#### 3. Monitor /tmp/wallet/transfer with Python:
+#### 3. Monitor /tmp/wallet with Python:
 
 This allows interaction with any scripting language (Perl, Python, ...)
 
