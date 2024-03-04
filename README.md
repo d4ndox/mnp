@@ -37,26 +37,26 @@ A small example to get an idea on how mnp works,
 $ mnp --init
 $ monero-wallet-rpc --tx-notify "/usr/bin/mnp %s"
 ```
-#### 2. Monitor the payment/transfer:
+#### 2. Monitor /tmp/mywallet/payment:
 
 ```sudo apt-get install inotify-tools```
 inotifywait works passive - the operating system takes care of the rest.
 
     #!/bin/bash
-    while inotifywait -e create /tmp/mywallet/paymentM do
-        echo "incoming tx\n";
+    while inotifywait -e create /tmp/mywallet/paymen -r | 
+        while read dir action file; do
+        echo "incoming txid:" $file;
     done
 
-#### 3. Monitor /tmp/wallet:
+#### 3. Monitor /tmp/wallet/transfer with Python:
 
 This allows interaction with any scripting language (Perl, Python, ...)
 
-```bash
-$ inotifywait -m /tmp/mywallet/ -e close_write -r |
-  while read dir action file; do
-      python check_payment.py ${dir}/${file}
-  done
-```
+    #!/bin/bash
+    inotifywait -m /tmp/mywallet/transfers -e modified -r |
+    while read dir action file; do
+        python check_payment.py ${dir}/${file}
+    done
 
 ## How to build mnp
 
