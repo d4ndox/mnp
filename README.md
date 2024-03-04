@@ -83,16 +83,16 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 ```bash
 
-+---------+             +-------------------+              +-----+
++---------+             +-------------------+ --tx-notify  +-----+
 |         | +---------> |                   | +----------> |     |
 | monerod | 18081/18082 | monero wallet rpc |  18083 rpc   | mnp |
 |         | <---------+ |                   | <----------+ |     |
 +----+----+             +-------------------+              +--+--+
      |                  |                                     |
-     v                  |  +-------------+                    v
-   +-+-+                |  |             |                 +mymonero
-   |   |                +->+  My wallet  |                 |
-   +-+-+                   |             |                 +-+total-balance
+     v                  |  +-------------+                    |
+   +-+-+                |  |             |                    |
+   |   |                +->+  My wallet  |                    v
+   +-+-+                   |             |                 +mymonero
      |                     +-------------+                 |
    +-+-+                                                   +-+payments
    |   |                                                   | |
@@ -104,13 +104,11 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 ```
  
 - [ ] Step 1) Start monerod. It keeps the blockchain in sync.
-- [ ] Step 2) Start monero-wallet-rpc. It listens on rpc port and takes care of your wallet.
-- [ ] Step 3) Start mnp.
+- [ ] Step 2) Start monero-wallet-rpc --tx-notify "/usr/bin/mnp %s". It listens on rpc port and takes care of your wallet.
 
 ```bash
 $ monerod --testnet
-$ monero-wallet-rpc --testnet --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
-$ mnp --rpc_host 127.0.0.1 --rpc_port 18083 --rpc_password password --rpc_user username --workdir="/tmp/mywallet"
+$ monero-wallet-rpc --tx-notify "/usr/bin/mnp %s" --testnet --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
 ```
 
 ### Config file ~/.mnp.ini:
@@ -128,7 +126,6 @@ host = 127.0.0.1                ;rpc ip address or domain
 port = 18083                    ;rpc port 
 
 [mnp]                           ;general mnp configuration
-daemon = 0                      ;run mnp as daemon
 verbose = 0                     ;verbose mode
 account = 0                     ;choose account
 
