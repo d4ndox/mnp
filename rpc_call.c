@@ -66,35 +66,53 @@ int rpc_call(struct rpc_wallet *monero_wallet)
             rpc_params = NULL;
             break;
         case GET_BALANCE:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
+            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                        atoi(monero_wallet->account)) == NULL) ret = -1;
             break;
         case GET_LIST:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
+            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                        atoi(monero_wallet->account)) == NULL) ret = -1;
            break;
         case GET_SUBADDR:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
+            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                        atoi(monero_wallet->account)) == NULL) ret = -1;
             cJSON *subarray = cJSON_CreateArray();
             cJSON *index = cJSON_CreateNumber(monero_wallet->idx);
             cJSON_AddItemToArray(subarray, index);
             cJSON_AddItemToObject(rpc_params, "address_index", subarray);
             break;
         case MK_IADDR:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "payment_id", monero_wallet->payid) == NULL) ret = -1;
+              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                          atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "payment_id", 
+                          monero_wallet->payid) == NULL) ret = -1;
             break;
         case SPLIT_IADDR:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "integrated_address", monero_wallet->iaddr) == NULL) ret = -1;
+              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                          atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "integrated_address", 
+                          monero_wallet->iaddr) == NULL) ret = -1;
             break;
         case GET_BULK_PAYMENTS:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", atoi(monero_wallet->account)) == NULL) ret = -1;
-//              int l = sizeof(monero_wallet->paymentlist);
-//              fprintf(stderr, "length = %d\n", monero_wallet->plsize);      
-//                cJSON *payarray = cJSON_CreateArray();
-//                cJSON *paymid  = cJSON_CreateNumber(monero_wallet->idx);
-//                cJSON_AddItemToArray(subarray, index);
+              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                          atoi(monero_wallet->account)) == NULL) ret = -1;
+              char *array_pId = NULL;
+              asprintf(&array_pId, "[");
 
-              if (cJSON_AddStringToObject(rpc_params, "integrated_address", monero_wallet->iaddr) == NULL) ret = -1;
+              for (int i = monero_wallet->plsize; i > 0; i--) {
+                  if (i == 1) {
+                      asprintf(&array_pId, "%s%c%s%c", array_pId, '\"', 
+                              monero_wallet->paymentlist[i-1].payid, '\"');
+                  } else {
+                      asprintf(&array_pId, "%s%c%s%c, ", array_pId, '\"', 
+                              monero_wallet->paymentlist[i-1].payid, '\"');
+                  }
+              }
+
+              asprintf(&array_pId, "%s]", array_pId);
+              cJSON *a_pId = cJSON_Parse(array_pId);
+              cJSON_AddItemToObject(rpc_params, "payment_ids", a_pId);
+              if (cJSON_AddStringToObject(rpc_params, "min_block_height", "2443865") == NULL) ret = -1;
             break;
         default:
             rpc_params = NULL;
@@ -109,7 +127,7 @@ int rpc_call(struct rpc_wallet *monero_wallet)
 
     char *method_call = cJSON_Print(rpc_frame);
     if (method_call == NULL) ret = -1;
-
+    if (monero_wallet->monero_rpc_method == GET_BULK_PAYMENTS) fprintf(stderr, "method = %s", method_call);
     /*
      * rpc method call send to the wallet
      */

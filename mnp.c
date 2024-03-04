@@ -67,8 +67,7 @@ static const struct option options[] = {
 
 static char *optstring = "hu:r:i:p:a:w:vd";
 static void usage(int status);
-static int handler(void *user, const char *section,
-                   const char *name, const char *value);
+static int handler(void *user, const char *section, const char *name, const char *value);
 static int daemonize(void);
 static void initshutdown(int);
 static int remove_directory(const char *path);
@@ -97,8 +96,8 @@ int main(int argc, char **argv)
     char *rpc_host = NULL;
     char *rpc_port = NULL;
     char *account = NULL;
-    char *workdir = NULL;
 
+    char *workdir = NULL;
     char *setupdir = NULL;
     char *transferdir = NULL;
     char *paymentdir = NULL;
@@ -194,8 +193,6 @@ int main(int argc, char **argv)
 
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
     if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
-    if (DEBUG) printf("GET_VERSION = %d\n", GET_VERSION);
-    monero_wallet[0].monero_rpc_method = GET_VERSION;
 
     /* initialise monero_wallet with NULL */
     for (int i = 0; i < END_RPC_SIZE; i++) {
@@ -207,6 +204,12 @@ int main(int argc, char **argv)
         monero_wallet[i].user = NULL;
         monero_wallet[i].pwd = NULL;
         monero_wallet[i].reply = NULL;
+        monero_wallet[i].payid = NULL;
+        monero_wallet[i].saddr = NULL;
+        monero_wallet[i].iaddr = NULL;
+        monero_wallet[i].idx = 0;
+        monero_wallet[i].paymentlist = NULL;
+        monero_wallet[i].plsize = 0;
     } 
 
     for (int i = 0; i < END_RPC_SIZE; i++) {
@@ -241,13 +244,6 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-
-    if (DEBUG) {
-    for (int i = 0; i < END_RPC_SIZE; i++) {
-        printf("monero_rpc_method[%d] = %d\n", i, monero_wallet[i].monero_rpc_method);
-        printf("account[%d] = %s\n", i, monero_wallet[i].account);
-        printf("port[%d] = %s\n", i, monero_wallet[i].port);
-    }}
 
     //monero_rpc_wallet.
     /* prepare url and port to connect to the wallet */
@@ -393,16 +389,8 @@ int main(int argc, char **argv)
     }
    
     switch (i) {
-        case GET_VERSION:
-            if (0 > (version(&(monero_wallet[i]).reply))) {
-                fprintf(stderr, "could not parse JSON object version\n");
-                remove_directory(workdir);
-                exit(EXIT_FAILURE);
-            }
-            break;
         case GET_HEIGHT:
             status_bc_height = blockchainheight(&(monero_wallet[i]).reply, bc_height_fifo, status_bc_height);
-
             if (status_bc_height == NULL) {
                 fprintf(stderr, "could not parse JSON object height\n");
                 remove_directory(workdir);
@@ -411,7 +399,6 @@ int main(int argc, char **argv)
             break;
         case GET_BALANCE:
             status_balance = balance(&(monero_wallet[i]).reply, balance_fifo, status_balance);
-
             if (status_balance == NULL) {
                 fprintf(stderr, "could not parse JSON object balance\n");
                 remove_directory(workdir);
@@ -419,14 +406,8 @@ int main(int argc, char **argv)
             }
             break;
         case GET_BULK_PAYMENTS:
-            monero_wallet[GET_BULK_PAYMENTS].plsize = plsize;
-            if (0 > (ret = rpc_call(&monero_wallet[GET_BULK_PAYMENTS]))) {
-                fprintf(stderr, "BULK: could not connect to host: %s\n", urlport);
-                exit(EXIT_FAILURE);
-            }
-
-            cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
-
+            //monero_wallet[GET_BULK_PAYMENTS].plsize = plsize;
+            //cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
             break;
         default:
             fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
