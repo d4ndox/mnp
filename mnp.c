@@ -39,7 +39,6 @@
 #include "version.h"
 #include "bc_height.h"
 #include "balance.h"
-#include "payments.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 #include <unistd.h>
@@ -205,14 +204,18 @@ int main(int argc, char **argv)
         monero_wallet[i].port = NULL;
         monero_wallet[i].user = NULL;
         monero_wallet[i].pwd = NULL;
-        monero_wallet[i].reply = NULL;
+        /* tx related */
+        monero_wallet[i].txid = NULL;
         monero_wallet[i].payid = NULL;
         monero_wallet[i].saddr = NULL;
         monero_wallet[i].iaddr = NULL;
+        monero_wallet[i].amount = NULL;
+        monero_wallet[i].conf = NULL;
+        monero_wallet[i].fifo = NULL;
         monero_wallet[i].idx = 0;
-        monero_wallet[i].paymentlist = NULL;
-        monero_wallet[i].plsize = 0;
+        monero_wallet[i].reply = NULL;
     } 
+
 
     for (int i = 0; i < END_RPC_SIZE; i++) {
 
@@ -368,7 +371,7 @@ int main(int argc, char **argv)
     fprintf(stdout, "Running\n");
     while (running) {
 
-    for (int i = 0; i < (END_RPC_SIZE-5); i++) {
+    for (int i = 0; i < (END_RPC_SIZE-6); i++) {
     if (0 > (ret = rpc_call(&monero_wallet[i]))) {
         fprintf(stderr, "could not connect to host: %s\n", urlport);
         exit(EXIT_FAILURE);
@@ -391,101 +394,11 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
             break;
-        case GET_BULK_PAYMENTS:
-            status_get_bulk = payments(&(monero_wallet[i]));
-            if (status_get_bulk == -1) {
-                fprintf(stderr, "could not parse JSON object get_bulk_payments\n");
-                remove_directory(workdir);
-                exit(EXIT_FAILURE);
-            }
-            break;
         default:
             fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
             break;
     }
     } /* end for loop */
-
-    /* 
-     * PARSE SETUP transfer and payment
-     */
-    ret = poll(poll_setup_fds, 2, timeout_msecs);
-    if (ret > 0) {
-        FILE *fp;
-        char *line = NULL;
-        size_t len = 0;
-        ssize_t r;
-
-        /* /tmp/mywallet/setup/transfer */
-        if (poll_setup_fds[0].revents & POLLIN) {
-            fp = fdopen(poll_setup_fds[0].fd,  "r");
-            r = getline(&line, &len, fp);
-            if (verbose) fprintf(stderr, "setup/transfer = %s", line);
-            free(line);
-        }
-
-        /* /tmp/mywallet/setup/payment */
-        if (poll_setup_fds[1].revents & POLLIN) {
-            fp = fdopen(poll_setup_fds[1].fd,  "r");
-            r = getline(&line, &len, fp);
-            int cmp = -1;
-
-            /* check for duplicate iaddr in paymentlist */
-            for (int i = plsize; i > 0; i--) {
-                cmp = strncmp(line, monero_wallet[GET_BULK_PAYMENTS].paymentlist[i-1].iaddr, MAX_IADDR_SIZE);
-                if (cmp == 0) break;
-            }
-            if (cmp != 0 || plsize == 0) {
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist = (struct payment *) 
-                                                                realloc(monero_wallet[GET_BULK_PAYMENTS].paymentlist, 
-                                                                        (plsize+1) 
-                                                                        * sizeof(struct payment));
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid = malloc(MAX_PAYID_SIZE * sizeof(char));
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid = strndup("noid", MAX_PAYID_SIZE);
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].iaddr = malloc(MAX_IADDR_SIZE * sizeof(char));
-                /* good thing strndup removes \n here */
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].iaddr = strndup(line, MAX_IADDR_SIZE);
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].amount = malloc(32 * sizeof(char));
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].amount = strndup("0", 32);
-
-                /* interessted in payment Id */
-                monero_wallet[SPLIT_IADDR].iaddr = strndup(monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].iaddr, MAX_IADDR_SIZE);
-
-                if (0 > (ret = rpc_call(&monero_wallet[SPLIT_IADDR]))) {
-                    fprintf(stderr, "SPLIT: could not connect to host: %s\n", urlport);
-                    exit(EXIT_FAILURE);
-                }
-
-                cJSON *result = cJSON_GetObjectItem(monero_wallet[SPLIT_IADDR].reply, "result");
-                cJSON *payment_id = cJSON_GetObjectItem(result, "payment_id");
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid = strndup(delQuotes(cJSON_Print(payment_id)), MAX_PAYID_SIZE);
-                
-                /* Create a new fifo named pipe */
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo = NULL;
-                char *temp = NULL;
-                asprintf(&temp, "%s/payment/%s", workdir, monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid);
-                monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo = strndup(temp, MAX_DATA_SIZE);
-
-                if (mkfifo(monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo, mode)) {
-                    fprintf(stderr, "Could not create named pipe payments[%d] =  %s\n", plsize, 
-                            monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payment_fifo);
-                    exit(EXIT_FAILURE);
-                }
-
-                /* verbose */
-                if (verbose) fprintf(stdout, "setup/paymentId added: %s\n", 
-                                             monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].payid);
-                if (verbose) fprintf(stderr, "setup/paymentlist[%d] = %s\n", 
-                                             plsize, monero_wallet[GET_BULK_PAYMENTS].paymentlist[plsize].iaddr);
-                monero_wallet[GET_BULK_PAYMENTS].plsize = ++plsize;
-                if (verbose) fprintf(stderr, "setup/The size of paymentlist = %d\n", monero_wallet[GET_BULK_PAYMENTS].plsize);
-            } else {
-                if (verbose) fprintf(stderr, "setup/integrated address is already listed: %s", line);
-            }
-                free(line);
-        }
-    } /* end poll call */
-    
- 
     ret = usleep(SLEEPTIME); 
     } /* end while loop */
 
@@ -494,9 +407,6 @@ int main(int argc, char **argv)
     unlink(balance_fifo);
     unlink(setup_transfer_fifo);
     unlink(setup_payment_fifo);
-    remove_directory(transferdir);
-    remove_directory(paymentdir);
-    remove_directory(workdir);
     free(monero_wallet);
     free(status_bc_height);
     free(status_balance);

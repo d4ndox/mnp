@@ -3,13 +3,6 @@
 
 #include "./cjson/cJSON.h"
 
-struct payment {
-    char *payid;
-    char *iaddr;
-    char *amount;
-    char *payment_fifo;
-};
-
 enum monero_rpc_method {
     GET_HEIGHT,
     GET_BALANCE,
@@ -30,12 +23,15 @@ struct rpc_wallet {
        char *port;
        char *user;
        char *pwd;
+       /* tx related */
+       char *txid;
        char *payid;
        char *saddr;
        char *iaddr;
+       char *amount;
+       char *conf;
+       char *fifo;
        int   idx;
-       struct payment *paymentlist;
-       int    plsize;
        cJSON *reply;
 };
 

@@ -93,31 +93,6 @@ int rpc_call(struct rpc_wallet *monero_wallet)
               if (cJSON_AddStringToObject(rpc_params, "integrated_address", 
                           monero_wallet->iaddr) == NULL) ret = -1;
             break;
-        case GET_BULK_PAYMENTS:
-              if (monero_wallet->plsize == 0) {
-                  monero_wallet->reply = NULL;
-                  return 0;
-              }
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
-                          atoi(monero_wallet->account)) == NULL) ret = -1;
-              char *arr = malloc(MAX_DATA_SIZE * sizeof(char));
-              asprintf(&arr, "[");
-
-              for (int i = monero_wallet->plsize; i > 0; i--) {
-                  if (i == 1) {
-                      asprintf(&arr, "%s%c%s%c", arr, '\"', 
-                              monero_wallet->paymentlist[i-1].payid, '\"');
-                  } else {
-                      asprintf(&arr, "%s%c%s%c, ", arr, '\"', 
-                              monero_wallet->paymentlist[i-1].payid, '\"');
-                  }
-              }
-
-              asprintf(&arr, "%s]", arr);
-              cJSON *a_pId = cJSON_Parse(arr);
-              cJSON_AddItemToObject(rpc_params, "payment_ids", a_pId);
-              if (cJSON_AddStringToObject(rpc_params, "min_block_height", "2443865") == NULL) ret = -1;
-            break;
         default:
             rpc_params = NULL;
             break;
