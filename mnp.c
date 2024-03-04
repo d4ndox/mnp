@@ -39,6 +39,7 @@
 #include "version.h"
 #include "bc_height.h"
 #include "balance.h"
+#include "payments.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 #include <unistd.h>
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
      */
     char *status_bc_height = NULL;
     char *status_balance = NULL;
-
+    int status_get_bulk = -1;
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
     signal(SIGINT, initshutdown);
@@ -406,8 +407,12 @@ int main(int argc, char **argv)
             }
             break;
         case GET_BULK_PAYMENTS:
-            //monero_wallet[GET_BULK_PAYMENTS].plsize = plsize;
-            //cJSON *result = cJSON_GetObjectItem(monero_wallet[GET_BULK_PAYMENTS].reply, "result");
+            status_get_bulk = payments(&(monero_wallet[i]));
+            if (status_get_bulk == -1) {
+                fprintf(stderr, "could not parse JSON object get_bulk_payments\n");
+                remove_directory(workdir);
+                exit(EXIT_FAILURE);
+            }
             break;
         default:
             fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
