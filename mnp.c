@@ -68,6 +68,7 @@ static int handler(void *user, const char *section, const char *name, const char
 static void initshutdown(int);
 static int remove_directory(const char *path);
 static void printmnp(void);
+static char *readStdin(void);
 
 int main(int argc, char **argv)
 {
@@ -93,6 +94,7 @@ int main(int argc, char **argv)
     char *rpc_port = NULL;
     char *account = NULL;
 
+    char *txid = NULL;
     char *workdir = NULL;
     char *transferdir = NULL;
     char *paymentdir = NULL;
@@ -181,6 +183,17 @@ int main(int argc, char **argv)
         verbose = atoi(config.mnp_verbose);
     }
 
+
+    if (init == 0 && cleanup == 0) {
+        if (optind < argc) {
+            txid = (char *)argv[optind];
+        }
+        if (txid == NULL) {
+            txid = readStdin();
+        }
+    }
+
+    fprintf(stderr, "txid = %s\n", txid);
     const char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
     mode_t mode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
@@ -401,6 +414,7 @@ int main(int argc, char **argv)
     free(status_balance);
 }
 
+
 /*
  * Print user help.
  */
@@ -439,6 +453,31 @@ static void usage(int status)
     "Use mnp --help for more information\n"
     "Monero Named Pipes.\n"
     );
+}
+
+
+/* 
+ * read paymentId from stdin 
+ */
+static char *readStdin(void)
+{
+    char *buffer;
+    int ret;
+
+    buffer = (char *)malloc(MAX_TXID_SIZE+1);
+    if(buffer == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    ret = fread(buffer, 1, MAX_TXID_SIZE, stdin);
+    if(ret == 0) {
+        fprintf(stderr, "No input data.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    buffer[ret] = '\0';
+
+    return buffer;
 }
 
 
