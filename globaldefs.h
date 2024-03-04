@@ -52,5 +52,4 @@ struct Config {
 #define MAJOR_MASK      (0xFFFF0000)
 #define MINOR_MASK      (0x0000FFFF)
 #define SLEEPTIME       (2000000)
-#define POLLTIMEOUT     (500)
 #endif

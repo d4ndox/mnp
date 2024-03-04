@@ -30,7 +30,6 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
-#include <poll.h>
 #include "delquotes.h"
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
@@ -78,7 +77,7 @@ int main(int argc, char **argv)
      */
     char *status_bc_height = NULL;
     char *status_balance = NULL;
-    int status_get_bulk = -1;
+
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
     signal(SIGINT, initshutdown);
@@ -103,9 +102,6 @@ int main(int argc, char **argv)
 
     int ret = 0;
     
-    struct pollfd poll_setup_fds[2];
-    int timeout_msecs = POLLTIMEOUT;
-
     /* prepare for reading the config ini file */
     const char *homedir;
 
@@ -357,13 +353,6 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
-    /* prepare setup input for poll eveent. */
-    poll_setup_fds[0].fd = open(setup_transfer_fifo, O_RDWR);
-    poll_setup_fds[1].fd = open(setup_payment_fifo, O_RDWR);
-    poll_setup_fds[0].events = POLLIN;
-    poll_setup_fds[1].events = POLLIN;
-
-    int plsize = 0;
 
     /* 
      * Start main loop
