@@ -1,4 +1,4 @@
-> A complete redesign is currently taking place.
+> A complete redesign is currently taking place. tag tx-notify-redesign
 
 ------
 
