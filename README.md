@@ -1,3 +1,7 @@
+> A complete redesign is currently taking place.
+
+------
+
 # Monero Named Pipes
 
 Monero named pipes (mnp) is a leightweight payment processor, using named pipes, to monitor incoming payments on 
