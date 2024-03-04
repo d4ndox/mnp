@@ -27,29 +27,25 @@ Default = /tmp/mywallet
 
 ### Example
 
-To get an idea on how mnp works, please study those three examples.
 For more details, see "How to set up a payment".
+A small example to get an idea on how mnp works,
 
-#### 1. Read the blockchain height:
-
-A new block is found every 2 minutes on average.
+#### 1. Initalise mnp
 
 ```bash
-# wait 2 minutes for reply
-$ cat /tmp/mywallet/bc_height
+# initialise the workdir
+$ mnp --init
+$ monero-wallet-rpc --tx-notify "/usr/bin/mnp %s"
 ```
-
-#### 2. Monitor the balance:
+#### 2. Monitor the payment/transfer:
 
 ```sudo apt-get install inotify-tools```
 inotifywait works passive - the operating system takes care of the rest.
 
-```bash
-#!/bin/bash
-while inotifywait -e modify /tmp/mywallet/balance; do
-    cat /tmp/mywallet/balance >> logfile;
-done
-```
+    #!/bin/bash
+    while inotifywait -e create /tmp/mywallet/paymentM do
+        echo "incoming tx\n";
+    done
 
 #### 3. Monitor /tmp/wallet:
 
