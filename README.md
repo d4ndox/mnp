@@ -131,6 +131,7 @@ invoices a month, it is advised to create a sub-address for each invoice. This h
 
 ```bash
 $ tx=$(mnp-payment --subaddr 1)
+$ echo $tx
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 
 # Create a QR code for the payment.
@@ -183,10 +184,6 @@ e02c381aa2227436
 # Priamary 0 is default by Monero spezification.
 $ echo $mypaymentId | mnp-payment
 AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
-
-# Set up mnp to watch for a incoming payment on payment Id.
-# mnp will create a new pipe on /tmp/mywallet/payment/e02c381aa2227436
-$ mnp-payment $mypaymentId  > /tmp/mywallet/setup/payment
 
 # Create a QR code for the payment.
 $ mnp-payment $mypaymentId | qrencode -tUTF8
