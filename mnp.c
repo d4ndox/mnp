@@ -46,9 +46,6 @@
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
 int verbose = 0;
-/* daemon is extern @ globaldefs.h. Run in background */
-int daemonflag = 0;
-
 
 static volatile sig_atomic_t running = 1;
 
@@ -62,14 +59,12 @@ static const struct option options[] = {
         {"workdir"      , required_argument, NULL, 'w'},
         {"version"      , no_argument      , NULL, 'v'},
 	{"verbose"      , no_argument      , &verbose, 1},
-	{"daemon"       , no_argument      , &daemonflag, 'd'},
 	{NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:w:vd";
+static char *optstring = "hu:r:i:p:a:w:v";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
-static int daemonize(void);
 static void initshutdown(int);
 static int remove_directory(const char *path);
 static void printmnp(void);
@@ -156,9 +151,6 @@ int main(int argc, char **argv)
                 printmnp();
                 exit(EXIT_SUCCESS);
                 break;
-            case 'd':
-                daemonflag = 1;
-                break;
             case 0:
 	        break;
             default:
@@ -181,8 +173,6 @@ int main(int argc, char **argv)
         workdir = strndup(config.cfg_workdir, MAX_DATA_SIZE);
     } if (verbose == 0) {
         verbose = atoi(config.mnp_verbose);
-    } if (daemonflag == 0) {
-        daemonflag = atoi(config.mnp_daemon);
     }
 
     const char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
@@ -324,12 +314,6 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "Working directory: %s\n", workdir);
     fprintf(stdout, "Connecting: %s\n", urlport);
-
-    /* Start daemon */
-    if (daemonflag == 1) {
-        int retd = daemonize();
-        if (verbose && (retd == 0)) fprintf(stdout, "daemon started.\n");
-    }
 
     /* 
      * declare and initalise 
@@ -541,8 +525,6 @@ static void usage(int status)
     "               rpc port to cennect to.\n\n"
     "  -w, --workdir]\n"
     "               open Monero Named Pipes here.\n\n"
-    "  -d, --daemon]\n"
-    "               run mnp as daemon.\n\n"
     "  -v, --version\n"
     "               Display the version number of mnp.\n\n"
     "      --verbose\n"
@@ -556,22 +538,6 @@ static void usage(int status)
     );
 }
 
-/*
- * Daemonize
- */
-int daemonize(void)
-{
-    pid_t   pid;
-
-    if ((pid = fork()) < 0) {
-        return(-1);
-    } else if (pid !=0) {
-        exit(0);
-    }
-
-    setsid();
-    return(0);
-}
 
 /*
  * Parse INI file handler
@@ -590,8 +556,6 @@ static int handler(void *user, const char *section, const char *name,
         pconfig->rpc_host = strndup(value, MAX_DATA_SIZE);
     } else if (MATCH("rpc", "port")) {
         pconfig->rpc_port = strndup(value, MAX_DATA_SIZE);
-    } else if (MATCH("mnp", "daemon")) {
-        pconfig->mnp_daemon = strndup(value, MAX_DATA_SIZE);
     } else if (MATCH("mnp", "verbose")) {
         pconfig->mnp_verbose = strndup(value, MAX_DATA_SIZE);
     } else if (MATCH("mnp", "account")) {
