@@ -53,7 +53,7 @@ inotifywait works passive - the operating system takes care of the rest.
 This allows interaction with any scripting language (Perl, Python, ...)
 
     #!/bin/bash
-    inotifywait -m /tmp/mywallet/transfers -e modified -r |
+    inotifywait -m /tmp/mywallet -e modified -r |
     while read dir action file; do
         python check_payment.py ${dir}/${file}
     done
