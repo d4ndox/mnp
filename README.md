@@ -20,14 +20,9 @@ Default = /tmp/mywallet
 ├── transfer
 │   ├── subaddress1
 │   └── subaddress2
-├── payment
-│   ├── paymentID1
-│   └── paymentID2
-├── setup
-│   ├── transfer
-│   └── payment
-├── balance
-└── bc_height
+└── payment
+    ├── paymentID1
+    └── paymentID2
 ```
 
 ### Example
