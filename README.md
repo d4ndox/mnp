@@ -43,7 +43,7 @@ $ monero-wallet-rpc --tx-notify "/usr/bin/mnp %s"
 inotifywait works passive - the operating system takes care of the rest.
 
     #!/bin/bash
-    while inotifywait -e create /tmp/mywallet/paymen -r | 
+    while inotifywait -e create /tmp/mywallet/payment -r | 
         while read dir action file; do
         echo "incoming txid:" $file;
     done
