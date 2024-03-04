@@ -57,12 +57,14 @@ static const struct option options[] = {
         {"rpc_port"     , required_argument, NULL, 'p'},
         {"account"      , required_argument, NULL, 'a'},
         {"workdir"      , required_argument, NULL, 'w'},
+	{"init"         , no_argument      , NULL, 'n'},
+	{"cleanup"      , no_argument      , NULL, 'c'},
         {"version"      , no_argument      , NULL, 'v'},
 	{"verbose"      , no_argument      , &verbose, 1},
 	{NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:w:v";
+static char *optstring = "hu:r:i:p:a:w:ncvl";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
@@ -94,9 +96,12 @@ int main(int argc, char **argv)
     char *account = NULL;
 
     char *workdir = NULL;
-    char *setupdir = NULL;
     char *transferdir = NULL;
     char *paymentdir = NULL;
+
+    int init = 0;
+    int cleanup = 0;
+
     int ret = 0;
     
     struct pollfd poll_setup_fds[2];
@@ -147,6 +152,12 @@ int main(int argc, char **argv)
             case 'w':
                 workdir = strndup(optarg, MAX_DATA_SIZE);
                 break;
+            case 'n':
+                init = 1;
+                break;
+            case 'c':
+                cleanup = 1;
+                break;
             case 'v':
                 printmnp();
                 exit(EXIT_SUCCESS);
@@ -181,7 +192,7 @@ int main(int argc, char **argv)
                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
 
     if (DEBUG) fprintf(stderr, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
-
+    
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
     if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
 
@@ -269,22 +280,10 @@ int main(int argc, char **argv)
     struct stat sb;
 
     if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
-        fprintf(stderr, "Could not open workdir: %s. Directory does exists already.\n", workdir);
-        exit(EXIT_FAILURE);
-    } else if (mkdir(workdir, mode) && errno != EEXIST) {
+        /*NOP*/
+        fprintf(stderr, "work\n");
+    } else if (mkdir(workdir, mode)) {
         fprintf(stderr, "Could not create workdir %s.\n", workdir);
-        exit(EXIT_FAILURE);
-    }
-
-    /* create setupdir directory. TEST if directory does exist */
-    struct stat setup;
-
-    asprintf(&setupdir, "%s/%s", workdir, SETUP_DIR);
-    if (stat(setupdir, &setup) == 0 && S_ISDIR(setup.st_mode)) {
-        fprintf(stderr, "Could not open setupdir: %s. Directory does exists already.\n", setupdir);
-        exit(EXIT_FAILURE);
-    } else if (mkdir(setupdir, mode) && errno != EEXIST) {
-        fprintf(stderr, "Could not create setupdir %s.\n", setupdir);
         exit(EXIT_FAILURE);
     }
 
@@ -293,9 +292,9 @@ int main(int argc, char **argv)
 
     asprintf(&transferdir, "%s/%s", workdir, TRANSFER_DIR);
     if (stat(transferdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
-        fprintf(stderr, "Could not open transferdir: %s. Directory does exists already.\n", transferdir);
-        exit(EXIT_FAILURE);
-    } else if (mkdir(transferdir, mode) && errno != EEXIST) {
+        /* NOP */
+        fprintf(stderr, "tr\n");
+    } else if (mkdir(transferdir, mode)) {
         fprintf(stderr, "Could not create transferdir %s.\n", transferdir);
         exit(EXIT_FAILURE);
     }
@@ -305,15 +304,19 @@ int main(int argc, char **argv)
 
     asprintf(&paymentdir, "%s/%s", workdir, PAYMENT_DIR);
     if (stat(paymentdir, &payment) == 0 && S_ISDIR(payment.st_mode)) {
-        fprintf(stderr, "Could not open paymentdir: %s. Directory does exists already.\n", paymentdir);
-        exit(EXIT_FAILURE);
+        /* NOP */
+        fprintf(stderr, "pay\n");
     } else if (mkdir(paymentdir, mode) && errno != EEXIST) {
         fprintf(stderr, "Could not create paymentdir %s.\n", paymentdir);
         exit(EXIT_FAILURE);
-    }
+    } if (init) exit(0);
 
-    fprintf(stdout, "Working directory: %s\n", workdir);
-    fprintf(stdout, "Connecting: %s\n", urlport);
+    if (cleanup) {
+        remove_directory(transferdir);
+        remove_directory(paymentdir);
+        remove_directory(workdir);
+        exit(0);
+    }
 
     /* 
      * declare and initalise 
@@ -332,8 +335,6 @@ int main(int argc, char **argv)
     ret = 0;
     asprintf(&bc_height_fifo, "%s/%s", workdir, BC_HEIGHT_FILE);
     asprintf(&balance_fifo, "%s/%s", workdir, BALANCE_FILE);
-    asprintf(&setup_transfer_fifo, "%s/%s", setupdir, SETUP_TRANSFER);
-    asprintf(&setup_payment_fifo, "%s/%s", setupdir, SETUP_PAYMENT);
     fprintf(stderr, "setup_transfer_fifo = %s\n", setup_transfer_fifo);
 
     if (mkfifo(bc_height_fifo, mode)) {
@@ -493,7 +494,6 @@ int main(int argc, char **argv)
     unlink(balance_fifo);
     unlink(setup_transfer_fifo);
     unlink(setup_payment_fifo);
-    remove_directory(setupdir);
     remove_directory(transferdir);
     remove_directory(paymentdir);
     remove_directory(workdir);
@@ -525,6 +525,10 @@ static void usage(int status)
     "               rpc port to cennect to.\n\n"
     "  -w, --workdir]\n"
     "               open Monero Named Pipes here.\n\n"
+    "      --init\n"
+    "               create workdir for usage.\n\n"
+    "      --cleanup\n"
+    "               delete workdir.\n\n"
     "  -v, --version\n"
     "               Display the version number of mnp.\n\n"
     "      --verbose\n"
