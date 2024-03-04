@@ -80,28 +80,6 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 ## How to run mnp?
 
  Monero Named Pipes uses monero-wallet-rpc which comes with the Monero Command-line Tools. Download @ getmonero.org.
-
-```bash
-
-+---------+             +-------------------+ --tx-notify  +-----+
-|         | +---------> |                   | +----------> |     |
-| monerod | 18081/18082 | monero wallet rpc |  18083 rpc   | mnp |
-|         | <---------+ |                   | <----------+ |     |
-+----+----+             +-------------------+              +--+--+
-     |                  |                                     |
-     v                  |  +-------------+                    |
-   +-+-+                |  |             |                    |
-   |   |                +->+  My wallet  |                    v
-   +-+-+                   |             |                 +mymonero
-     |                     +-------------+                 |
-   +-+-+                                                   +-+payments
-   |   |                                                   | |
-   +-+-+                                                   | +-+paymentID1
-     |                                                     | |
-                                                           | +-+paymentID2
- Blockchain                                                | 
-                                                           ...
-```
  
 - [ ] Step 1) Start monerod. It keeps the blockchain in sync.
 - [ ] Step 2) Start monero-wallet-rpc --tx-notify "/usr/bin/mnp %s". It listens on rpc port and takes care of your wallet.
@@ -152,12 +130,8 @@ A simple transfer. Typically used for donations. If you have a small business or
 invoices a month, it is advised to create a sub-address for each invoice. This has privacy benefits.
 
 ```bash
-$ mnp-payment --subaddr 1
+$ tx=$(mnp-payment --subaddr 1)
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
-
-# Set up mnp to watch for incoming transfer on address index x.
-# mnp will create a new pipe on /tmp/mywallet/transfer/Bdxcxb...3ubLB
-$ mnp-payment --subaddr 1 > /tmp/mywallet/setup/transfer
 
 # Create a QR code for the payment.
 $ mnp-payment --subaddr 1 | qrencode -tUTF8
@@ -183,9 +157,14 @@ $ mnp-payment --subaddr 1 | qrencode -tUTF8
 ████▄▄▄▄▄▄▄█▄▄█▄▄██▄███▄▄███▄▄▄█████▄▄█▄▄████
 █████████████████████████████████████████████
 
-# Read amount received. BLOCKED read until transfer is done.
-$ donation=$(cat /tmp/mywallet/transfer/Bdxcxb5Wk...Mo3ubLB)
-$ echo "Thank you for donating" $donation "piconero"
+while [ ! –e ${tx} ]
+do
+  sleep 1
+done
+
+donation=$(cat /tmp/mywallet/transfer/$tx)
+echo "Thank you for donating" $donation "piconero"
+
 Thank you for donating 25000 piconero
 ```
 
