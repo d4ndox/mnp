@@ -1,13 +1,13 @@
 #ifndef GLOBALDEFS_H
 #define GLOBALDEFS_H
 
-#define MAX_DATA_SIZE   (2048)
+#define MAX_DATA_SIZE   (4096)
 #define MAX_IADDR_SIZE  (106)
 #define MAX_ADDR_SIZE   (96)
 #define MAX_PAYID_SIZE  (16)
 #define MAX_TXID_SIZE   (64)
 #define VERSION         "0.0.2"
-#define DEBUG           (0)
+#define DEBUG           (1)
 #define CONFIG_FILE     ".mnp.ini"
 extern int verbose;
 
@@ -37,11 +37,9 @@ struct Config {
 #define MK_IADDR_CMD    "make_integrated_address"
 #define SP_IADDR_CMD    "split_integrated_address"
 
-#define GET_PAYMENT_CMD "get_bulk_payments"
+#define GET_TXID_CMD    "get_transfer_by_txid"
 
-#define SETUP_DIR       "setup"
-#define SETUP_TRANSFER  "transfer"
-#define SETUP_PAYMENT   "payment"
+#define GET_PAYMENT_CMD "get_bulk_payments"
 
 #define TRANSFER_DIR    "transfer"
 #define PAYMENT_DIR     "payment"
