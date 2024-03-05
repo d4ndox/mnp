@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <assert.h>
 #include <stdio.h>
 #include <curl/curl.h>
 #include <getopt.h>
@@ -69,6 +70,9 @@ static void initshutdown(int);
 static int remove_directory(const char *path);
 static void printmnp(void);
 static char *readStdin(void);
+static char *amount(const struct rpc_wallet *monero_wallet);
+static char *address(const struct rpc_wallet *monero_wallet);
+static char *payid(const struct rpc_wallet *monero_wallet);
 
 int main(int argc, char **argv)
 {
@@ -193,7 +197,6 @@ int main(int argc, char **argv)
         }
     }
 
-    fprintf(stderr, "txid = %s\n", txid);
     const char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
     mode_t mode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
@@ -201,8 +204,8 @@ int main(int argc, char **argv)
 
     if (DEBUG) fprintf(stderr, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
     
-    struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
     if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
+    struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
 
     /* initialise monero_wallet with NULL */
     for (int i = 0; i < END_RPC_SIZE; i++) {
@@ -257,36 +260,17 @@ int main(int argc, char **argv)
             fprintf(stderr, "rpc_password is missing\n");
             exit(EXIT_FAILURE);
         }
+        if (txid != NULL) {
+            monero_wallet[i].txid = strndup(txid, MAX_TXID_SIZE);
+        } else {
+            fprintf(stderr, "txid is missing\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
-    //monero_rpc_wallet.
-    /* prepare url and port to connect to the wallet */
-    char *urlport = NULL;
-
-    if (rpc_host != NULL && rpc_port != NULL) {
-        asprintf(&urlport,"http://%s:%s/json_rpc", rpc_host, rpc_port);
-    } else {
-        fprintf(stderr, "rpc_host and/or rpc_port is missing\n");
-        exit(EXIT_FAILURE);
-    }
-
-    /* prepare rpc_user and rpc_password to connect to the wallet */
-    char *userpwd = NULL;
-
-    if (rpc_user != NULL && rpc_password != NULL) {
-        asprintf(&userpwd,"%s:%s", rpc_user, rpc_password);
-    } else {
-        fprintf(stderr, "rpc_user and/or rpc_password is missing\n");
-        exit(EXIT_FAILURE);
-    }
 
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");
-
-    if (verbose) {
-        fprintf(stdout, "Starting ... \n");
-        printmnp();
-    }
 
     /* create workdir directory. TEST if directory does exist */
     struct stat sb;
@@ -330,6 +314,20 @@ int main(int argc, char **argv)
         exit(0);
     }
 
+    if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
+        fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                              monero_wallet[GET_TXID].port);
+        exit(EXIT_FAILURE);
+    }
+    //fprintf(stderr, "method = %s", cJSON_Print(monero_wallet[GET_TXID].reply));
+
+    char *a = amount(&monero_wallet[GET_TXID]);
+    char *pid = payid(&monero_wallet[GET_TXID]);
+    fprintf(stderr, "a = %s\n", a);
+    fprintf(stderr, "payid = %s\n", pid);;
+
+
+
     /* 
      * declare and initalise 
      * named pipe (mkfifo)
@@ -339,6 +337,7 @@ int main(int argc, char **argv)
      * SETUP_PAYMENT
      * cJSON object »bc_height«
      */
+    
     char *bc_height_fifo = NULL;
     char *balance_fifo = NULL;
     char *setup_transfer_fifo = NULL;
@@ -347,7 +346,7 @@ int main(int argc, char **argv)
     ret = 0;
     asprintf(&bc_height_fifo, "%s/%s", workdir, BC_HEIGHT_FILE);
     asprintf(&balance_fifo, "%s/%s", workdir, BALANCE_FILE);
-    fprintf(stderr, "setup_transfer_fifo = %s\n", setup_transfer_fifo);
+    fprintf(stderr, "bc_height_fifo = %s\n", bc_height_fifo);
 
     if (mkfifo(bc_height_fifo, mode)) {
             fprintf(stderr, "Could not create named pipe bc_height %s\n", bc_height_fifo);
@@ -355,14 +354,6 @@ int main(int argc, char **argv)
     }
     if (mkfifo(balance_fifo, mode)) {
             fprintf(stderr, "Could not create named pipe balance %s\n", balance_fifo);
-            exit(EXIT_FAILURE);
-    }
-    if (mkfifo(setup_transfer_fifo, mode)) {
-            fprintf(stderr, "Could not create named pipe transfer %s\n", setup_transfer_fifo);
-            exit(EXIT_FAILURE);
-    }
-    if (mkfifo(setup_payment_fifo, mode)) {
-            fprintf(stderr, "Could not create named pipe payment %s\n", setup_payment_fifo);
             exit(EXIT_FAILURE);
     }
 
@@ -375,7 +366,8 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < (END_RPC_SIZE-6); i++) {
     if (0 > (ret = rpc_call(&monero_wallet[i]))) {
-        fprintf(stderr, "could not connect to host: %s\n", urlport);
+        fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[i].host,
+                                                              monero_wallet[i].port);
         exit(EXIT_FAILURE);
     }
    
@@ -413,6 +405,42 @@ int main(int argc, char **argv)
     free(status_bc_height);
     free(status_balance);
 }
+
+
+static char *amount(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
+    cJSON *amount = cJSON_GetObjectItem(transfer, "amount");
+    fprintf(stderr, "amount = %s\n", cJSON_Print(amount));
+
+    return cJSON_Print(amount);
+}
+
+static char *address(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
+    cJSON *address = cJSON_GetObjectItem(transfer, "address");
+
+    return cJSON_Print(address);
+}
+
+static char *payid(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
+    cJSON *payment_id = cJSON_GetObjectItem(transfer, "payment_id");
+
+    return cJSON_Print(payment_id);
+}
+
 
 
 /*
