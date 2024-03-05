@@ -6,7 +6,7 @@
 enum monero_rpc_method {
     GET_HEIGHT,
     GET_BALANCE,
-    GET_BULK_PAYMENTS,
+    GET_TXID,
     GET_LIST,
     GET_SUBADDR,
     MK_IADDR,

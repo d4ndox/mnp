@@ -27,7 +27,6 @@
 int rpc_call(struct rpc_wallet *monero_wallet)
 {
     int ret = 0;
-
     char *urlport = NULL;
 
     if (monero_wallet->host != NULL && monero_wallet->port != NULL) {
@@ -93,6 +92,13 @@ int rpc_call(struct rpc_wallet *monero_wallet)
               if (cJSON_AddStringToObject(rpc_params, "integrated_address", 
                           monero_wallet->iaddr) == NULL) ret = -1;
             break;
+        case GET_TXID:
+              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                          atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "txid", 
+                          monero_wallet->txid) == NULL) ret = -1;
+              fprintf(stderr, "mw-txid = %s\n", monero_wallet->txid);
+            break;
         default:
             rpc_params = NULL;
             break;
@@ -106,7 +112,7 @@ int rpc_call(struct rpc_wallet *monero_wallet)
 
     char *method_call = cJSON_Print(rpc_frame);
     if (method_call == NULL) ret = -1;
-    //if (monero_wallet->monero_rpc_method == GET_BULK_PAYMENTS) fprintf(stderr, "method = %s", method_call);
+    if (monero_wallet->monero_rpc_method == GET_BALANCE) fprintf(stderr, "method = %s", method_call);
     /*
      * rpc method call send to the wallet
      */
@@ -125,7 +131,7 @@ int rpc_call(struct rpc_wallet *monero_wallet)
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
             fprintf(stderr, "Error before: %s\n", error_ptr);
-            ret = -1;
+           ret = -1;
         }
     }
 
@@ -178,8 +184,8 @@ char* get_method(enum monero_rpc_method method)
         case SPLIT_IADDR:
             asprintf(&mtd, "%s", SP_IADDR_CMD);
                 break;
-        case GET_BULK_PAYMENTS:
-            asprintf(&mtd, "%s", GET_PAYMENT_CMD);
+        case GET_TXID:
+            asprintf(&mtd, "%s", GET_TXID_CMD);
                 break;
         default:
                 break;
