@@ -76,13 +76,6 @@ static char *payid(const struct rpc_wallet *monero_wallet);
 
 int main(int argc, char **argv)
 {
-    /* keeps the old status of blockchain hight
-     * needs to be compared with every rpc call
-     * write to fifo pipe if value changed
-     */
-    char *status_bc_height = NULL;
-    char *status_balance = NULL;
-
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
     signal(SIGINT, initshutdown);
@@ -321,89 +314,51 @@ int main(int argc, char **argv)
     }
     //fprintf(stderr, "method = %s", cJSON_Print(monero_wallet[GET_TXID].reply));
 
-    char *a = amount(&monero_wallet[GET_TXID]);
-    char *pid = payid(&monero_wallet[GET_TXID]);
-    fprintf(stderr, "a = %s\n", a);
-    fprintf(stderr, "payid = %s\n", pid);;
+    monero_wallet[GET_TXID].amount = amount(&monero_wallet[GET_TXID]);
+    monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
+    monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
+    fprintf(stderr, "a = %s\n", monero_wallet[GET_TXID].amount);
+    fprintf(stderr, "saddr = %s\n", monero_wallet[GET_TXID].saddr);
+    fprintf(stderr, "payid = %s\n", monero_wallet[GET_TXID].payid);
 
 
 
     /* 
      * declare and initalise 
      * named pipe (mkfifo)
-     * BC_HEIGHT
-     * BALANCE
-     * SETUP_TRANSFER
-     * SETUP_PAYMENT
-     * cJSON object »bc_height«
      */
-    
-    char *bc_height_fifo = NULL;
-    char *balance_fifo = NULL;
-    char *setup_transfer_fifo = NULL;
-    char *setup_payment_fifo = NULL;
-
     ret = 0;
-    asprintf(&bc_height_fifo, "%s/%s", workdir, BC_HEIGHT_FILE);
-    asprintf(&balance_fifo, "%s/%s", workdir, BALANCE_FILE);
-    fprintf(stderr, "bc_height_fifo = %s\n", bc_height_fifo);
 
-    if (mkfifo(bc_height_fifo, mode)) {
-            fprintf(stderr, "Could not create named pipe bc_height %s\n", bc_height_fifo);
-            exit(EXIT_FAILURE);
+    if (monero_wallet[GET_TXID].payid != NULL) {
+        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
+                workdir, PAYMENT_DIR, monero_wallet[GET_TXID].payid);
+    } else {
+        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
+                workdir, PAYMENT_DIR, monero_wallet[GET_TXID].saddr);
     }
-    if (mkfifo(balance_fifo, mode)) {
-            fprintf(stderr, "Could not create named pipe balance %s\n", balance_fifo);
+    fprintf(stderr, "fifo = %s\n", monero_wallet[GET_TXID].fifo);
+
+    if (mkfifo(monero_wallet[GET_TXID].fifo, mode)) {
+            fprintf(stderr, "Could not create named pipe %s\n", monero_wallet[GET_TXID].fifo);
             exit(EXIT_FAILURE);
     }
 
 
     /* 
      * Start main loop
+     * jayil. Not leave this until all requirements met for payment.
      */
     fprintf(stdout, "Running\n");
     while (running) {
 
-    for (int i = 0; i < (END_RPC_SIZE-6); i++) {
-    if (0 > (ret = rpc_call(&monero_wallet[i]))) {
-        fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[i].host,
-                                                              monero_wallet[i].port);
-        exit(EXIT_FAILURE);
-    }
-   
-    switch (i) {
-        case GET_HEIGHT:
-            status_bc_height = blockchainheight(&(monero_wallet[i]).reply, bc_height_fifo, status_bc_height);
-            if (status_bc_height == NULL) {
-                fprintf(stderr, "could not parse JSON object height\n");
-                remove_directory(workdir);
-                exit(EXIT_FAILURE);
-            }
-            break;
-        case GET_BALANCE:
-            status_balance = balance(&(monero_wallet[i]).reply, balance_fifo, status_balance);
-            if (status_balance == NULL) {
-                fprintf(stderr, "could not parse JSON object balance\n");
-                remove_directory(workdir);
-                exit(EXIT_FAILURE);
-            }
-            break;
-        default:
-            fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
-            break;
-    }
-    } /* end for loop */
     ret = usleep(SLEEPTIME); 
     } /* end while loop */
 
+
+    
     /* delete json + workdir and exit */
-    unlink(bc_height_fifo);
-    unlink(balance_fifo);
-    unlink(setup_transfer_fifo);
-    unlink(setup_payment_fifo);
+    unlink(monero_wallet[GET_TXID].fifo);
     free(monero_wallet);
-    free(status_bc_height);
-    free(status_balance);
 }
 
 
