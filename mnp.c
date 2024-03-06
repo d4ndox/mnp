@@ -73,6 +73,7 @@ static char *readStdin(void);
 static char *amount(const struct rpc_wallet *monero_wallet);
 static char *address(const struct rpc_wallet *monero_wallet);
 static char *payid(const struct rpc_wallet *monero_wallet);
+static char *confirm(const struct rpc_wallet *monero_wallet);
 
 int main(int argc, char **argv)
 {
@@ -317,9 +318,12 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].amount = amount(&monero_wallet[GET_TXID]);
     monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
+    monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
+
     fprintf(stderr, "a = %s\n", monero_wallet[GET_TXID].amount);
     fprintf(stderr, "saddr = %s\n", monero_wallet[GET_TXID].saddr);
     fprintf(stderr, "payid = %s\n", monero_wallet[GET_TXID].payid);
+    fprintf(stderr, "conf = %s\n", monero_wallet[GET_TXID].conf);
 
 
 
@@ -396,6 +400,16 @@ static char *payid(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(payment_id);
 }
 
+static char *confirm(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
+    cJSON *confirmations = cJSON_GetObjectItem(transfer, "confirmations");
+
+    return cJSON_Print(confirmations);
+}
 
 
 /*
