@@ -98,8 +98,6 @@ int main(int argc, char **argv)
     int init = 0;
     int cleanup = 0;
 
-    int ret = 0;
-    
     /* prepare for reading the config ini file */
     const char *homedir;
 
@@ -254,6 +252,8 @@ int main(int argc, char **argv)
         }
         if (txid != NULL) {
             monero_wallet[i].txid = strndup(txid, MAX_TXID_SIZE);
+        } else if (cleanup == 1 || init == 1) {
+            monero_wallet[i].txid = strndup("no_tx", MAX_TXID_SIZE);
         } else {
             fprintf(stderr, "txid is missing\n");
             exit(EXIT_FAILURE);
@@ -269,7 +269,6 @@ int main(int argc, char **argv)
 
     if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
         /*NOP*/
-        fprintf(stderr, "work\n");
     } else if (mkdir(workdir, mode)) {
         fprintf(stderr, "Could not create workdir %s.\n", workdir);
         exit(EXIT_FAILURE);
@@ -281,7 +280,6 @@ int main(int argc, char **argv)
     asprintf(&transferdir, "%s/%s", workdir, TRANSFER_DIR);
     if (stat(transferdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
         /* NOP */
-        fprintf(stderr, "tr\n");
     } else if (mkdir(transferdir, mode)) {
         fprintf(stderr, "Could not create transferdir %s.\n", transferdir);
         exit(EXIT_FAILURE);
@@ -293,7 +291,6 @@ int main(int argc, char **argv)
     asprintf(&paymentdir, "%s/%s", workdir, PAYMENT_DIR);
     if (stat(paymentdir, &payment) == 0 && S_ISDIR(payment.st_mode)) {
         /* NOP */
-        fprintf(stderr, "pay\n");
     } else if (mkdir(paymentdir, mode) && errno != EEXIST) {
         fprintf(stderr, "Could not create paymentdir %s.\n", paymentdir);
         exit(EXIT_FAILURE);
@@ -306,30 +303,17 @@ int main(int argc, char **argv)
         exit(0);
     }
 
+    int ret = 0;
     if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
         fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
                                                               monero_wallet[GET_TXID].port);
         exit(EXIT_FAILURE);
     }
-    //fprintf(stderr, "method = %s", cJSON_Print(monero_wallet[GET_TXID].reply));
 
     monero_wallet[GET_TXID].amount = amount(&monero_wallet[GET_TXID]);
     monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
-
-    fprintf(stderr, "a = %s\n", monero_wallet[GET_TXID].amount);
-    fprintf(stderr, "saddr = %s\n", monero_wallet[GET_TXID].saddr);
-    fprintf(stderr, "payid = %s\n", monero_wallet[GET_TXID].payid);
-    fprintf(stderr, "conf = %s\n", monero_wallet[GET_TXID].conf);
-
-
-
-    /* 
-     * declare and initalise 
-     * named pipe (mkfifo)
-     */
-    ret = 0;
 
     if (monero_wallet[GET_TXID].payid != NULL) {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
@@ -338,29 +322,42 @@ int main(int argc, char **argv)
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
                 workdir, PAYMENT_DIR, monero_wallet[GET_TXID].saddr);
     }
-    fprintf(stderr, "fifo = %s\n", monero_wallet[GET_TXID].fifo);
+    if (verbose) fprintf(stderr, "fifo = %s\n", monero_wallet[GET_TXID].fifo);
 
-    if (mkfifo(monero_wallet[GET_TXID].fifo, mode)) {
-            fprintf(stderr, "Could not create named pipe %s\n", monero_wallet[GET_TXID].fifo);
-            exit(EXIT_FAILURE);
+    if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+        /*NOP*/
+    } else {
+        mkfifo(monero_wallet[GET_TXID].fifo, mode); 
     }
 
 
     /* 
      * Start main loop
-     * jayil. Not leave this until all requirements met for payment.
+     * jail. Don't leave this jail until all requirements 
+     * are meet for payment.
      */
-    fprintf(stdout, "Running\n");
+    int jail = 1;
+    if (verbose) fprintf(stdout, "Jail\n");
     while (running) {
 
-    ret = usleep(SLEEPTIME); 
-    } /* end while loop */
+        /* release "amount" out of jail */
+        jail = 0;
+        if (jail == 0) running = 0;
+        usleep(SLEEPTIME);
+    }
 
+    if (verbose) fprintf(stderr, "jail released: amount = %s\nTry: cat %s\n",
+                                 monero_wallet[GET_TXID].amount, monero_wallet[GET_TXID].fifo);
+    if (jail == 0) {
+        int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
+        write(fd, monero_wallet[GET_TXID].amount, strlen(monero_wallet[GET_TXID].amount)+1);
+        close(fd);
+    }
 
-    
     /* delete json + workdir and exit */
     unlink(monero_wallet[GET_TXID].fifo);
     free(monero_wallet);
+    exit(0);
 }
 
 
@@ -371,7 +368,6 @@ static char *amount(const struct rpc_wallet *monero_wallet)
     cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
     cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
     cJSON *amount = cJSON_GetObjectItem(transfer, "amount");
-    fprintf(stderr, "amount = %s\n", cJSON_Print(amount));
 
     return cJSON_Print(amount);
 }
@@ -457,14 +453,13 @@ static void usage(int status)
 static char *readStdin(void)
 {
     char *buffer;
-    int ret;
 
     buffer = (char *)malloc(MAX_TXID_SIZE+1);
     if(buffer == NULL) {
         fprintf(stderr, "Memory allocation failed.\n");
         exit(EXIT_FAILURE);
     }
-    ret = fread(buffer, 1, MAX_TXID_SIZE, stdin);
+    int ret = fread(buffer, 1, MAX_TXID_SIZE, stdin);
     if(ret == 0) {
         fprintf(stderr, "No input data.\n");
         exit(EXIT_FAILURE);
