@@ -315,12 +315,12 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
-    if (monero_wallet[GET_TXID].payid != NULL) {
+    if (strcmp(monero_wallet[GET_TXID].payid, "0000000000000000")) {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
                 workdir, PAYMENT_DIR, monero_wallet[GET_TXID].payid);
     } else {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
-                workdir, PAYMENT_DIR, monero_wallet[GET_TXID].saddr);
+                workdir, TRANSFER_DIR, monero_wallet[GET_TXID].saddr);
     }
     if (verbose) fprintf(stderr, "fifo = %s\n", monero_wallet[GET_TXID].fifo);
 
