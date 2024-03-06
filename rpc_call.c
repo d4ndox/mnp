@@ -97,7 +97,6 @@ int rpc_call(struct rpc_wallet *monero_wallet)
                           atoi(monero_wallet->account)) == NULL) ret = -1;
               if (cJSON_AddStringToObject(rpc_params, "txid", 
                           monero_wallet->txid) == NULL) ret = -1;
-              fprintf(stderr, "mw-txid = %s\n", monero_wallet->txid);
             break;
         default:
             rpc_params = NULL;
