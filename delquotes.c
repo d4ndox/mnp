@@ -25,7 +25,7 @@
  * first and last character in string
  * is removed
  */
-char* delQuotes(char *str) {
+char* delQuotes(const char *str) {
     int length = strlen(str);
     char* ret = malloc((length-2) * sizeof(char));
 
@@ -35,7 +35,7 @@ char* delQuotes(char *str) {
         empty[0] = '\0';
         return empty;
     } else {
-        strncpy(ret, str+1, length-2);
+        ret = strndup(str+1, length-2);
     }
 
     return ret;
