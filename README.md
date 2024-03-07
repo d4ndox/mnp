@@ -3,8 +3,6 @@
 Monero named pipes (mnp) is a leightweight payment processor, using named pipes, to monitor incoming payments on 
 a shell like bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and allows interaction through named pipes.
 
-------
-
 mnp will create a set of files and directories - allowing you to control and check for incoming payments with command line tools.
 Default = /tmp/mywallet
 
@@ -48,7 +46,7 @@ inotifywait works passive - the operating system takes care of the rest.
 This allows interaction with any scripting language (Perl, Python, ...)
 
     #!/bin/bash
-    inotifywait -m /tmp/mywallet -e modified -r |
+    while inotifywait -m /tmp/mywallet -e create -r |
     while read dir action file; do
         python check_payment.py ${dir}/${file}
     done
