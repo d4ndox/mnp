@@ -18,6 +18,7 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <pwd.h>
 #include <assert.h>
 #include <stdio.h>
@@ -26,8 +27,6 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
@@ -324,7 +323,7 @@ int main(int argc, char **argv)
     }
     if (verbose) fprintf(stderr, "fifo = %s\n", monero_wallet[GET_TXID].fifo);
 
-    if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+    if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
         /*NOP*/
     } else {
         mkfifo(monero_wallet[GET_TXID].fifo, mode); 
@@ -350,7 +349,7 @@ int main(int argc, char **argv)
                                  monero_wallet[GET_TXID].amount, monero_wallet[GET_TXID].fifo);
     if (jail == 0) {
         int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
-        write(fd, monero_wallet[GET_TXID].amount, strlen(monero_wallet[GET_TXID].amount)+1);
+        write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
         close(fd);
     }
 
