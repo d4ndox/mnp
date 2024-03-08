@@ -81,10 +81,10 @@ mnp-payment is used to prepare a payment.
 ```bash
 Usage: mnp-payment [OPTION] [PAYMENT_ID]
 
-			   [PAYMENT_ID]
-			   PAYMENT_ID is a 16 hex unique char to
-			   identidy the payment. Returns an
-			   integrated address.
+		[PAYMENT_ID]
+		PAYMENT_ID is a 16 hex unique char to
+		identidy the payment. Returns an
+		integrated address.
 
   -a  --account [ACCOUNT]
                Monero account number. 0 = default.
