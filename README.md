@@ -51,6 +51,52 @@ This allows interaction with any scripting language (Perl, Python, ...)
         python check_payment.py ${dir}/${file}
     done
 
+
+
+## Command line option:
+
+mnp is called from monero-wallet-rpc --txnotify.
+
+```bash
+Usage: mnp [OPTION]
+
+  -a  --account [ACCOUNT]
+               Monero account number. 0 = default.
+
+  --confirmation [n]
+           amount of blocks needed to confirm transaction.
+
+  --init
+           create workdir for usage.
+
+  --cleanup
+           delete workdir.
+
+  --verbose
+           Display verbose information to stderr.
+```
+
+mnp-payment is used to prepare a payment.
+
+```bash
+Usage: mnp-payment [OPTION] [PAYMENT_ID]
+
+			   [PAYMENT_ID]
+			   PAYMENT_ID is a 16 hex unique char to
+			   identidy the payment. Returns an
+			   integrated address.
+
+  -a  --account [ACCOUNT]
+               Monero account number. 0 = default.
+
+  -l, --list
+               list all subaddresses + address_indices.
+
+  -s  --subaddr [INDEX]
+               returns subaddress on INDEX.
+```
+
+
 ## How to build mnp
 
 'libcurl' is required to build mnp. `apt-get install libcurl4`
@@ -73,7 +119,7 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 ## How to run mnp?
 
  Monero Named Pipes uses monero-wallet-rpc which comes with the Monero Command-line Tools. Download @ getmonero.org.
- 
+
 - [ ] Step 1) Start monerod. It keeps the blockchain in sync.
 - [ ] Step 2) Start monero-wallet-rpc --tx-notify "/usr/bin/mnp %s". It listens on rpc port and takes care of your wallet.
 
