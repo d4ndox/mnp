@@ -53,14 +53,15 @@ static const struct option options[] = {
         {"rpc_port"     , required_argument, NULL, 'p'},
         {"account"      , required_argument, NULL, 'a'},
         {"workdir"      , required_argument, NULL, 'w'},
-	{"init"         , no_argument      , NULL, 'n'},
+        {"confirmation" , required_argument, NULL, 'n'},
+	{"init"         , no_argument      , NULL, 't'},
 	{"cleanup"      , no_argument      , NULL, 'c'},
         {"version"      , no_argument      , NULL, 'v'},
 	{"verbose"      , no_argument      , &verbose, 1},
 	{NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:w:ncvl";
+static char *optstring = "hu:r:i:p:a:w:n:tcvl";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
@@ -96,6 +97,7 @@ int main(int argc, char **argv)
 
     int init = 0;
     int cleanup = 0;
+    int confirmation = 0;
 
     /* prepare for reading the config ini file */
     const char *homedir;
@@ -143,6 +145,9 @@ int main(int argc, char **argv)
                 workdir = strndup(optarg, MAX_DATA_SIZE);
                 break;
             case 'n':
+                confirmation = atoi(optarg);
+                break;
+            case 't':
                 init = 1;
                 break;
             case 'c':
@@ -338,9 +343,16 @@ int main(int argc, char **argv)
     int jail = 1;
     if (verbose) fprintf(stdout, "Jail\n");
     while (running) {
+        if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
+            fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                  monero_wallet[GET_TXID].port);
+            exit(EXIT_FAILURE);
+        }
+
+        monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
         /* release "amount" out of jail */
-        jail = 0;
+        if (atoi(monero_wallet[GET_TXID].conf) > confirmation) jail = 0;
         if (jail == 0) running = 0;
         usleep(SLEEPTIME);
     }
@@ -426,8 +438,10 @@ static void usage(int status)
     "               rpc host ip address or domain.\n\n"
     "      --rpc_port [RPC_PORT]\n"
     "               rpc port to cennect to.\n\n"
-    "  -w, --workdir]\n"
-    "               open Monero Named Pipes here.\n\n"
+    "  -w, --workdir  [WORKDIR]\n"
+    "               place to create the work directory.\n\n"
+    "      --confirmation [n]\n"
+    "               amount of blocks needed to confirm transaction.\n\n"
     "      --init\n"
     "               create workdir for usage.\n\n"
     "      --cleanup\n"
