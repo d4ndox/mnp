@@ -350,7 +350,11 @@ static void usage(int status)
     int ok = status ? 0 : 1;
     if (ok)
     fprintf(stdout,
-    "Usage: mnp-payment [OPTION]\n\n"
+    "Usage: mnp-payment [OPTION] [PAYMENT_ID]\n\n"
+    "       [PAYMENT_ID]\n"
+    "               [PAYMENT_ID is a 16 hex unique char to\n"
+    "               identify the payment. Returns an\n"
+    "               integrated address.\n\n"
     "  -a  --account [ACCOUNT]\n"
     "               Monero account number. 0 = default.\n\n"
     "      --rpc_user [RPC_USER]\n"
