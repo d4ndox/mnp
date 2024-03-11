@@ -80,6 +80,10 @@ int rpc_call(struct rpc_wallet *monero_wallet)
             cJSON_AddItemToArray(subarray, index);
             cJSON_AddItemToObject(rpc_params, "address_index", subarray);
             break;
+        case NEW_SUBADDR:
+            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                        atoi(monero_wallet->account)) == NULL) ret = -1;
+            break;
         case MK_IADDR:
               if (cJSON_AddNumberToObject(rpc_params, "account_index", 
                           atoi(monero_wallet->account)) == NULL) ret = -1;
@@ -176,6 +180,9 @@ char* get_method(enum monero_rpc_method method)
                 break;
         case GET_SUBADDR:
             asprintf(&mtd, "%s", GET_SUBADDR_CMD);
+                break;
+        case NEW_SUBADDR:
+            asprintf(&mtd, "%s", NEW_SUBADDR_CMD);
                 break;
         case MK_IADDR:
             asprintf(&mtd, "%s", MK_IADDR_CMD);

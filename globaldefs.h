@@ -33,6 +33,7 @@ struct Config {
 #define GET_BALANCE_CMD "get_balance"
 #define BALANCE_FILE    "balance"
 #define GET_SUBADDR_CMD "get_address"
+#define NEW_SUBADDR_CMD "create_address"
 
 #define MK_IADDR_CMD    "make_integrated_address"
 #define SP_IADDR_CMD    "split_integrated_address"

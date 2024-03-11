@@ -44,6 +44,7 @@ static const struct option options[] = {
         {"rpc_port"     , required_argument, NULL, 'p'},
         {"account"      , required_argument, NULL, 'a'},
         {"subaddr"      , required_argument, NULL, 's'},
+        {"newaddr"      , no_argument      , NULL, 'n'},
         {"version"      , no_argument      , NULL, 'v'},
         {"list"         , no_argument      , NULL, 'l'},
 	{NULL, 0, NULL, 0}
@@ -51,7 +52,7 @@ static const struct option options[] = {
 
 static int handler(void *user, const char *section,
                    const char *name, const char *value);
-static char *optstring = "hu:r:i:p:a:s:vl";
+static char *optstring = "hu:r:i:p:a:s:nvl";
 static void usage(int status);
 static void printmnp(void);
 static char *readStdin(void);
@@ -68,6 +69,7 @@ int main(int argc, char **argv)
     char *paymentId = NULL;
     int subaddr = -1;
     int list = 0;
+    int new = 0;
     int ret = 0;
 
     /* prepare for reading the config ini file */
@@ -122,6 +124,9 @@ int main(int argc, char **argv)
             case 'l':
                 list = 1;
                 break;
+            case 'n':
+                new = 1;
+                break;
             case 0:
 	        break;
             default:
@@ -142,7 +147,7 @@ int main(int argc, char **argv)
         rpc_port = strndup(config.rpc_port, MAX_DATA_SIZE);
     }
 
-    if (list == 0 && subaddr < 0) {
+    if (list == 0 && subaddr < 0 && new == 0) {
         if (optind < argc) {
             paymentId = (char *)argv[optind];
             //length = strlen((char *)paymentId);
@@ -284,6 +289,23 @@ int main(int argc, char **argv)
         fprintf(stdout, "%s\n", delQuotes(cJSON_Print(integrated_address)));
     }
 
+    /* 
+     * mnp-payment --newaddr 
+     * returns new created subaddress
+     */
+    if (new == 1) {
+        if (0 > (ret = rpc_call(&monero_wallet[NEW_SUBADDR]))) {
+                  fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[NEW_SUBADDR].host,
+                                                                        monero_wallet[NEW_SUBADDR].port);
+                exit(EXIT_FAILURE);
+        }
+        cJSON *result = cJSON_GetObjectItem(monero_wallet[NEW_SUBADDR].reply, "result");
+        cJSON *address = cJSON_GetObjectItem(result, "address");
+        char *retaddr = delQuotes(cJSON_Print(address));
+        fprintf(stdout, "%s\n", retaddr);
+        free(retaddr);
+    }
+
     return 0;
 }
 
@@ -371,6 +393,8 @@ static void usage(int status)
     "               list all subaddresses + address_indices.\n\n"
     "  -s  --subaddr [INDEX]\n"
     "               returns subaddress on INDEX.\n\n"
+    "  -n  --newaddr\n"
+    "               returns a new created subaddress.\n\n"
     "  -v, --version\n"
     "               Display the version number of mnp.\n\n"
     "  -h, --help   Display this help message.\n"

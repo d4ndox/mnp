@@ -9,6 +9,7 @@ enum monero_rpc_method {
     GET_TXID,
     GET_LIST,
     GET_SUBADDR,
+    NEW_SUBADDR,
     MK_IADDR,
     SPLIT_IADDR,
     GET_VERSION,
