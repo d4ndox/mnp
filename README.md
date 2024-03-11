@@ -55,10 +55,14 @@ This allows interaction with any scripting language (Perl, Python, ...)
 
 ## Command line option:
 
-mnp is called from monero-wallet-rpc --txnotify.
+mnp is called from monero-wallet-rpc --tx-notify.
 
 ```bash
-Usage: mnp [OPTION]
+Usage: mnp [OPTION] [TXID]
+
+   [TX_ID]
+		TXID is the transaction identifier passed from
+		monero-wallet-rpc --tx-notify or some other source.
 
   -a  --account [ACCOUNT]
                Monero account number. 0 = default.
@@ -71,9 +75,6 @@ Usage: mnp [OPTION]
 
   --cleanup
            delete workdir.
-
-  --verbose
-           Display verbose information to stderr.
 ```
 
 mnp-payment is used to prepare a payment.
@@ -81,10 +82,10 @@ mnp-payment is used to prepare a payment.
 ```bash
 Usage: mnp-payment [OPTION] [PAYMENT_ID]
 
-			   [PAYMENT_ID]
-			   PAYMENT_ID is a 16 hex unique char to
-			   identidy the payment. Returns an
-			   integrated address.
+  [PAYMENT_ID]
+		PAYMENT_ID is a 16 hex unique char to
+		identify the payment. Returns an
+		integrated address.
 
   -a  --account [ACCOUNT]
                Monero account number. 0 = default.
@@ -166,7 +167,7 @@ $ ./mnp-payment --list
 ### Without payment Id
 
 A simple transfer. Typically used for donations. If you have a small business or only issue a few 
-invoices a month, it is advised to create a sub-address for each invoice. This has privacy benefits.
+invoices a day, it is advised to create a sub-address for each invoice. This has privacy benefits.
 
 ```bash
 $ tx=$(mnp-payment --subaddr 1)
