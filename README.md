@@ -61,11 +61,11 @@ mnp is called from monero-wallet-rpc --tx-notify.
 Usage: mnp [OPTION] [TXID]
 
    [TX_ID]
-		TXID is the transaction identifier passed from
-		monero-wallet-rpc --tx-notify or some other source.
+		   TXID is the transaction identifier passed from
+		   monero-wallet-rpc --tx-notify or some other source.
 
   -a  --account [ACCOUNT]
-               Monero account number. 0 = default.
+           Monero account number. 0 = default.
 
   --confirmation [n]
            amount of blocks needed to confirm transaction.
@@ -95,6 +95,8 @@ Usage: mnp-payment [OPTION] [PAYMENT_ID]
 
   -s  --subaddr [INDEX]
                returns subaddress on INDEX.
+  -n  --newaddr
+  			   returns a new created subaddress.
 ```
 
 
