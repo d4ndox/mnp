@@ -55,7 +55,7 @@ This allows interaction with any scripting language (Perl, Python, ...)
 
 ## Command line option:
 
-mnp is called from monero-wallet-rpc --tx-notify.
+mnp is called from monero-wallet-rpc --tx-notify or some other source.
 
 ```bash
 Usage: mnp [OPTION] [TXID]
