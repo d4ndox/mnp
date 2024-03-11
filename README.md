@@ -96,7 +96,7 @@ Usage: mnp-payment [OPTION] [PAYMENT_ID]
   -s  --subaddr [INDEX]
                returns subaddress on INDEX.
   -n  --newaddr
-  			   returns a new created subaddress.
+               returns a new created subaddress.
 ```
 
 
