@@ -55,14 +55,14 @@ This allows interaction with any scripting language (Perl, Python, ...)
 
 ## Command line option:
 
-mnp is called from monero-wallet-rpc --tx-notify.
+mnp is called from monero-wallet-rpc --tx-notify or some other source.
 
 ```bash
 Usage: mnp [OPTION] [TXID]
 
    [TX_ID]
-		   TXID is the transaction identifier passed from
-		   monero-wallet-rpc --tx-notify or some other source.
+	   TXID is the transaction identifier passed from
+	   monero-wallet-rpc --tx-notify or some other source.
 
   -a  --account [ACCOUNT]
            Monero account number. 0 = default.
@@ -96,7 +96,7 @@ Usage: mnp-payment [OPTION] [PAYMENT_ID]
   -s  --subaddr [INDEX]
                returns subaddress on INDEX.
   -n  --newaddr
-  			   returns a new created subaddress.
+               returns a new created subaddress.
 ```
 
 
