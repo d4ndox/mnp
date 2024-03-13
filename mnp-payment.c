@@ -181,7 +181,7 @@ int main(int argc, char **argv)
         monero_wallet[i].saddr = NULL;
         monero_wallet[i].idx = 0;
         monero_wallet[i].reply = NULL;
-    } 
+    }
 
     for (int i = 0; i < END_RPC_SIZE; i++) {
 
@@ -249,9 +249,9 @@ int main(int argc, char **argv)
                                                     cJSON_Print(adr));
           }
     }
-    
-    /* 
-     * mnp-payment --subaddr 1 
+
+    /*
+     * mnp-payment --subaddr 1
      * returns subaddress
      * mnp-payment --amount 10 --subaddr 1
      * returns uri with subaddress at idx 1 + amount
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
           char *retaddr = delQuotes(cJSON_Print(adr));
 
           monero_wallet[MK_URI].saddr = strndup(retaddr, MAX_ADDR_SIZE);
-        
+
           if (amount == NULL) {
              fprintf(stdout, "%s\n", retaddr);
           } else {
@@ -291,8 +291,8 @@ int main(int argc, char **argv)
         free(retaddr);
     }
 
-    /* 
-     * mnp-payment --newaddr 
+    /*
+     * mnp-payment --newaddr
      * returns new created subaddress
      * mnp-payment --amount 10 --newaddr
      * returns uri with new subaddress, amount
@@ -307,7 +307,7 @@ int main(int argc, char **argv)
         cJSON *address = cJSON_GetObjectItem(result, "address");
         char *retaddr = delQuotes(cJSON_Print(address));
         monero_wallet[MK_URI].saddr = strndup(retaddr, MAX_ADDR_SIZE);
-        
+
         if (amount == NULL) {
            fprintf(stdout, "%s\n", retaddr);
         } else {
@@ -327,8 +327,8 @@ int main(int argc, char **argv)
         free(retaddr);
     }
 
-    /* 
-     * openssl rand --hex 8 | mnp-payment 
+    /*
+     * openssl rand --hex 8 | mnp-payment
      * returns integrated address.
      * mnp-payment --amount 10 1234567890abcdef
      * returns uri with new integrated adddress + paymentid + amount
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
         if (strlen(paymentId) != 16) {
             fprintf(stderr, "Invalid payment Id. (16 characters hex)\n");
             exit(EXIT_FAILURE);
-        }            
+        }
 
         monero_wallet[MK_IADDR].payid = strndup(paymentId, MAX_PAYID_SIZE);
         if (0 > (ret = rpc_call(&monero_wallet[MK_IADDR]))) {
@@ -373,8 +373,8 @@ int main(int argc, char **argv)
 }
 
 
-/* 
- * read paymentId from stdin 
+/*
+ * read paymentId from stdin
  */
 static char *readStdin(void)
 {

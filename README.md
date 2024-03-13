@@ -1,6 +1,6 @@
 # Monero Named Pipes
 
-Monero named pipes (mnp) is a leightweight payment processor, using named pipes, to monitor incoming payments on 
+Monero named pipes (mnp) is a leightweight payment processor, using named pipes, to monitor incoming payments on
 a shell like bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and allows interaction through named pipes.
 
 mnp will create a set of files and directories - allowing you to control and check for incoming payments with command line tools.
@@ -162,7 +162,7 @@ The config file makes things easier. It is used by both `mnp` and `mnp-payment`.
 user = username                 ;rpc user
 password = password             ;rpc password
 host = 127.0.0.1                ;rpc ip address or domain
-port = 18083                    ;rpc port 
+port = 18083                    ;rpc port
 
 [mnp]                           ;general mnp configuration
 verbose = 0                     ;verbose mode
@@ -187,7 +187,7 @@ $ ./mnp-payment --list
 
 ### Without payment Id
 
-A simple transfer. Typically used for donations. If you have a small business or only issue a few 
+A simple transfer. Typically used for donations. If you have a small business or only issue a few
 invoices a day, it is advised to create a sub-address for each invoice. This has privacy benefits.
 
 ```bash
@@ -278,7 +278,7 @@ $ echo "Thank you for your payment" $payment "piconero"
 Thank you for your payment 25000 piconero
 ```
 
-## How to Monitor /tmp/wallet 
+## How to Monitor /tmp/wallet
 
 ### Using Python:
 

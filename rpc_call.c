@@ -66,15 +66,15 @@ int rpc_call(struct rpc_wallet *monero_wallet)
             rpc_params = NULL;
             break;
         case GET_BALANCE:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+            if (cJSON_AddNumberToObject(rpc_params, "account_index",
                         atoi(monero_wallet->account)) == NULL) ret = -1;
             break;
         case GET_LIST:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+            if (cJSON_AddNumberToObject(rpc_params, "account_index",
                         atoi(monero_wallet->account)) == NULL) ret = -1;
            break;
         case GET_SUBADDR:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+            if (cJSON_AddNumberToObject(rpc_params, "account_index",
                         atoi(monero_wallet->account)) == NULL) ret = -1;
             cJSON *subarray = cJSON_CreateArray();
             cJSON *index = cJSON_CreateNumber(monero_wallet->idx);
@@ -82,38 +82,38 @@ int rpc_call(struct rpc_wallet *monero_wallet)
             cJSON_AddItemToObject(rpc_params, "address_index", subarray);
             break;
         case NEW_SUBADDR:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+            if (cJSON_AddNumberToObject(rpc_params, "account_index",
                         atoi(monero_wallet->account)) == NULL) ret = -1;
             break;
         case MK_IADDR:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+              if (cJSON_AddNumberToObject(rpc_params, "account_index",
                           atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "payment_id", 
+              if (cJSON_AddStringToObject(rpc_params, "payment_id",
                           monero_wallet->payid) == NULL) ret = -1;
             break;
         case MK_URI:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+              if (cJSON_AddNumberToObject(rpc_params, "account_index",
                           atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "address", 
+              if (cJSON_AddStringToObject(rpc_params, "address",
                               monero_wallet->saddr) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "amount", 
+              if (cJSON_AddStringToObject(rpc_params, "amount",
                               monero_wallet->amount) == NULL) ret = -1;
-              /* payment_id is depricated use integrated address instead */ 
+              /* payment_id is depricated use integrated address instead */
               //if (monero_wallet->payid != NULL) {
-              //    if (cJSON_AddStringToObject(rpc_params, "payment_id", 
+              //    if (cJSON_AddStringToObject(rpc_params, "payment_id",
               //                monero_wallet->payid) == NULL) ret = -1;
               //}
             break;
         case SPLIT_IADDR:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+              if (cJSON_AddNumberToObject(rpc_params, "account_index",
                           atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "integrated_address", 
+              if (cJSON_AddStringToObject(rpc_params, "integrated_address",
                           monero_wallet->iaddr) == NULL) ret = -1;
             break;
         case GET_TXID:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+              if (cJSON_AddNumberToObject(rpc_params, "account_index",
                           atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "txid", 
+              if (cJSON_AddStringToObject(rpc_params, "txid",
                           monero_wallet->txid) == NULL) ret = -1;
             break;
         default:
@@ -212,6 +212,6 @@ char* get_method(enum monero_rpc_method method)
                 break;
         default:
                 break;
-    }        
+    }
     return mtd;
 }

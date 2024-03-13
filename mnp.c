@@ -197,7 +197,7 @@ int main(int argc, char **argv)
                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
 
     if (DEBUG) fprintf(stderr, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
-    
+
     if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
 
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
         monero_wallet[i].fifo = NULL;
         monero_wallet[i].idx = 0;
         monero_wallet[i].reply = NULL;
-    } 
+    }
 
 
     for (int i = 0; i < END_RPC_SIZE; i++) {
@@ -321,10 +321,10 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
     if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
-        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
+        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s",
                 workdir, PAYMENT_DIR, monero_wallet[GET_TXID].payid);
     } else {
-        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
+        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s",
                 workdir, TRANSFER_DIR, monero_wallet[GET_TXID].saddr);
     }
     if (verbose) fprintf(stderr, "fifo = %s\n", monero_wallet[GET_TXID].fifo);
@@ -332,13 +332,13 @@ int main(int argc, char **argv)
     if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
         /*NOP*/
     } else {
-        mkfifo(monero_wallet[GET_TXID].fifo, mode); 
+        mkfifo(monero_wallet[GET_TXID].fifo, mode);
     }
 
 
-    /* 
+    /*
      * Start main loop
-     * jail. Don't leave this jail until all requirements 
+     * jail. Don't leave this jail until all requirements
      * are meet for payment.
      */
     int jail = 1;
@@ -464,8 +464,8 @@ static void usage(int status)
 }
 
 
-/* 
- * read paymentId from stdin 
+/*
+ * read paymentId from stdin
  */
 static char *readStdin(void)
 {
