@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "./cjson/cJSON.h"
 #include "wallet.h"
 #include "rpc_call.h"
@@ -89,6 +90,19 @@ int rpc_call(struct rpc_wallet *monero_wallet)
                           atoi(monero_wallet->account)) == NULL) ret = -1;
               if (cJSON_AddStringToObject(rpc_params, "payment_id", 
                           monero_wallet->payid) == NULL) ret = -1;
+            break;
+        case MK_URI:
+              if (cJSON_AddNumberToObject(rpc_params, "account_index", 
+                          atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "address", 
+                              monero_wallet->saddr) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "amount", 
+                              monero_wallet->amount) == NULL) ret = -1;
+              /* payment_id is depricated use integrated address instead */ 
+              //if (monero_wallet->payid != NULL) {
+              //    if (cJSON_AddStringToObject(rpc_params, "payment_id", 
+              //                monero_wallet->payid) == NULL) ret = -1;
+              //}
             break;
         case SPLIT_IADDR:
               if (cJSON_AddNumberToObject(rpc_params, "account_index", 
@@ -186,6 +200,9 @@ char* get_method(enum monero_rpc_method method)
                 break;
         case MK_IADDR:
             asprintf(&mtd, "%s", MK_IADDR_CMD);
+                break;
+        case MK_URI:
+            asprintf(&mtd, "%s", MK_URI_CMD);
                 break;
         case SPLIT_IADDR:
             asprintf(&mtd, "%s", SP_IADDR_CMD);

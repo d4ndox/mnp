@@ -11,6 +11,7 @@ enum monero_rpc_method {
     GET_SUBADDR,
     NEW_SUBADDR,
     MK_IADDR,
+    MK_URI,
     SPLIT_IADDR,
     GET_VERSION,
     END_RPC_SIZE
