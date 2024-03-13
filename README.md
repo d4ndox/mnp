@@ -20,37 +20,51 @@ Default = /tmp/mywallet
 
 ### Example
 
+A short example in four simple steps to give you an idea of how mnp works.
 For more details, see "How to set up a payment".
-A small example to get an idea on how mnp works,
 
 #### 1. Initalise mnp
 
 ```bash
 # initialise the workdir
 $ mnp --init
-$ monero-wallet-rpc --tx-notify "/usr/bin/mnp %s"
+$ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 3 %s"
 ```
-#### 2. Monitor /tmp/mywallet/payment:
 
+#### 2. Monitor /tmp/mywallet/
+
+To monitor /tmp/mywallet i recommend inotifywait. It efficiently waits for changes to files using Linux's inotify.
+The operating system takes care of the rest.
 ```sudo apt-get install inotify-tools```
-inotifywait works passive - the operating system takes care of the rest.
 
-    #!/bin/bash
-    while inotifywait -e create /tmp/mywallet/payment -r | 
-        while read dir action file; do
-        echo "incoming txid:" $file;
-    done
+```bash
+#!/bin/bash
+inotifywait -m /tmp/mywallet -e create -r |
+while read dir action file; do
+    echo $file;
+    amount=$(cat ${dir}${file});
+    echo "Received :" $amount;
+done
+```
+Be patient and wait for 3 confirmations.
 
-#### 3. Monitor /tmp/wallet with Python:
+#### 3. Setup a payment
 
-This allows interaction with any scripting language (Perl, Python, ...)
+Create a QR-Code for your customer: pipe the output to qrencode. The amount is specified in the smallest unit piconero
 
-    #!/bin/bash
-    while inotifywait -m /tmp/mywallet -e create -r |
-    while read dir action file; do
-        python check_payment.py ${dir}/${file}
-    done
+```bash
+$ mnp-payment --amount 500000000000 --newaddr
+monero:BbE3cKKZp7repvTCHknzg4TihjuMmjNy78VSofgnk28r26WczcZvPcufchGqqML7yKEYZY91tytH47eCSA6fCJRRNy7cqSM?tx_amount=0.500000000000
+```
 
+#### 4. Close mnp
+
+Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir. (optional)
+
+```bash
+# remove the workdir /tmp/mywallet
+$ mnp --cleanup
+```
 
 
 ## Command line option:
@@ -95,8 +109,13 @@ Usage: mnp-payment [OPTION] [PAYMENT_ID]
 
   -s  --subaddr [INDEX]
                returns subaddress on INDEX.
+
   -n  --newaddr
                returns a new created subaddress.
+
+  -x  --amount [AMOUNT]
+               AMOUNT is specified in piconero.
+               returns a URI string.
 ```
 
 
@@ -257,6 +276,20 @@ $ mnp-payment $mypaymentId | qrencode -tUTF8
 $ payment=$(cat /tmp/mywallet/payment/"$mypaymentId")
 $ echo "Thank you for your payment" $payment "piconero"
 Thank you for your payment 25000 piconero
+```
+
+## How to Monitor /tmp/wallet 
+
+### Using Python:
+
+This allows interaction with any scripting language (Perl, Python, ...)
+
+```bash
+    #!/bin/bash
+    while inotifywait -m /tmp/mywallet -e create -r |
+    while read dir action file; do
+        python check_payment.py ${dir}/${file}
+    done
 ```
 
 ## Information
