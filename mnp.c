@@ -314,12 +314,13 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    int txsize = 1;
     monero_wallet[GET_TXID].amount = amount(&monero_wallet[GET_TXID]);
     monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
-    if (strcmp(monero_wallet[GET_TXID].payid, "0000000000000000")) {
+    if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s", 
                 workdir, PAYMENT_DIR, monero_wallet[GET_TXID].payid);
     } else {
