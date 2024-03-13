@@ -37,6 +37,7 @@ struct Config {
 
 #define MK_IADDR_CMD    "make_integrated_address"
 #define SP_IADDR_CMD    "split_integrated_address"
+#define MK_URI_CMD      "make_uri"
 
 #define GET_TXID_CMD    "get_transfer_by_txid"
 
@@ -45,6 +46,7 @@ struct Config {
 #define TRANSFER_DIR    "transfer"
 #define PAYMENT_DIR     "payment"
 
+#define PAYNULL         "0000000000000000"
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"
