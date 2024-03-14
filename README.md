@@ -50,12 +50,14 @@ Be patient and wait for 3 confirmations.
 
 #### 3. Setup a payment
 
-Create a QR-Code for your customer: pipe the output to qrencode. The amount is specified in the smallest unit piconero
+The amount is specified in the smallest unit piconero.
 
 ```bash
 $ mnp-payment --amount 500000000000 --newaddr
 monero:BbE3cKKZp7repvTCHknzg4TihjuMmjNy78VSofgnk28r26WczcZvPcufchGqqML7yKEYZY91tytH47eCSA6fCJRRNy7cqSM?tx_amount=0.500000000000
 ```
+
+Pipe the output to ```qrencode``` to create a QR-Code for your customer. 
 
 #### 4. Close mnp
 
