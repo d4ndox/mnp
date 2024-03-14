@@ -177,7 +177,7 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 
 ## How to set up a payment
 
-Two ways to monitor a payment. 
+Two and a half ways to set up a payment.
 
 ### 1. Without a payment Id
 
