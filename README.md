@@ -148,8 +148,8 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 - [ ] Step 2) Start monero-wallet-rpc --tx-notify "/usr/bin/mnp %s". It listens on rpc port and takes care of your wallet.
 
 ```bash
-$ monerod --testnet
-$ monero-wallet-rpc --tx-notify "/usr/bin/mnp %s" --testnet --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
+$ monerod
+$ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 3 %s" --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
 ```
 
 ### Config file ~/.mnp.ini:
@@ -177,107 +177,61 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 
 ## How to set up a payment
 
-Two ways to monitor a payment. You start by listing all subaddresses and decide which address
-to use.
-(index 0 = Primary Address).
+Two ways to monitor a payment. 
+
+### 1. Without a payment Id
+
+A simple transfer - typically used for donations. If you have a small business or only issue a few
+invoices a day, it is advised to create a subaddress for each invoice. This has privacy benefits.
+
+#### Create a new subaddress
 
 ```bash
+$ mnp-payment --newaddr
+Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
+```
+
+#### List all subaddress
+
+```bash
+# (index 0 = Primary Address).
 $ ./mnp-payment --list
 0 "A13iyF9bN7ReDPWW7FZoqd1Nwvhfh2UbAMBR4UeGPi1aWpERgmE3ChMeJZJ2RnkMueHdL7XXwdkQJ5As8XRhTKAhSwjahXd"
 1 "Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB"
 ```
 
-### Without payment Id
-
-A simple transfer. Typically used for donations. If you have a small business or only issue a few
-invoices a day, it is advised to create a sub-address for each invoice. This has privacy benefits.
+#### Select a subaddress
 
 ```bash
-$ tx=$(mnp-payment --subaddr 1)
-$ echo $tx
+$ mnp-payment --subaddr 1
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
-
-# Create a QR code for the payment.
-$ mnp-payment --subaddr 1 | qrencode -tUTF8
-█████████████████████████████████████████████
-████ ▄▄▄▄▄ █▀█ █▄█▄ ▄▀ █▄▀▄█▀ █ ▄█ ▄▄▄▄▄ ████
-████ █   █ █▀▀▀█ ▀ █▄▀█▄█ ▀▄ ▀ ▄▀█ █   █ ████
-████ █▄▄▄█ █▀ █▀▀█▄▀▄▀▀█▄█▀██▀▀ ▄█ █▄▄▄█ ████
-████▄▄▄▄▄▄▄█▄▀ ▀▄█ █▄█ ▀▄▀▄▀ █▄█ █▄▄▄▄▄▄▄████
-████  ▄▄ █▄   ▀▄▀▀▄  ▀██ ▀▀▀▄▄▄ ▀ ▀ █ █▄█████
-████▀▀  ▀ ▄██ ▄█▀█ ▄██ ▀█ ▄▀▄█ ▄███   ▄▄ ████
-█████▄█ █▀▄█▄▄▄█▄ ▄▄  ▄▀▀▀▄▄▄█ ▀  ▄▀▄█▄▀█████
-████▄█▄▀▄ ▄▄█▀█ ▄▄ ▄▀█▄█▄▀█▀██▀▄▄▄▄█ ██ ▄████
-████ █▄▄▀▀▄████▄▀▄▀▄▀▄▄ ▀▄ ▀█ ▄█▀   ▄███▄████
-████▄▄ ▀▀█▄█ ███▀▄▀▄▄▄ ▀▀ ▀▀█▄▀ █▄ ▄▀█▄▄ ████
-████▄█ █▀▀▄██▀▀█▄▄ ▄ ▀▀▀▀█▀██▄      ▄  ▀█████
-██████▀ █▀▄▀▄▄█ ▄█  █▄ ██ ▀▀▀██▄ █ ▀ █▄▄ ████
-████ ▄▀▀▀▀▄▄▄██▄▀▄▄▀ ▄█▄▀▄ ▀▄▄ ▄▀▄▄▀█▄█▄▄████
-████ █▀ ▄█▄  █▀█▀▄█  ▄██▄ ▀█▀▄ ▄ ▀▀ █▀█▄▄████
-████▄█▄█▄▄▄▄ █ █▄▀▄▀▀ ██▀▄ ▀▀█   ▄▄▄ ▀ █ ████
-████ ▄▄▄▄▄ █▄▄▀ ▄█▄▄▄▄ █▀ █▀█▄▀▄ █▄█  █▄ ████
-████ █   █ █ ██▄ █▄   ▀▀▀▄ ▀█▀▄▄     █▄█▄████
-████ █▄▄▄█ █ ▄ ▀ ▄█ ▄███▄ ▀████ ▀▀█▄█▄█▄ ████
-████▄▄▄▄▄▄▄█▄▄█▄▄██▄███▄▄███▄▄▄█████▄▄█▄▄████
-█████████████████████████████████████████████
-
-while [ ! –e ${tx} ]
-do
-  sleep 1
-done
-
-donation=$(cat /tmp/mywallet/transfer/$tx)
-echo "Thank you for donating" $donation "piconero"
-
-Thank you for donating 25000 piconero
 ```
 
-### Include a payment Id
+### 2. Including a payment Id
 
 A retailer would use this to be able to match their orders to the payment.
-Something like an invoice number.
+Something like an invoice number. You pass a 16 hex character via pipe or command line option.
+Primary Address 0 is allways used to create an integrated address. A privacy weakness.
+(integrated address = primary address + payment Id).
+
+#### Payment Id
+
+The paymentId is a 16 hex character. Could be a checksum of your invoice number or just some random 
+number. You could also increase the number by one vor every purchase.
 
 ```bash
 # Create a random paymentid (16 hex character)
 $ mypaymentId=$(openssl rand -hex 8)
 $ echo $mypaymentId
 e02c381aa2227436
+```
 
-# Create an integrated address. No need to spezify a subaddress -
-# Priamary 0 is default by Monero spezification.
+#### Create an integrated address
+
+```bash
+# Create an integrated address.
 $ echo $mypaymentId | mnp-payment
 AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
-
-# Create a QR code for the payment.
-$ mnp-payment $mypaymentId | qrencode -tUTF8
-█████████████████████████████████████████████████
-████ ▄▄▄▄▄ █▀█▄ ▀ ▀ ▄ ▄▄▄▄▀▄█▀▀▀▄ ▀█▄█ ▄▄▄▄▄ ████
-████ █   █ █▀▀▀▄▀▄▀█▀▄▄▄▀ ▄█▀▀▀▀▄██▄▄█ █   █ ████
-████ █▄▄▄█ █▀█ ▀▄ █ ▀▀▄█▀ ▀▄█▄█▀   █▄█ █▄▄▄█ ████
-████▄▄▄▄▄▄▄█▄█▄▀ █▄▀▄█▄█▄▀ █▄█▄█▄█ █ █▄▄▄▄▄▄▄████
-████▄   ▄█▄  ▄█ ▀▄▀  ▄▀█ ▄▄██ ▀█▀▄▀█▀▄▀ ▀▄▀▄█████
-████ ▀▄█  ▄▄ ██▄▄█▀▄██▄█ ▀██▄▄▄ ██▄▀ ██▀█ ▄█▀████
-████▄▄▀▄█▄▄█▀▀▀█▄█▀▀▀▀▄█▀ █▀▄▄▄█▀ ▀█ ▀█▄▀▄▀▀▀████
-████ ▄▄▀ █▄██ ▀ ▄▄██▀██ ▀▀ ██▄█ █▄████▀██▀███████
-██████▀▀▄▀▄█ ▄▀▄▄▀ ▀▀▀▀▄▀▄  ▀▀ █▀ █ ▄▀▀▀ ▄█▄▀████
-████▄ ▄▀▄▄▄ ▄█ ██ ▄   ▀███▄▀ ▄ ▄▀█ ▀ ▄█▄▄▀█ █████
-████▄█▄▄▀█▄▄█▄ █▀█▄ ▄█▀█▄ ▄█▄▄ ▄ ▄▀▀▀█▀▀ ▄ ▀▄████
-████▄   ▀ ▄██▀██▀▄█ ▄███▄ ████  ▄█▄▀███▄ ▀███████
-████▀▄█ ▀▄▄▄▀  ▀▄▄▄▄▀▄▄▀ ▀▄▄█▄▄▄ ▄▀█ ▀█ ▀▄  █████
-████▄▀▄ ▄█▄▀  ████▀  █▄▀  ▀▀ █ ▄ ▄▀▀ ▄▀  █▄▀█████
-████ ▄ ▄ █▄█ █▀█▄▀▀▀▀█▄█▀▄▀█▄▄▀▄ ███ ▄▀   ▄▀█████
-████ █▀▀▄▄▄▀█▀▀ ▄▄▄█▀▄▄ ▀ ▀▀█▄█▄▄█▀██▀█▄█ ▄█▀████
-████▄██▄▄▄▄▄ ██ █ ▄▀▀▀▀▄ █▀█▄█▄█ ▄▄  ▄▄▄ █▄  ████
-████ ▄▄▄▄▄ █▄████ ▄ █ ▀█▄█▄██▄ ▄▀█▀▀ █▄█  ▄▀█████
-████ █   █ █  ▄▄▀▀▄▀▄█▀█▄ ▄ ▄▄▀█▀▄▄█▄▄▄ ▄ ▄  ████
-████ █▄▄▄█ █ █▄█▀▄▀ ▄▄▄█▄ ▀█ █▀  █▄▀█▀▀▀ ▀█▀█████
-████▄▄▄▄▄▄▄█▄█▄█▄█▄▄█▄████▄▄▄█▄▄███▄█▄████▄██████
-█████████████████████████████████████████████████
-
-# Read amount received. BLOCKED read until transfer is done.
-$ payment=$(cat /tmp/mywallet/payment/"$mypaymentId")
-$ echo "Thank you for your payment" $payment "piconero"
-Thank you for your payment 25000 piconero
 ```
 
 ## How to Monitor /tmp/wallet
@@ -287,11 +241,15 @@ Thank you for your payment 25000 piconero
 This allows interaction with any scripting language (Perl, Python, ...)
 
 ```bash
-    #!/bin/bash
-    while inotifywait -m /tmp/mywallet -e create -r |
-    while read dir action file; do
-        python check_payment.py ${dir}/${file}
-    done
+#!/bin/bash
+while inotifywait -m /tmp/mywallet -e create -r |
+while read dir action file; do
+    python check_payment.py ${dir}/${file}
+done
+```
+
+```bash
+while [ ! –e ${tx} ]
 ```
 
 ## Information
