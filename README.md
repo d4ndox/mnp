@@ -192,16 +192,6 @@ $ mnp-payment --newaddr
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 ```
 
-#### Add an amount
-
-This helps your customer. No need to type in the price.
-
-```bash
-$ mnp-payment --subaddr 1 --amount 650000
-monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000
-```
-this will return an URI. Supported by most Monero wallets.
-
 #### List all subaddress
 
 ```bash
@@ -217,6 +207,14 @@ $ ./mnp-payment --list
 $ mnp-payment --subaddr 1
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 ```
+
+#### Add an amount
+
+```bash
+$ mnp-payment --subaddr 1 --amount 650000
+monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000
+```
+this will return an URI. Supported by most Monero wallets.
 
 ### 2. Including a payment Id
 
@@ -244,8 +242,6 @@ AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
 ```
 
 #### Add an amount
-
-This helps your customer. No need to type in the price.
 
 ```bash
  $ echo $mypayment | mnp-payment --amount 50000
