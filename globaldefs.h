@@ -53,5 +53,5 @@ struct Config {
 #define GET_VERSION_CMD "get_version"
 #define MAJOR_MASK      (0xFFFF0000)
 #define MINOR_MASK      (0x0000FFFF)
-#define SLEEPTIME       (20000)
+#define SLEEPTIME       (5000000)
 #endif
