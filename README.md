@@ -128,7 +128,7 @@ Usage: mnp-payment [OPTION] [PAYMENT_ID]
 ```bash
 $ cd mnp
 $ mkdir build
-$ cmake ..
+$ cmake -DCMAKE_BUILD_TYPE=Release ../
 $ make
 $ make install
 ```
