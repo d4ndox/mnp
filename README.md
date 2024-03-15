@@ -177,7 +177,8 @@ mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 
 ## How to set up a payment
 
-Two and a half ways to set up a payment.
+Two and a half ways to set up a payment using ```mnp-payment```. Every output of mnp-payment can 
+be used to create an QR-code for the customer to scan with his mobil monero wallet.
 
 ### 1. Without a payment Id
 
@@ -190,6 +191,16 @@ invoices a day, it is advised to create a subaddress for each invoice. This has 
 $ mnp-payment --newaddr
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 ```
+
+#### Add an amount
+
+This helps your customer. No need to type in the price.
+
+```bash
+$ mnp-payment --subaddr 1 --amount 650000
+monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000
+```
+this will return an URI. Supported by most Monero wallets.
 
 #### List all subaddress
 
@@ -210,14 +221,12 @@ Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASM
 ### 2. Including a payment Id
 
 A retailer would use this to be able to match their orders to the payment.
-Something like an invoice number. You pass a 16 hex character via pipe or command line option.
-Primary Address 0 is allways used to create an integrated address. A privacy weakness.
+Something like an invoice number. A 16 hex character.
 (integrated address = primary address + payment Id).
 
 #### Payment Id
 
-The paymentId is a 16 hex character. Could be a checksum of your invoice number or just some random 
-number. You could also increase the number by one vor every purchase.
+The paymentId is a 16 hex character. Random or increased by one or some checksum.
 
 ```bash
 # Create a random paymentid (16 hex character)
@@ -233,6 +242,53 @@ e02c381aa2227436
 $ echo $mypaymentId | mnp-payment
 AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
 ```
+
+#### Add an amount
+
+This helps your customer. No need to type in the price.
+
+```bash
+ $ echo $mypayment | mnp-payment --amount 50000
+monero:AAkPz3y5yNweDPWW7FZoqd1Nwvhfh2UbAMBR4UeGPi1aWpERgmE3ChMeJZJ2RnkMueHdL7XXwdkQJ5As8XRhTKAhfT5kqxkfnou78gMMeg?tx_amount=0.000000050000
+```
+this will return an URI. Supported by most Monero wallets.
+
+### 3. Create a QR-Code.
+
+```bash
+sudo apt-get install qrencode
+```
+
+Every output of ```mnp-payment``` can be used to create an QR-Code. The following example will create
+an UTF8 QR-Code - but all kind of image formats are possible: JPEG, PNG, SVG.
+
+```bash
+mnp-payment --subaddr 1 | qrencode -t UTF8
+█████████████████████████████████████████████
+████ ▄▄▄▄▄ █▀█ █▄█▄ ▄▀ █▄▀▄█▀ █ ▄█ ▄▄▄▄▄ ████
+████ █   █ █▀▀▀█ ▀ █▄▀█▄█ ▀▄ ▀ ▄▀█ █   █ ████
+████ █▄▄▄█ █▀ █▀▀█▄▀▄▀▀█▄█▀██▀▀ ▄█ █▄▄▄█ ████
+████▄▄▄▄▄▄▄█▄▀ ▀▄█ █▄█ ▀▄▀▄▀ █▄█ █▄▄▄▄▄▄▄████
+████  ▄▄ █▄   ▀▄▀▀▄  ▀██ ▀▀▀▄▄▄ ▀ ▀ █ █▄█████
+████▀▀  ▀ ▄██ ▄█▀█ ▄██ ▀█ ▄▀▄█ ▄███   ▄▄ ████
+█████▄█ █▀▄█▄▄▄█▄ ▄▄  ▄▀▀▀▄▄▄█ ▀  ▄▀▄█▄▀█████
+████▄█▄▀▄ ▄▄█▀█ ▄▄ ▄▀█▄█▄▀█▀██▀▄▄▄▄█ ██ ▄████
+████ █▄▄▀▀▄████▄▀▄▀▄▀▄▄ ▀▄ ▀█ ▄█▀   ▄███▄████
+████▄▄ ▀▀█▄█ ███▀▄▀▄▄▄ ▀▀ ▀▀█▄▀ █▄ ▄▀█▄▄ ████
+████▄█ █▀▀▄██▀▀█▄▄ ▄ ▀▀▀▀█▀██▄      ▄  ▀█████
+██████▀ █▀▄▀▄▄█ ▄█  █▄ ██ ▀▀▀██▄ █ ▀ █▄▄ ████
+████ ▄▀▀▀▀▄▄▄██▄▀▄▄▀ ▄█▄▀▄ ▀▄▄ ▄▀▄▄▀█▄█▄▄████
+████ █▀ ▄█▄  █▀█▀▄█  ▄██▄ ▀█▀▄ ▄ ▀▀ █▀█▄▄████
+████▄█▄█▄▄▄▄ █ █▄▀▄▀▀ ██▀▄ ▀▀█   ▄▄▄ ▀ █ ████
+████ ▄▄▄▄▄ █▄▄▀ ▄█▄▄▄▄ █▀ █▀█▄▀▄ █▄█  █▄ ████
+████ █   █ █ ██▄ █▄   ▀▀▀▄ ▀█▀▄▄     █▄█▄████
+████ █▄▄▄█ █ ▄ ▀ ▄█ ▄███▄ ▀████ ▀▀█▄█▄█▄ ████
+████▄▄▄▄▄▄▄█▄▄█▄▄██▄███▄▄███▄▄▄█████▄▄█▄▄████
+█████████████████████████████████████████████
+```
+
+Create an image PNG like this ```qrencode -t PNG -o myqrcode.png```
+
 
 ## How to Monitor /tmp/wallet
 
