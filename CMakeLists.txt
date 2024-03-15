@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 project(mnp)
-add_definitions(-std=c99 -Wall -g)
+add_definitions(-std=c99)
 
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
@@ -18,4 +18,3 @@ target_link_libraries (mnp curl)
 target_link_libraries (mnp-payment curl)
 install(FILES .mnp.ini DESTINATION ~ COMPONENT config)
 install(TARGETS mnp mnp-payment DESTINATION bin COMPONENT binaries)
-#INSTALL_TARGETS(/bin mnp)
