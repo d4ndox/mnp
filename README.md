@@ -257,7 +257,9 @@ sudo apt-get install qrencode
 
 Every output of ```mnp-payment``` can be used to create an QR-Code. The following example will create
 an UTF8 QR-Code - but all kind of image formats are possible: JPEG, PNG, SVG.
-Don't bother testing this QR-Code with Monerujo - it is a testnet Monero address!
+
+⚠️ Don't bother testing this QR-Code with Monerujo - it is a testnet Monero address❗
+
 ```bash
 mnp-payment --subaddr 1 | qrencode -t UTF8
 █████████████████████████████████████████████
