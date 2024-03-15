@@ -288,7 +288,6 @@ int main(int argc, char **argv)
 
             fprintf(stdout, "%s\n", delQuotes(cJSON_Print(uri)));
         }
-        free(retaddr);
     }
 
     /*
@@ -324,7 +323,6 @@ int main(int argc, char **argv)
 
             fprintf(stdout, "%s\n", delQuotes(cJSON_Print(uri)));
         }
-        free(retaddr);
     }
 
     /*
@@ -369,6 +367,8 @@ int main(int argc, char **argv)
         }
     }
 
+    free(monero_wallet);
+    free(account);
     return 0;
 }
 
