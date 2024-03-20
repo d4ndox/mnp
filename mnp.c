@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
     int init = 0;
     int cleanup = 0;
-    int confirmation = 1;
+    int confirmation = 0;
     int notify = ALL;
 
     /* prepare for reading the config ini file */
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
             /*
              * jail. Don't leave this jail until all requirements
              */
-            while (running && tx_notify_status == CONFIRMED && (notify == CONFIRMED || notify == ALL)) {
+            while (running && tx_notify_status == CONFIRMED) {
 
                 if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
                     fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
@@ -406,12 +406,15 @@ int main(int argc, char **argv)
                                                                           monero_wallet[GET_TXID].port);
                     exit(EXIT_FAILURE);
                 }
+                int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
+                write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
+                close(fd);
+                exit(EXIT_SUCCESS);
             } else {
-              /*
-               * jail. Don't leave this jail until all requirements
-               */
-
-                while (running && tx_notify_status == CONFIRMED && (notify == CONFIRMED || notify == ALL)) {
+                /*
+                 * jail. Don't leave this jail until all requirements
+                 */
+                while (running && tx_notify_status == CONFIRMED) {
 
                     if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
                         fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
