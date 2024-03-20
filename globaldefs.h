@@ -28,6 +28,13 @@ struct Config {
     const char  *cfg_mode;
 };
 
+enum notify {
+    NONE,
+    TXPOOL,
+    CONFIRMED,
+    ALL
+};
+
 #define GET_HEIGHT_CMD  "get_height"
 #define BC_HEIGHT_FILE  "bc_height"
 #define GET_BALANCE_CMD "get_balance"
@@ -53,5 +60,5 @@ struct Config {
 #define GET_VERSION_CMD "get_version"
 #define MAJOR_MASK      (0xFFFF0000)
 #define MINOR_MASK      (0x0000FFFF)
-#define SLEEPTIME       (5000000)
+#define SLEEPTIME       (60)
 #endif
