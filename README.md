@@ -83,6 +83,12 @@ Usage: mnp [OPTION] [TXID]
   -a  --account [ACCOUNT]
            Monero account number. 0 = default.
 
+      --notify-at [0,1,2,3] default = all
+               0, none
+               1, txpool
+               2, confirmed
+               3, all
+
   --confirmation [n]
            amount of blocks needed to confirm transaction.
 
