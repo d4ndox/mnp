@@ -329,10 +329,18 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
     /*
-     * monero-wallet-rpc --tx-notify "mnp %s" is called
-     * once on mempool and again on first block
-     * tx_notify_status = TXPOOL => mempool call
-     * tx_notify_status = CONFIRMED => first block call
+     * monero-wallet-rpc --tx-notify "mnp %s" is executed
+     * once on txpool and again on confirmation = 1.
+     *
+     * tx_notify_status = TXPOOL => detected on mempool.
+     * tx_notify_status = CONFIRMED => One confirmation.
+     *
+     * mnp does not know if it is called for the first time
+     * or the second time (by monero-wallet-rpc --tx-notify).
+     * For this reason, /tmp/mywallet/transfer/subaddr is not
+     * unlinked (removed) until the second call.
+     * mnp can now check for existence of the file.
+     * if no file exists, it is the first call from monero-wallet-rpc.
      */
     int tx_notify_status = TXPOOL;
 
@@ -347,10 +355,10 @@ int main(int argc, char **argv)
 
     /* set tx_notify_status */
     if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
-        /* file does exist. first block call is here */
+        /* file does exist. second call */
         tx_notify_status = CONFIRMED;
     } else {
-        /* file does NOT exist. mempool call is here */
+        /* file does NOT exist. first call */
         tx_notify_status = TXPOOL;
         if (notify != NONE) mkfifo(monero_wallet[GET_TXID].fifo, mode);
     }
@@ -381,9 +389,10 @@ int main(int argc, char **argv)
             }
 
             /*
-             * jail. Don't leave this jail until all requirements
+             * else if (tx_notify_status == CONFIRMED) do this
+             * jail. Don't leave this jail until all requirements are met.
              */
-            while (running && tx_notify_status == CONFIRMED) {
+            while (running) {
 
                 if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
                     fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
@@ -412,9 +421,10 @@ int main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             } else {
                 /*
-                 * jail. Don't leave this jail until all requirements
+                 * else "tx_notify_status == CONFIRMED"
+                 * jail. Don't leave this jail until all requirementa are met.
                  */
-                while (running && tx_notify_status == CONFIRMED) {
+                while (running) {
 
                     if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
                         fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
