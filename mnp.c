@@ -306,13 +306,13 @@ int main(int argc, char **argv)
     } else if (mkdir(paymentdir, mode) && errno != EEXIST) {
         fprintf(stderr, "Could not create paymentdir %s.\n", paymentdir);
         exit(EXIT_FAILURE);
-    } if (init) exit(0);
+    } if (init) exit(EXIT_SUCCESS);
 
     if (cleanup) {
         remove_directory(transferdir);
         remove_directory(paymentdir);
         remove_directory(workdir);
-        exit(0);
+        exit(EXIT_SUCCESS);
     }
 
     int ret = 0;
