@@ -80,14 +80,14 @@ Usage: mnp [OPTION] [TXID]
 	   TXID is the transaction identifier passed from
 	   monero-wallet-rpc --tx-notify or some other source.
 
-  -a  --account [ACCOUNT]
+  --account [ACCOUNT]
            Monero account number. 0 = default.
 
-      --notify-at [0,1,2,3] default = all
-               0, none
-               1, txpool
-               2, confirmed
-               3, all
+  --notify-at [0,1,2,3] default = all
+           0, none
+           1, txpool
+           2, confirmed
+           3, all
 
   --confirmation [n]
            amount of blocks needed to confirm transaction.
