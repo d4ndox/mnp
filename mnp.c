@@ -403,7 +403,7 @@ int main(int argc, char **argv)
                 monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
                 /* release "amount" out of jail */
-                if (atoi(monero_wallet[GET_TXID].conf) > confirmation) jail = 0;
+                if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) jail = 0;
                 if (jail == 0) running = 0;
                 sleep(SLEEPTIME);
             }
@@ -419,26 +419,25 @@ int main(int argc, char **argv)
                 write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
                 close(fd);
                 exit(EXIT_SUCCESS);
-            } else {
-                /*
-                 * else "tx_notify_status == CONFIRMED"
-                 * jail. Don't leave this jail until all requirementa are met.
-                 */
-                while (running) {
+            } 
+            /*
+            * else "tx_notify_status == CONFIRMED"
+            * jail. Don't leave this jail until all requirementa are met.
+            */
+            while (running) {
 
-                    if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                        fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                              monero_wallet[GET_TXID].port);
-                        exit(EXIT_FAILURE);
-                    }
-
-                    monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
-
-                    /* release "amount" out of jail */
-                    if (atoi(monero_wallet[GET_TXID].conf) > confirmation) jail = 0;
-                    if (jail == 0) running = 0;
-                    sleep(SLEEPTIME);
+                if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
+                    fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                          monero_wallet[GET_TXID].port);
+                    exit(EXIT_FAILURE);
                 }
+
+                monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
+
+                /* release "amount" out of jail */
+                if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) jail = 0;
+                if (jail == 0) running = 0;
+                sleep(SLEEPTIME);
             }
             break;
         default:
