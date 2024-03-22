@@ -99,7 +99,7 @@ int main(int argc, char **argv)
     int init = 0;
     int cleanup = 0;
     int confirmation = 0;
-    int notify = ALL;
+    int notify = CONFIRMED;
 
     /* prepare for reading the config ini file */
     const char *homedir;
