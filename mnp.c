@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <syslog.h>
 #include <pwd.h>
 #include <assert.h>
 #include <stdio.h>
@@ -76,6 +77,9 @@ static char *confirm(const struct rpc_wallet *monero_wallet);
 
 int main(int argc, char **argv)
 {
+    /* open syslog /var/log/messages and /var/log/syslog */
+    openlog("mnp:", LOG_PID, LOG_USER);
+
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
     signal(SIGINT, initshutdown);
@@ -149,7 +153,9 @@ int main(int argc, char **argv)
             case 'o':
                 notify = atoi(optarg);
                 if (notify > ALL) {
-                    fprintf(stderr, "--notify-at out of range [0,1,2,3]\n");
+                    syslog(LOG_USER | LOG_ERR, "--notify-at out of range [0,1,2,3]");
+                    fprintf(stderr, "mnp: --notify-at out of range [0,1,2,3]\n");
+                    closelog();
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -205,9 +211,11 @@ int main(int argc, char **argv)
                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
 
-    if (DEBUG) fprintf(stderr, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
+    if (DEBUG) {
+        syslog(LOG_USER | LOG_DEBUG, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
+        fprintf(stderr, "mnp: mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
+    }
 
-    if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
 
     /* initialise monero_wallet with NULL */
@@ -242,25 +250,33 @@ int main(int argc, char **argv)
         if (rpc_host != NULL) {
             monero_wallet[i].host = strndup(rpc_host, MAX_DATA_SIZE);
         } else {
-            fprintf(stderr, "rpc_host is missing\n");
+            syslog(LOG_USER | LOG_ERR, "rpc_host is missing");
+            fprintf(stderr, "mnp: rpc_host is missing\n");
+            closelog();
             exit(EXIT_FAILURE);
         }
         if (rpc_port != NULL) {
             monero_wallet[i].port = strndup(rpc_port, MAX_DATA_SIZE);
         } else {
-            fprintf(stderr, "rpc_port is missing\n");
+            syslog(LOG_USER | LOG_ERR, "rpc_port is missing");
+            fprintf(stderr, "mnp: rpc_port is missing\n");
+            closelog();
             exit(EXIT_FAILURE);
         }
         if (rpc_user != NULL) {
             monero_wallet[i].user = strndup(rpc_user, MAX_DATA_SIZE);
         } else {
-            fprintf(stderr, "rpc_user is missing\n");
+            syslog(LOG_USER | LOG_ERR, "rpc_user is missing");
+            fprintf(stderr, "mnp: rpc_user is missing\n");
+            closelog();
             exit(EXIT_FAILURE);
         }
         if (rpc_password != NULL) {
             monero_wallet[i].pwd = strndup(rpc_password, MAX_DATA_SIZE);
         } else {
-            fprintf(stderr, "rpc_password is missing\n");
+            syslog(LOG_USER | LOG_ERR, "rpc_password is missing");
+            fprintf(stderr, "mnp: rpc_password is missing\n");
+            closelog();
             exit(EXIT_FAILURE);
         }
         if (txid != NULL) {
@@ -268,7 +284,9 @@ int main(int argc, char **argv)
         } else if (cleanup == 1 || init == 1) {
             monero_wallet[i].txid = strndup("no_tx", MAX_TXID_SIZE);
         } else {
-            fprintf(stderr, "txid is missing\n");
+            syslog(LOG_USER | LOG_ERR, "txid is missing\n");
+            fprintf(stderr, "mnp: txid is missing\n");
+            closelog();
             exit(EXIT_FAILURE);
         }
     }
@@ -280,45 +298,83 @@ int main(int argc, char **argv)
     struct stat sb;
 
     if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
-        /*NOP*/
-    } else if (mkdir(workdir, mode)) {
-        fprintf(stderr, "Could not create workdir %s.\n", workdir);
-        exit(EXIT_FAILURE);
-    }
+        if (verbose) syslog(LOG_USER | LOG_INFO, "workdir does exists : %s", workdir);
+    } else {
+        int status = mkdir(workdir, mode);
+        if (status == -1) {
+            syslog(LOG_USER | LOG_ERR, "could not create workdir %s error: %s", workdir, strerror(errno));
+            fprintf(stderr, "mnp: could not create workdir %s error: %s \n", workdir, strerror(errno));
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+    } if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is up : %s", workdir);
 
     /* create transferdir directory. TEST if directory does exist */
     struct stat transfer;
 
     asprintf(&transferdir, "%s/%s", workdir, TRANSFER_DIR);
     if (stat(transferdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
-        /* NOP */
-    } else if (mkdir(transferdir, mode)) {
-        fprintf(stderr, "Could not create transferdir %s.\n", transferdir);
-        exit(EXIT_FAILURE);
-    }
+        if (verbose) syslog(LOG_USER | LOG_INFO, "transferdir does exists : %s", transferdir);
+    } else {
+        int status = mkdir(transferdir, mode);
+        if (status == -1) {
+            syslog(LOG_USER | LOG_ERR, "could not create transferdir %s error: %s", transferdir, strerror(errno));
+            fprintf(stderr, "mnp: could not create transferdir %s error: %s\n", transferdir, strerror(errno));
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+    } if (verbose) syslog(LOG_USER | LOG_INFO, "transferdir is up : %s", transferdir);
+
 
     /* create paymentdir directory. TEST if directory does exist */
     struct stat payment;
 
     asprintf(&paymentdir, "%s/%s", workdir, PAYMENT_DIR);
     if (stat(paymentdir, &payment) == 0 && S_ISDIR(payment.st_mode)) {
-        /* NOP */
-    } else if (mkdir(paymentdir, mode) && errno != EEXIST) {
-        fprintf(stderr, "Could not create paymentdir %s.\n", paymentdir);
+        if (verbose) syslog(LOG_USER | LOG_INFO, "paymentdir does exists : %s", paymentdir);
+    } else {
+        int status = mkdir(paymentdir, mode);
+        if (status == -1) {
+        syslog(LOG_USER | LOG_ERR, "could not create paymentdir %s error: %s", paymentdir, strerror(errno));
+        fprintf(stderr, "mnp: could not create paymentdir %s error: %s\n", paymentdir, strerror(errno));
+        closelog();
         exit(EXIT_FAILURE);
-    } if (init) exit(EXIT_SUCCESS);
+        }
+    } if (verbose) syslog(LOG_USER | LOG_INFO, "paymentdir is up : %s", paymentdir);
+
+    if (init) exit(EXIT_SUCCESS);
 
     if (cleanup) {
-        remove_directory(transferdir);
-        remove_directory(paymentdir);
-        remove_directory(workdir);
+        int ret = remove_directory(transferdir);
+        if (ret == -1) {
+            syslog(LOG_USER | LOG_ERR, "could not del transferdir %s error: %s", transferdir, strerror(errno));
+        } else {
+            if (verbose) syslog(LOG_USER | LOG_INFO, "transferdir is down %s", transferdir);
+        }
+
+        ret = remove_directory(paymentdir);
+        if (ret == -1) {
+            syslog(LOG_USER | LOG_ERR, "could not del paymentdir %s error: %s", paymentdir, strerror(errno));
+        } else {
+            if (verbose) syslog(LOG_USER | LOG_INFO, "paymentdir is down %s", paymentdir);
+        }
+
+        ret = remove_directory(workdir);
+        if (ret == -1) {
+            syslog(LOG_USER | LOG_ERR, "could not del workdir %s error: %s", workdir, strerror(errno));
+        } else {
+            if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is down %s", workdir);
+        }
         exit(EXIT_SUCCESS);
     }
 
     int ret = 0;
     if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-        fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                              monero_wallet[GET_TXID].port);
+        syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+                                                                       monero_wallet[GET_TXID].port);
+        fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                   monero_wallet[GET_TXID].port);
+        closelog();
         exit(EXIT_FAILURE);
     }
 
@@ -351,20 +407,33 @@ int main(int argc, char **argv)
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s",
                 workdir, TRANSFER_DIR, monero_wallet[GET_TXID].saddr);
     }
-    if (verbose) fprintf(stderr, "fifo = %s\n", monero_wallet[GET_TXID].fifo);
 
-    /* set tx_notify_status */
+    if (verbose) {
+        syslog(LOG_USER | LOG_INFO, "named pipe  = %s\n",  monero_wallet[GET_TXID].fifo);
+        fprintf(stderr, "mnp: named pipe  = %s\n",  monero_wallet[GET_TXID].fifo);
+    }
+
+    /*
+     * set tx_notify_status and
+     * mkfifo named pipe
+     */
     if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = CONFIRMED. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
         /* file does exist. second call */
         tx_notify_status = CONFIRMED;
     } else {
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = TXPOOL. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
         /* file does NOT exist. first call */
         tx_notify_status = TXPOOL;
-        if (notify != NONE) mkfifo(monero_wallet[GET_TXID].fifo, mode);
-    }
+        if (notify != NONE) {
+            int ret = mkfifo(monero_wallet[GET_TXID].fifo, mode);
+            if (ret == -1) {
+                syslog(LOG_USER | LOG_ERR, "could not create named pipe fifo %s error: %s", monero_wallet[GET_TXID].fifo, strerror(errno));
+            }
+        }
+    } if (verbose) syslog(LOG_USER | LOG_INFO, "named pipe fifo is up : %s", monero_wallet[GET_TXID].fifo);
 
     int jail = 1;
-    if (verbose) fprintf(stdout, "Jail\n");
 
     switch(notify) {
         case NONE:
@@ -377,8 +446,11 @@ int main(int argc, char **argv)
                 free(monero_wallet);
                 exit(EXIT_SUCCESS);
             } else if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                      monero_wallet[GET_TXID].port);
+                syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+                                                                               monero_wallet[GET_TXID].port);
+                fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                           monero_wallet[GET_TXID].port);
+                closelog();
                 exit(EXIT_FAILURE);
             }
             break;
@@ -395,8 +467,11 @@ int main(int argc, char **argv)
             while (running) {
 
                 if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                    fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                          monero_wallet[GET_TXID].port);
+                    syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+                                                                                   monero_wallet[GET_TXID].port);
+                    fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                               monero_wallet[GET_TXID].port);
+                    closelog();
                     exit(EXIT_FAILURE);
                 }
 
@@ -411,15 +486,32 @@ int main(int argc, char **argv)
         case ALL:
             if (tx_notify_status == TXPOOL) {
                 if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                    fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                          monero_wallet[GET_TXID].port);
+                    syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+                                                                                   monero_wallet[GET_TXID].port);
+                    fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                               monero_wallet[GET_TXID].port);
+                    closelog();
                     exit(EXIT_FAILURE);
                 }
                 int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
-                write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
+                if (fd == -1) {
+                    syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+                    fprintf(stderr, "mnp: error: %s", strerror(errno));
+                    closelog();
+                    exit(EXIT_FAILURE);
+                }
+
+                ssize_t retw = write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
+                if (retw == -1) {
+                    syslog(LOG_USER | LOG_ERR, "error write %s", strerror(errno));
+                    fprintf(stderr, "mnp: error: %s", strerror(errno));
+                    closelog();
+                    exit(EXIT_FAILURE);
+                }
+
                 close(fd);
                 exit(EXIT_SUCCESS);
-            } 
+            }
             /*
             * else "tx_notify_status == CONFIRMED"
             * jail. Don't leave this jail until all requirementa are met.
@@ -427,8 +519,11 @@ int main(int argc, char **argv)
             while (running) {
 
                 if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                    fprintf(stderr, "could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                          monero_wallet[GET_TXID].port);
+                    syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+                                                                                   monero_wallet[GET_TXID].port);
+                    fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                               monero_wallet[GET_TXID].port);
+                    closelog();
                     exit(EXIT_FAILURE);
                 }
 
@@ -441,18 +536,40 @@ int main(int argc, char **argv)
             }
             break;
         default:
-            fprintf(stderr, "Error, check --notify-at\n");
+            syslog(LOG_USER | LOG_ERR, "Error, check --notify-at x\n");
+            fprintf(stderr, "mnp: error, check --notify-at x\n");
+            closelog();
+            exit(EXIT_FAILURE);
 	    break;
     }
 
-    if (verbose) fprintf(stderr, "jail released: amount = %s\nTry: cat %s\n",
-                                 monero_wallet[GET_TXID].amount, monero_wallet[GET_TXID].fifo);
     int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
-    write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
-    close(fd);
-    if (tx_notify_status == CONFIRMED) unlink(monero_wallet[GET_TXID].fifo);
-    if (notify == TXPOOL) unlink(monero_wallet[GET_TXID].fifo);
+    if (fd == -1) {
+            syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+            fprintf(stderr, "mnp: error: %s", strerror(errno));
+            closelog();
+            exit(EXIT_FAILURE);
+    }
 
+    ssize_t retw = write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
+    if (retw == -1) {
+            syslog(LOG_USER | LOG_ERR, "error: write %s", strerror(errno));
+            fprintf(stderr, "mnp: error: %s", strerror(errno));
+            closelog();
+            exit(EXIT_FAILURE);
+    }
+
+    close(fd);
+
+    if (tx_notify_status == CONFIRMED || notify == TXPOOL) {
+        int retunlink = unlink(monero_wallet[GET_TXID].fifo);
+        if (retunlink == -1) {
+            syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+            fprintf(stderr, "mnp: error: %s", strerror(errno));
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+    }
     free(monero_wallet);
     exit(EXIT_SUCCESS);
 }
@@ -566,9 +683,11 @@ static char *readStdin(void)
         fprintf(stderr, "Memory allocation failed.\n");
         exit(EXIT_FAILURE);
     }
-    int ret = fread(buffer, 1, MAX_TXID_SIZE, stdin);
-    if(ret == 0) {
-        fprintf(stderr, "No input data.\n");
+    size_t ret = fread(buffer, 1, MAX_TXID_SIZE, stdin);
+    if(ret != MAX_TXID_SIZE) {
+        syslog(LOG_USER | LOG_ERR, "No input data or invalid txid. fread: %s", strerror(errno));
+        fprintf(stderr, "mnp:readStdin: No input data or invalid txid. fread: %s\n", strerror(errno));
+        closelog();
         exit(EXIT_FAILURE);
     }
 
@@ -656,20 +775,15 @@ static int remove_directory(const char *path)
                         r2 = unlink(buf);
                     }
                 }
-
                 free(buf);
             }
-
             r = r2;
         }
-
         closedir(d);
     }
-
     if (!r) {
         r = rmdir(path);
     }
-
     return r;
 }
 
