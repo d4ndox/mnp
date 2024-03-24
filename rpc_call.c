@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <syslog.h>
 #include "./cjson/cJSON.h"
 #include "wallet.h"
 #include "rpc_call.h"
@@ -30,11 +31,13 @@ int rpc_call(struct rpc_wallet *monero_wallet)
     int ret = 0;
     char *urlport = NULL;
 
+    openlog("mnp:rpc_call:", LOG_PID, LOG_USER);
+
     if (monero_wallet->host != NULL && monero_wallet->port != NULL) {
         asprintf(&urlport,"http://%s:%s/json_rpc", monero_wallet->host, monero_wallet->port);
     } else {
-        fprintf(stderr, "rpc_host and/or rpc_port is missing\n");
-        return -1;
+        syslog(LOG_USER | LOG_ERR, "rpc_host and/or rpc_port is missing\n");
+        ret = -1;
     }
 
     /* prepare rpc_user and rpc_password to connect to the wallet */
@@ -43,8 +46,8 @@ int rpc_call(struct rpc_wallet *monero_wallet)
     if (monero_wallet->user != NULL && monero_wallet->pwd != NULL) {
         asprintf(&userpwd,"%s:%s", monero_wallet->user, monero_wallet->pwd);
     } else {
-        fprintf(stderr, "rpc_user and/or rpc_password is missing\n");
-        return -1;
+        syslog(LOG_USER | LOG_ERR, "rpc_user and/or rpc_password is missing\n");
+        ret = -1;
     }
 
      /*
@@ -98,11 +101,6 @@ int rpc_call(struct rpc_wallet *monero_wallet)
                               monero_wallet->saddr) == NULL) ret = -1;
               if (cJSON_AddStringToObject(rpc_params, "amount",
                               monero_wallet->amount) == NULL) ret = -1;
-              /* payment_id is depricated use integrated address instead */
-              //if (monero_wallet->payid != NULL) {
-              //    if (cJSON_AddStringToObject(rpc_params, "payment_id",
-              //                monero_wallet->payid) == NULL) ret = -1;
-              //}
             break;
         case SPLIT_IADDR:
               if (cJSON_AddNumberToObject(rpc_params, "account_index",
@@ -135,7 +133,7 @@ int rpc_call(struct rpc_wallet *monero_wallet)
      */
     char *reply = NULL;
     if (0 > (ret = wallet(urlport, method_call, userpwd, &reply))) {
-        fprintf(stderr, "could not connect to host: %s\n", urlport);
+        syslog(LOG_USER | LOG_ERR, "could not connect to host: %s", urlport);
         ret = -1;
     }
 
@@ -147,9 +145,13 @@ int rpc_call(struct rpc_wallet *monero_wallet)
     if (monero_wallet->reply == NULL) {
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
-            fprintf(stderr, "Error before: %s\n", error_ptr);
-           ret = -1;
+            syslog(LOG_USER | LOG_ERR, "error before: %s", error_ptr);
+            ret = -1;
         }
+    }
+
+    if (DEBUG) {
+        syslog(LOG_USER | LOG_DEBUG, "%d bytes received", ret);
     }
 
     /*
@@ -160,17 +162,15 @@ int rpc_call(struct rpc_wallet *monero_wallet)
     const cJSON *mesg = cJSON_GetObjectItemCaseSensitive(error, "message");
 
     if (error != NULL && mesg->valuestring != NULL) {
-        fprintf(stderr, "error message rpc: %s\n", mesg->valuestring);
+        syslog(LOG_USER | LOG_ERR, "error message rpc: %s", mesg->valuestring);
         ret = -1;
     }
-
-    if (DEBUG) fprintf(stdout, "%d bytes received\n", ret);
-    if (DEBUG) fprintf(stdout, "reply: %s\n", cJSON_Parse(reply));
 
     cJSON_Delete(rpc_frame);
     cJSON_Delete(error);
     free(method);
     free(method_call);
+    closelog();
     return ret;
 }
 

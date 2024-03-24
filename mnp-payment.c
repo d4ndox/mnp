@@ -164,8 +164,6 @@ int main(int argc, char **argv)
     }
 
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
-    if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
-    if (DEBUG) printf("GET_VERSION = %d\n", GET_VERSION);
     monero_wallet[0].monero_rpc_method = GET_VERSION;
 
     /* initialise monero_wallet with NULL */
@@ -215,13 +213,6 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-
-    if (DEBUG) {
-    for (int i = 0; i < END_RPC_SIZE; i++) {
-        printf("monero_rpc_method[%d] = %d\n", i, monero_wallet[i].monero_rpc_method);
-        printf("account[%d] = %s\n", i, monero_wallet[i].account);
-        printf("port[%d] = %s\n", i, monero_wallet[i].port);
-    }}
 
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");
