@@ -39,7 +39,7 @@ fprintf(stderr, "mnp: txid is missing\n");
 if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is up : %s", workdir);
 
 /* Debug */
-if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
+if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "%d bytes received", ret);
 ```
 Use a unique identifier when using openlog:
 ```c
