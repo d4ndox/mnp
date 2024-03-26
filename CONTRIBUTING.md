@@ -21,10 +21,7 @@ Try to avoid ```// My comment```.
 - Every error should be printed to stderr,
 - User information should be printed to stdout.
 
-syslog is necessary if a process can't access the terminal ttyS0.
-This might be the case for mnp, because it is called by monero_wallet_rpc and mnpd, which is run as a daemon.
-Output to stdout and stderr might get lost. For this case it is usefull to 
-write messages to a log file.
+Use syslog where it makes sense to do so:
 
 - LOG_ERR: use this, side by side with every error printed to stderr,
 - LOG_INFO: use this for verbose output. If --verbose option is set,
