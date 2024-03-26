@@ -155,11 +155,9 @@ int main(int argc, char **argv)
     if (!(list == 1 || (subaddr > 0) || (new == 1))) {
         if (optind < argc) {
             paymentId = (char *)argv[optind];
-            //length = strlen((char *)paymentId);
         }
         if (paymentId == NULL) {
             paymentId = readStdin();
-            //length = MAX_PAYID_SIZE;
         }
     }
 
@@ -236,8 +234,7 @@ int main(int argc, char **argv)
               idx = cJSON_GetObjectItem(subadr, "address_index");
               adr = cJSON_GetObjectItem(subadr, "address");
 
-              fprintf(stdout, "%s %s\n", cJSON_Print(idx),
-                                                    cJSON_Print(adr));
+              fprintf(stdout, "%s %s\n", cJSON_Print(idx), cJSON_Print(adr));
           }
     }
 
