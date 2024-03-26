@@ -41,7 +41,7 @@ if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is up : %s", workdir);
 /* Debug */
 if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
 ```
-Use a unique identifier using openlog:
+Use a unique identifier when using openlog:
 ```c
 mnp.c:      openlog("mnp:", LOG_PID, LOG_USER);
 rpc_call.c: openlog("mnp:rpc_call:", LOG_PID, LOGUSER);
