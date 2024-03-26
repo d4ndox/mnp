@@ -121,7 +121,8 @@ int main(int argc, char **argv)
     struct Config config;
 
     if (ini_parse(ini, handler, &config) < 0) {
-        fprintf(stderr, "can't load %s. try make install.\n", ini);
+        fprintf(stderr, "Can't load %s. try make install\n", ini);
+        syslog(LOG_USER | LOG_ERR, "Can't load %s. Try: make install\n", ini);
         exit(EXIT_FAILURE);
     }
     free(ini);
@@ -213,7 +214,6 @@ int main(int argc, char **argv)
 
     if (DEBUG) {
         syslog(LOG_USER | LOG_DEBUG, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
-        fprintf(stderr, "mnp: mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
     }
 
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
     struct stat sb;
 
     if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
-        if (verbose) syslog(LOG_USER | LOG_INFO, "workdir does exists : %s", workdir);
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "workdir does exists : %s", workdir);
     } else {
         int status = mkdir(workdir, mode);
         if (status == -1) {
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
 
     asprintf(&transferdir, "%s/%s", workdir, TRANSFER_DIR);
     if (stat(transferdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
-        if (verbose) syslog(LOG_USER | LOG_INFO, "transferdir does exists : %s", transferdir);
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "transferdir does exists : %s", transferdir);
     } else {
         int status = mkdir(transferdir, mode);
         if (status == -1) {
@@ -331,7 +331,7 @@ int main(int argc, char **argv)
 
     asprintf(&paymentdir, "%s/%s", workdir, PAYMENT_DIR);
     if (stat(paymentdir, &payment) == 0 && S_ISDIR(payment.st_mode)) {
-        if (verbose) syslog(LOG_USER | LOG_INFO, "paymentdir does exists : %s", paymentdir);
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "paymentdir does exists : %s", paymentdir);
     } else {
         int status = mkdir(paymentdir, mode);
         if (status == -1) {
@@ -408,22 +408,19 @@ int main(int argc, char **argv)
                 workdir, TRANSFER_DIR, monero_wallet[GET_TXID].saddr);
     }
 
-    if (verbose) {
-        syslog(LOG_USER | LOG_INFO, "named pipe  = %s\n",  monero_wallet[GET_TXID].fifo);
-        fprintf(stderr, "mnp: named pipe  = %s\n",  monero_wallet[GET_TXID].fifo);
-    }
-
     /*
      * set tx_notify_status and
      * mkfifo named pipe
      */
     if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = CONFIRMED. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
         /* file does exist. second call */
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = CONFIRMED. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
+        if (verbose) syslog(LOG_USER | LOG_INFO, "tx_notify_status = CONFIRMED\n");
         tx_notify_status = CONFIRMED;
     } else {
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = TXPOOL. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
         /* file does NOT exist. first call */
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = TXPOOL. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
+        if (verbose) syslog(LOG_USER | LOG_INFO, "tx_notify_status = TXPOOL\n");
         tx_notify_status = TXPOOL;
         if (notify != NONE) {
             int ret = mkfifo(monero_wallet[GET_TXID].fifo, mode);
@@ -476,6 +473,7 @@ int main(int argc, char **argv)
                 }
 
                 monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
+                if (verbose) syslog(LOG_USER | LOG_INFO, "confirmation = %s\n", monero_wallet[GET_TXID].conf);
 
                 /* release "amount" out of jail */
                 if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) jail = 0;
