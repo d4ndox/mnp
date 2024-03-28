@@ -177,7 +177,7 @@ struct rpc_wallet {
 
 reply is a JSON formated string and needs to be parsed from *mnp.c* or *mnp-payment.c* using the cJSON library.
 
-The result can be stored in the parameter below according to which  ```monero_rpc_method`` method was used:
+The result can be stored in the parameter below according to which  ```monero_rpc_method``` method was used:
 
 * ```char txid,```
 * ```char payid,```
