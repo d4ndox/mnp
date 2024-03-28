@@ -149,7 +149,7 @@ The most important data structure is ```struct rpc_wallet``` to be found in *rpc
 
 2) Store the reply of <=== **monero_wallet_rpc**
 
-   pointer to reply data: ```char *reply```.
+   pointer to reply data: ```cJSON *reply```.
 
 
 ```c
