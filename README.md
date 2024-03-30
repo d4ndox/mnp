@@ -322,7 +322,7 @@ The default color of named pipes set by Ubuntu is a pain:
 
 ```bash
 #call mnp with group id "mnp"
-sg mnp -c "mnp --init
+sg mnp -c "mnp --init"
 ```
 
 Licence: »GPLv3«
