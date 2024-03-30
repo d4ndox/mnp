@@ -99,7 +99,6 @@ int main(int argc, char **argv)
     char *workdir = NULL;
     char *transferdir = NULL;
     char *paymentdir = NULL;
-
     int init = 0;
     int cleanup = 0;
     int confirmation = 0;
@@ -196,7 +195,6 @@ int main(int argc, char **argv)
     } if (verbose == 0) {
         verbose = atoi(config.mnp_verbose);
     }
-
 
     if (init == 0 && cleanup == 0) {
         if (optind < argc) {
@@ -306,6 +304,15 @@ int main(int argc, char **argv)
             fprintf(stderr, "mnp: could not create workdir %s error: %s \n", workdir, strerror(errno));
             closelog();
             exit(EXIT_FAILURE);
+        }
+        if (init == 1) {
+            status = chmod(workdir, S_ISGID | mode);
+            if (status == -1) {
+                syslog(LOG_USER | LOG_ERR, "could not set S_ISGID flag in workdir %s error: %s", workdir, strerror(errno));
+                fprintf(stderr, "mnp: could not set the S_ISGID flag in workdir %s error: %s\n", workdir, strerror(errno));
+                closelog();
+                exit(EXIT_FAILURE);
+            }
         }
     } if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is up : %s", workdir);
 
