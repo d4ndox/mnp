@@ -189,14 +189,14 @@ To set up a payment using mnp, you have several options based on your specific r
 
 For simple transfers, such as donations or general payments, you can create a new subaddress and provide it to the payer.
 
-* **Create a New Subaddress:**
+#### **Create a New Subaddress:**
 ```bash
 $ mnp-payment --newaddr
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 ```
 This command generates a new Monero subaddress, providing enhanced privacy and security for receiving payments.
 
-* **List All Subaddresses:**
+#### **List All Subaddresses:**
 To list all existing subaddresses along with their indices, you can use:
 ```bash
 $ mnp-payment --list
@@ -205,7 +205,7 @@ $ mnp-payment --list
 ```
 This command lists all subaddresses associated with your Monero wallet, including the primary address (0).
 
-* **Select a Specific Subaddress:**
+#### **Select a Specific Subaddress:**
 If you prefer to specify a particular subaddress, you can do so by providing its index:
 ```bash
 $ mnp-payment --subaddr 1
@@ -213,7 +213,7 @@ Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASM
 ```
 This command selects the subaddress at index 1 for receiving payments.
 
-* **Add an Amount:**
+#### **Add an Amount:**
 After selecting a subaddress, you can specify the payment amount in piconero (the smallest unit of Monero):
 ```bash
 $ mnp-payment --subaddr 1 --amount 650000
@@ -225,7 +225,7 @@ This command prepares a payment with the specified amount and returns a Monero U
 
 In scenarios where matching orders to payments is essential, such as retail transactions or invoicing, you can generate an integrated address with a payment ID.
 
-* **Generate a Payment ID:**
+#### **Generate a Payment ID:**
 Generate a unique 16-hex character payment ID using tools like OpenSSL:
 ```bash
 # Create a random paymentid (16 hex character)
@@ -233,9 +233,9 @@ $ mypaymentId=$(openssl rand -hex 8)
 $ echo $mypaymentId
 e02c381aa2227436
 ```
-This command generates a random 16-hex character payment ID, ensuring uniqueness and security.
+This command generates a random 16-hex character payment ID.
 
-* **Create an Integrated Address:**
+#### **Create an Integrated Address:**
 Use the generated payment ID to create an integrated address, combining it with your primary address:
 ```bash
 # Create an integrated address.
@@ -244,7 +244,7 @@ AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
 ```
 This command generates an integrated address with the provided payment ID, enabling efficient tracking of payments.
 
-* **Add an Amount (Optional):**
+#### **Add an Amount (Optional):**
 If a specific amount needs to be included in the payment, you can do so using the **```--amount```** option:
 ```bash
  $ echo $mypayment | mnp-payment --amount 50000
@@ -255,14 +255,14 @@ This command sets the payment amount and returns a Monero URI string for inclusi
 ### 3. Create a QR-Code (For Customer Convenience):
 To facilitate easy payment by customers using mobile Monero wallets, you can generate a QR code from the payment URI.
 
-* **Install QR Code Generator:**
+#### **Install QR Code Generator:**
 Ensure you have a QR code generator installed on your system. You can install qrencode using:
 ```bash
 sudo apt-get install qrencode
 ```
 This command installs qrencode, allowing you to generate QR codes from text.
 
-* **Generate QR Code:**
+#### **Generate QR Code:**
 Use qrencode to generate a QR code from the Monero URI string:
 ```bash
 mnp-payment --subaddr 1 | qrencode -t UTF8
