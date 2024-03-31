@@ -1,10 +1,6 @@
 # Monero Named Pipes
 
-Monero named pipes (mnp) is a leightweight payment processor, using named pipes, to monitor incoming payments on
-a shell like bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and allows interaction through named pipes.
-
-mnp will create a set of files and directories - allowing you to control and check for incoming payments with command line tools.
-Default = /tmp/mywallet
+Monero named pipes (mnp) is a lightweight payment processor designed to monitor incoming payments within a Unix shell environment, such as bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and uses named pipes for interaction, creating a set of files and directories within a specified directory. Default: */tmp/mywallet/*.
 
 
 ```bash
@@ -18,12 +14,16 @@ Default = /tmp/mywallet
     └── paymentID2
 ```
 
+Monero Named Pipes enables users to control and track incoming payments through  command-line tools, facilitating seamless integration with existing  workflows.
+
 ### Example
+
+Initialize and Setup
 
 A short example in four simple steps to give you an idea of how mnp works.
 For more details, see "How to set up a payment".
 
-#### 1. Initalise mnp
+#### 1. Initalize mnp
 
 ```bash
 # initialise the workdir
@@ -181,117 +181,96 @@ workdir = /tmp/mywallet         ;wallet working directory
 mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
 ```
 
-## How to set up a payment
+## Setting up a payment:
 
-Two and a half ways to set up a payment using ```mnp-payment```. Every output of mnp-payment can 
-be used to create an QR-code for the customer to scan with his mobil monero wallet.
+To set up a payment using mnp, you have several options based on your specific requirements:
 
-### 1. Without a payment Id
+### 1. Simple Transfer (No Payment ID):
 
-A simple transfer - typically used for donations. If you have a small business or only issue a few
-invoices a day, it is advised to create a subaddress for each invoice. This has privacy benefits.
+For simple transfers, such as donations or general payments, you can create a new subaddress and provide it to the payer.
 
-#### Create a new subaddress
-
+* **Create a New Subaddress:**
 ```bash
 $ mnp-payment --newaddr
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 ```
+This command generates a new Monero subaddress, providing enhanced privacy and security for receiving payments.
 
-#### List all subaddress
-
+* **List All Subaddresses:**
+To list all existing subaddresses along with their indices, you can use:
 ```bash
-# (index 0 = Primary Address).
-$ ./mnp-payment --list
+$ mnp-payment --list
 0 "A13iyF9bN7ReDPWW7FZoqd1Nwvhfh2UbAMBR4UeGPi1aWpERgmE3ChMeJZJ2RnkMueHdL7XXwdkQJ5As8XRhTKAhSwjahXd"
 1 "Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB"
 ```
+This command lists all subaddresses associated with your Monero wallet, including the primary address (0).
 
-#### Select a subaddress
-
+* **Select a Specific Subaddress:**
+If you prefer to specify a particular subaddress, you can do so by providing its index:
 ```bash
 $ mnp-payment --subaddr 1
 Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB
 ```
+This command selects the subaddress at index 1 for receiving payments.
 
-#### Add an amount
-
+* **Add an Amount:**
+After selecting a subaddress, you can specify the payment amount in piconero (the smallest unit of Monero):
 ```bash
 $ mnp-payment --subaddr 1 --amount 650000
 monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000
 ```
-this will return an URI. Supported by most Monero wallets.
+This command prepares a payment with the specified amount and returns a Monero URI string, which can be provided to the payer.
 
-### 2. Including a payment Id
+### 2. Including a Payment ID (For Matching Orders):
 
-A retailer would use this to be able to match their orders to the payment.
-Something like an invoice number. A 16 hex character.
-(integrated address = primary address + payment Id).
+In scenarios where matching orders to payments is essential, such as retail transactions or invoicing, you can generate an integrated address with a payment ID.
 
-#### Payment Id
-
-The paymentId is a 16 hex character. Random or increased by one or some checksum.
-
+* **Generate a Payment ID:**
+Generate a unique 16-hex character payment ID using tools like OpenSSL:
 ```bash
 # Create a random paymentid (16 hex character)
 $ mypaymentId=$(openssl rand -hex 8)
 $ echo $mypaymentId
 e02c381aa2227436
 ```
+This command generates a random 16-hex character payment ID, ensuring uniqueness and security.
 
-#### Create an integrated address
-
+* **Create an Integrated Address:**
+Use the generated payment ID to create an integrated address, combining it with your primary address:
 ```bash
 # Create an integrated address.
 $ echo $mypaymentId | mnp-payment
 AAkPz3y5yNweDPWW7FZoqd1 ... 5kqxkfnou78gMMeg
 ```
+This command generates an integrated address with the provided payment ID, enabling efficient tracking of payments.
 
-#### Add an amount
-
+* **Add an Amount (Optional):**
+If a specific amount needs to be included in the payment, you can do so using the **```--amount```** option:
 ```bash
  $ echo $mypayment | mnp-payment --amount 50000
 monero:AAkPz3y5yNweDPWW7FZoqd1Nwvhfh2UbAMBR4UeGPi1aWpERgmE3ChMeJZJ2RnkMueHdL7XXwdkQJ5As8XRhTKAhfT5kqxkfnou78gMMeg?tx_amount=0.000000050000
 ```
-this will return an URI. Supported by most Monero wallets.
+This command sets the payment amount and returns a Monero URI string for inclusion in invoices or payment requests.
 
-### 3. Create a QR-Code.
+### 3. Create a QR-Code (For Customer Convenience):
+To facilitate easy payment by customers using mobile Monero wallets, you can generate a QR code from the payment URI.
 
+* **Install QR Code Generator:**
+Ensure you have a QR code generator installed on your system. You can install qrencode using:
 ```bash
 sudo apt-get install qrencode
 ```
+This command installs qrencode, allowing you to generate QR codes from text.
 
-Every output of ```mnp-payment``` can be used to create an QR-Code. The following example will create
-an UTF8 QR-Code - but all kind of image formats are possible: JPEG, PNG, SVG.
-
-⚠️ Don't bother testing this QR-Code with Monerujo - it is a testnet Monero address❗
-
+* **Generate QR Code:**
+Use qrencode to generate a QR code from the Monero URI string:
 ```bash
 mnp-payment --subaddr 1 | qrencode -t UTF8
-█████████████████████████████████████████████
-████ ▄▄▄▄▄ █▀█ █▄█▄ ▄▀ █▄▀▄█▀ █ ▄█ ▄▄▄▄▄ ████
-████ █   █ █▀▀▀█ ▀ █▄▀█▄█ ▀▄ ▀ ▄▀█ █   █ ████
-████ █▄▄▄█ █▀ █▀▀█▄▀▄▀▀█▄█▀██▀▀ ▄█ █▄▄▄█ ████
-████▄▄▄▄▄▄▄█▄▀ ▀▄█ █▄█ ▀▄▀▄▀ █▄█ █▄▄▄▄▄▄▄████
-████  ▄▄ █▄   ▀▄▀▀▄  ▀██ ▀▀▀▄▄▄ ▀ ▀ █ █▄█████
-████▀▀  ▀ ▄██ ▄█▀█ ▄██ ▀█ ▄▀▄█ ▄███   ▄▄ ████
-█████▄█ █▀▄█▄▄▄█▄ ▄▄  ▄▀▀▀▄▄▄█ ▀  ▄▀▄█▄▀█████
-████▄█▄▀▄ ▄▄█▀█ ▄▄ ▄▀█▄█▄▀█▀██▀▄▄▄▄█ ██ ▄████
-████ █▄▄▀▀▄████▄▀▄▀▄▀▄▄ ▀▄ ▀█ ▄█▀   ▄███▄████
-████▄▄ ▀▀█▄█ ███▀▄▀▄▄▄ ▀▀ ▀▀█▄▀ █▄ ▄▀█▄▄ ████
-████▄█ █▀▀▄██▀▀█▄▄ ▄ ▀▀▀▀█▀██▄      ▄  ▀█████
-██████▀ █▀▄▀▄▄█ ▄█  █▄ ██ ▀▀▀██▄ █ ▀ █▄▄ ████
-████ ▄▀▀▀▀▄▄▄██▄▀▄▄▀ ▄█▄▀▄ ▀▄▄ ▄▀▄▄▀█▄█▄▄████
-████ █▀ ▄█▄  █▀█▀▄█  ▄██▄ ▀█▀▄ ▄ ▀▀ █▀█▄▄████
-████▄█▄█▄▄▄▄ █ █▄▀▄▀▀ ██▀▄ ▀▀█   ▄▄▄ ▀ █ ████
-████ ▄▄▄▄▄ █▄▄▀ ▄█▄▄▄▄ █▀ █▀█▄▀▄ █▄█  █▄ ████
-████ █   █ █ ██▄ █▄   ▀▀▀▄ ▀█▀▄▄     █▄█▄████
-████ █▄▄▄█ █ ▄ ▀ ▄█ ▄███▄ ▀████ ▀▀█▄█▄█▄ ████
-████▄▄▄▄▄▄▄█▄▄█▄▄██▄███▄▄███▄▄▄█████▄▄█▄▄████
-█████████████████████████████████████████████
 ```
+This command creates a UTF-8 encoded QR code representing the Monero payment URI, ready for customer scanning.
 
-Create an image PNG like this ```qrencode -t PNG -o myqrcode.png```
+These methods provide flexible options for setting up payments using mnp. Every output of ```mnp-payment``` can be used to create an QR-Code. 
+
 
 
 ## How to Monitor /tmp/wallet
@@ -322,7 +301,7 @@ The default color of named pipes set by Ubuntu is a pain:
 
 ```bash
 #call mnp with group id "mnp"
-sg mnp -c "mnp --init
+sg mnp -c "mnp --init"
 ```
 
 Licence: »GPLv3«
