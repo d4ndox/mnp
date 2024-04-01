@@ -26,17 +26,18 @@
  * is removed
  */
 char* delQuotes(const char *str) {
-    int length = strlen(str);
-    char* ret = malloc((length-2) * sizeof(char));
+    size_t length = strlen(str);
 
     /* Return empty string */
     if (length <= 2) {
         char* empty =  malloc(1 * sizeof(char));
         empty[0] = '\0';
         return empty;
-    } else {
-        ret = strndup(str+1, length-2);
     }
+
+    char* ret = malloc((length - 1) * sizeof(char));
+    ret = strndup(str + 1, length - 2);
+    ret[length - 2] = '\0';
 
     return ret;
 }
