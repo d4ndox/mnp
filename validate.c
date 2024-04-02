@@ -27,7 +27,7 @@
 
 /*
  * Validates hexadecimal input of specified size.
- * Checks for valid payment ID, transaction ID, subaddress, or integrated address.
+ * Checks for valid payment ID or transaction ID.
  *
  * Parameters:
  *   hex: Pointer to the hexadecimal input string
