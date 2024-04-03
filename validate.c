@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,12 +40,10 @@
  */
 int val_hex_input(const char *hex, const unsigned int size) {
 
-    /* Check if input length matches specified size */
     if (strlen(hex) != size) {
         return -1;
     }
 
-    /* Check if each character is a valid hexadecimal digit */
     for (int i = 0; i < size; i++) {
         if (!isxdigit(hex[i])) {
             return -1;
@@ -67,7 +66,7 @@ int val_hex_input(const char *hex, const unsigned int size) {
  *    0 if input contains only digits
  */
 int val_amount(const char *amount) {
-    /* Check if the input contains only digits */
+
     for (int i = 0; i < strlen(amount); i++) {
         if (!isdigit(amount[i])) {
             return -1;
