@@ -21,9 +21,13 @@
 #include "delquotes.h"
 
 /*
- * Delete Quotes
- * first and last character in string
- * is removed
+ * Deletes the first and last quotation mark from a string.
+ *
+ * Parameters:
+ *   str: Pointer to the input string
+ *
+ * Returns:
+ *   char: pointer to new string without quotation marks.
  */
 char* delQuotes(const char *str) {
     size_t length = strlen(str);
