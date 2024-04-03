@@ -12,7 +12,7 @@ Libraries used:
 
 * *cjson* (directory cjson) https://github.com/DaveGamble/cJSON
 
-  
+
 
 ## Build/Compile:
 
@@ -37,7 +37,7 @@ $ make install
 
 ## General Info
 
-Monero Named Pipes uses the »**monero-wallet-rpc**« API to communicate with the Monero wallet. A list of all rpc calls can be found here: 
+Monero Named Pipes uses the »**monero-wallet-rpc**« API to communicate with the Monero wallet. A list of all rpc calls can be found here:
 
 https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
 
@@ -58,7 +58,7 @@ https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
    +-+-+                                                   | +-+paymentID1
      |                                                     | |
                                                            | +-+paymentID2
- Blockchain                                                | 
+ Blockchain                                                |
                                                            ...
 
 ```
@@ -73,17 +73,17 @@ https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
 
 ## File Structure:
 
-* *mnpd.c* 
+* *mnpd.c*
 
   main soucre code file for the target »mnpd«
 
   mnp daemon is »To be defined«,
 
-* *mnp.c* 
+* *mnp.c*
 
   main source code file for the target »mnp«.
 
-  using rpc_call 
+  using rpc_call
 
   creates the named pipe
 
@@ -95,7 +95,7 @@ https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
 
   main source code file for the target »mnp-payment«
 
-  using rpc_call with different method calls - 
+  using rpc_call with different method calls -
 
   according to command line option set by the user.
 
@@ -119,7 +119,7 @@ https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
 
   helper function to remove quotes from a C string,
 
-* *version.c* 
+* *version.c*
 
   not used at the moment. It asks for the current RPC version
 
@@ -129,26 +129,27 @@ https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
 
 ![Monero Named Pipe](https://raw.githubusercontent.com/d4ndox/mnp/master/doc/file_structure_coding_guide.svg)
 
-
 ## Data Structure:
 
-The most important data structure is ```struct rpc_wallet``` to be found in *rpc_call.h*. This structure has two tasks. 
+The primary data structure is `struct rpc_wallet`, which is defined in *rpc_call.h*. This structure serves two main purposes:
 
-1) Prepare a connection to ===> **monero_wallet_rpc**
+1. **Preparing Connection to Monero Wallet RPC:**
 
-   parameter like:
+This involves setting up parameters required for connecting to the `monero_wallet_rpc` service, such as:
+- `monero_rpc_method`: Specifies the RPC method to be called.
+- `host`, `port`, `user`, and `pwd`: Details necessary for establishing the connection.
 
-   * ```int monero_rpc_method```,
+2. **Storing Responses from Monero Wallet RPC:**
 
-   * ```char host```, 
-   * ```char port```,
-   * ```char user```, 
-   * ```char pwd``` are necessary for this call by *rpc_call.c*.
-
-2) Store the reply of <=== **monero_wallet_rpc**
+   Once the RPC call is made, the response is stored within the `reply` field of the `struct rpc_wallet`. This response is in JSON format and must be parsed using the cJSON library, typically done in *mnp.c* or *mnp-payment.c*.
 
    pointer to reply data: ```cJSON *reply```.
 
+
+The parameters within `struct rpc_wallet` include:
+
+- `txid`, `payid`, `saddr`, etc.: Fields to store specific data obtained from the RPC call.
+- `idx`: An integer tied to the `saddr`.
 
 ```c
 /* rpc_call.h */
@@ -173,36 +174,28 @@ struct rpc_wallet {
 };
 ````
 
-reply is a JSON formated string and needs to be parsed from *mnp.c* or *mnp-payment.c* using the cJSON library.
-
-The result can be stored in the parameter below according to which  ```monero_rpc_method``` method was used:
-
-* ```char txid,```
-* ```char payid,```
-* ```char saddr,```
-* ..
-* ```int idx```.
+The `monero_rpc_method` enum defines the available RPC methods, such as `GET_HEIGHT`, `GET_BALANCE`, etc., up to `GET_VERSION`.
 
 `int monero_rpc_method` is a method that can be chosen from this `enum`.
 
 ```c
 /* rpc_call.h */
 enum monero_rpc_method {
-  6     GET_HEIGHT,
-  7     GET_BALANCE,
-  8     GET_TXID,
-  9     GET_LIST,
- 10     GET_SUBADDR,
- 11     NEW_SUBADDR,
- 12     MK_IADDR,
- 13     MK_URI,
- 14     SPLIT_IADDR,
- 15     GET_VERSION,
- 16     END_RPC_SIZE
- 17 };
+    GET_HEIGHT,
+    GET_BALANCE,
+    GET_TXID,
+    GET_LIST,
+    GET_SUBADDR,
+    NEW_SUBADDR,
+    MK_IADDR,
+    MK_URI,
+    SPLIT_IADDR,
+    GET_VERSION,
+    END_RPC_SIZE
+};
 ```
 
-You can loop through every method to initialise the data structure.
+Initialization of `struct rpc_wallet` instances is done by looping through each RPC method and setting their respective parameters. For instance:
 
 ```c
  /* initialise monero_wallet with NULL */
