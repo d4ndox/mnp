@@ -34,6 +34,7 @@
 #include "./cjson/cJSON.h"
 #include "rpc_call.h"
 #include "version.h"
+#include "validate.h"
 #include "globaldefs.h"
 
 static const struct option options[] = {
@@ -131,6 +132,11 @@ int main(int argc, char **argv)
                 break;
             case 'x':
                 amount = strndup(optarg, MAX_DATA_SIZE);
+                int val = val_amount(amount);
+                if (val < 0) {
+                    fprintf(stderr, "Invalid amount\n");
+                    exit(EXIT_FAILURE);
+                }
                 break;
             case 0:
 	        break;
@@ -158,6 +164,11 @@ int main(int argc, char **argv)
         }
         if (paymentId == NULL) {
             paymentId = readStdin();
+        }
+        int valid = val_hex_input(paymentId, MAX_PAYID_SIZE);
+        if (valid < 0) {
+            fprintf(stderr, "Invalid payment Id\n");
+            exit(EXIT_FAILURE);
         }
     }
 
