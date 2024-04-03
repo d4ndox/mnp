@@ -252,8 +252,18 @@ Comments should be made in the following way:
 
 ```c
 /*
+ * Function description.
+ *
+ * Parameters:
+ *   str: Pointer to the input string
+ *
+ * Returns:
+ *   -1 if input is invalid
+ *    0 if input is valid
+ */
+
+/*
  * My comment
- * returns x
  */
 
 /* My comment */
