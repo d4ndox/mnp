@@ -205,13 +205,19 @@ int main(int argc, char **argv)
         }
     }
 
-    const char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
+    char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
     mode_t mode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
 
+    perm = strndup(config.cfg_pipe, MAX_DATA_SIZE);
+    mode_t pmode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
+                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
+                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
+
     if (DEBUG) {
         syslog(LOG_USER | LOG_DEBUG, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
+        syslog(LOG_USER | LOG_DEBUG, "pipe mode_t = %03o and mode = %s\n", pmode, config.cfg_pipe);
     }
 
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
@@ -305,15 +311,6 @@ int main(int argc, char **argv)
             closelog();
             exit(EXIT_FAILURE);
         }
-        if (init == 1) {
-            status = chmod(workdir, S_ISGID | mode);
-            if (status == -1) {
-                syslog(LOG_USER | LOG_ERR, "could not set S_ISGID flag in workdir %s error: %s", workdir, strerror(errno));
-                fprintf(stderr, "mnp: could not set the S_ISGID flag in workdir %s error: %s\n", workdir, strerror(errno));
-                closelog();
-                exit(EXIT_FAILURE);
-            }
-        }
     } if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is up : %s", workdir);
 
     /* create transferdir directory. TEST if directory does exist */
@@ -392,18 +389,17 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
     /*
-     * monero-wallet-rpc --tx-notify "mnp %s" is executed
-     * once on txpool and again on confirmation = 1.
+     * The command "monero-wallet-rpc --tx-notify "mnp %s"" is executed twice:
+     * once when a transaction is detected in the transaction pool (txpool),
+     * and again when the transaction is confirmed by a mined block.
      *
-     * tx_notify_status = TXPOOL => detected on mempool.
-     * tx_notify_status = CONFIRMED => One confirmation.
+     * When tx_notify_status is TXPOOL, it means the transaction is detected in the mempool.
+     * When tx_notify_status is CONFIRMED, it means the transaction has been confirmed by a mined block.
      *
-     * mnp does not know if it is called for the first time
-     * or the second time (by monero-wallet-rpc --tx-notify).
-     * For this reason, /tmp/mywallet/transfer/subaddr is not
-     * unlinked (removed) until the second call.
-     * mnp can now check for existence of the file.
-     * if no file exists, it is the first call from monero-wallet-rpc.
+     * The program "mnp" cannot determine whether it is being called for the first or second time
+     * by "monero-wallet-rpc --tx-notify". Therefore, the file "/tmp/mywallet/transfer/subaddr"
+     * is not removed until the second call. This delay allows "mnp" to check for the existence of the file.
+     * If the file doesn't exist, it indicates the first call from "monero-wallet-rpc".
      */
     int tx_notify_status = TXPOOL;
 
@@ -430,7 +426,7 @@ int main(int argc, char **argv)
         if (verbose) syslog(LOG_USER | LOG_INFO, "tx_notify_status = TXPOOL\n");
         tx_notify_status = TXPOOL;
         if (notify != NONE) {
-            int ret = mkfifo(monero_wallet[GET_TXID].fifo, mode);
+            int ret = mkfifo(monero_wallet[GET_TXID].fifo, pmode);
             if (ret == -1) {
                 syslog(LOG_USER | LOG_ERR, "could not create named pipe fifo %s error: %s", monero_wallet[GET_TXID].fifo, strerror(errno));
             }
@@ -727,6 +723,8 @@ static int handler(void *user, const char *section, const char *name,
         pconfig->cfg_workdir = strndup(value, MAX_DATA_SIZE);
     } else if (MATCH("cfg", "mode")) {
         pconfig->cfg_mode = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("cfg", "pipe")) {
+        pconfig->cfg_pipe = strndup(value, MAX_DATA_SIZE);
     } else {
         return 0;  /* unknown section/name, error */
     }
@@ -742,7 +740,7 @@ static void initshutdown(int sig)
 }
 
 /*
- * remove the workdir
+ * Remove the workdir
  */
 static int remove_directory(const char *path)
 {

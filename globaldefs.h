@@ -26,6 +26,7 @@ struct Config {
     const char  *mnp_account;
     const char  *cfg_workdir;
     const char  *cfg_mode;
+    const char  *cfg_pipe;
 };
 
 enum notify {
