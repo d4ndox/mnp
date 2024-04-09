@@ -1,16 +1,15 @@
 # Testing Monero Named Pipe.
 
-Q: Why to use a database for testing?
-A: To avoid problems with concurrency that can arise when several transactions run simultaneously.
+- Q: Why to use a database for testing?
 
-Create a new database and user:
+- A: To avoid problems with concurrency that can arise when several transactions run simultaneously.
+
+  
+
+  Create a new database and user:
 
 ```bash
 sudo mysql
-```
-
-```bash
-mysql -u root -p
 ```
 
 ```sql
@@ -35,7 +34,7 @@ mysql --user=sysadmin --password=mypassword < create_db.sql
 mysql --user=sysadmin --password=mypassword -e "SELECT * FROM payDB.payments;"
 ```
 
-```
+```sql
 +-------+--------+-----------+
 | PAYID | AMOUNT | STATUS    |
 +-------+--------+-----------+
@@ -47,6 +46,14 @@ mysql --user=sysadmin --password=mypassword -e "SELECT * FROM payDB.payments;"
 +-------+--------+-----------+
 ```
 
+​	Start txdetect:
+
+```bash
+./txdetectdb.sh
+```
+
+​	Create a new payment request:
+
 ```bash
 $ ./create_uri 55555
 monero:AAkPz3y5yNweDPWW7FZoqd1Nwvhfh2UbAMBR4UeGPi1aWpERgmE3ChMeJZJ2RnkMueHdL7XXwdkQJ5As8XRhTKAhfJb3BrWxFGT1maXEsT?tx_amount=0.000000055555
@@ -57,7 +64,7 @@ $ mysql --user=sysadmin --password=mypassword -e "SELECT * FROM payDB.payments;"
 
 The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST - set by ```create_uri.sh```.
 
-```
+```sql
 +-----------+
 | status    |
 +-----------+
