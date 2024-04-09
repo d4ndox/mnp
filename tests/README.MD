@@ -20,7 +20,7 @@ GRANT PRIVILEGE ON payDB.payments TO 'sysadmin'@'localhost';
 
 ```sql
 GRANT CREATE, ALTER, DROP, INSERT, UPDATE, DELETE, SELECT, REFERENCES, RELOAD on *.* \
-TO 'sammy'@'localhost' WITH GRANT OPTION;
+TO 'sysadmin'@'localhost' WITH GRANT OPTION;
 ```
 
 ```sql
