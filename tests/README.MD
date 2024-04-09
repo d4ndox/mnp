@@ -66,13 +66,13 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 
 ```sql
 +-----------+
-| status    |
+| STATUS    |
 +-----------+
-| REQUEST   |
-| WAITING   |
-| TIMEOUT   |
-| FAILED    |
-| COMPLETED |
+| REQUEST   |  set by create_uri. Request a new payment with paymentid set from PAYID.
+| WAITING   |  set by txdetect as soon paymentid is detexted on /tmp/mywallet.
+| TIMEOUT   |  set by txdetect when txdetect runs into timeout. atm 60 min.
+| FAILED    |  set by txdetect when received amount is not equal to AMOUNT in table.
+| COMPLETED |  set by txdetect when received amount is equal to AMOUNT in table.
 +-----------+
 ```
 
