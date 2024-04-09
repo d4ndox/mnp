@@ -1,5 +1,8 @@
 # Testing Monero Named Pipe.
 
+Q: Why to use a database for testing?
+A: To avoid problems with concurrency that can arise when several transactions run simultaneously.
+
 Create a new database and user:
 
 ```bash
