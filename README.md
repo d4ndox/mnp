@@ -178,7 +178,8 @@ account = 0                     ;choose account
 
 [cfg]                           ;workdir configuration
 workdir = /tmp/mywallet         ;wallet working directory
-mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
+mode = rwx------                ;permission of workdir rwxrwxrwx
+pipe = rw-------                ;permission of pipes rwxrwxrwx
 ```
 
 ## Setting up a payment:
