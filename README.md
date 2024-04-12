@@ -178,7 +178,8 @@ account = 0                     ;choose account
 
 [cfg]                           ;workdir configuration
 workdir = /tmp/mywallet         ;wallet working directory
-mode = rwx------                ;mode of workdir and pipes rwxrwxrwx
+mode = rwx------                ;permission of workdir rwxrwxrwx
+pipe = rw-------                ;permission of pipes rwxrwxrwx
 ```
 
 ## Setting up a payment:
@@ -260,17 +261,14 @@ Ensure you have a QR code generator installed on your system. You can install qr
 ```bash
 sudo apt-get install qrencode
 ```
-This command installs qrencode, allowing you to generate QR codes from text.
-
 #### **Generate QR Code:**
 Use qrencode to generate a QR code from the Monero URI string:
 ```bash
 mnp-payment --subaddr 1 | qrencode -t UTF8
 ```
-This command creates a UTF-8 encoded QR code representing the Monero payment URI, ready for customer scanning.
+, ready for customer scanning.
 
 These methods provide flexible options for setting up payments using mnp. Every output of ```mnp-payment``` can be used to create an QR-Code. 
-
 
 
 ## How to Monitor /tmp/wallet
@@ -337,11 +335,6 @@ You might consider to change the default color for 'ls' by adding this to your b
  echo 'LS_COLORS=$LS_COLORS:"pi=00;35"' >> ~/.bashrc
 ```
 The default color of named pipes set by Ubuntu is a pain:
-
-```bash
-#call mnp with group id "mnp"
-sg mnp -c "mnp --init"
-```
 
 Licence: »GPLv3«
 
