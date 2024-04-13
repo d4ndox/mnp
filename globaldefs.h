@@ -33,7 +33,6 @@ enum notify {
     NONE,
     TXPOOL,
     CONFIRMED,
-    ALL
 };
 
 #define GET_HEIGHT_CMD  "get_height"

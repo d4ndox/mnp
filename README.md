@@ -87,7 +87,6 @@ Usage: mnp [OPTION] [TXID]
            0, none
            1, txpool
            2, confirmed
-           3, all
 
   --confirmation [n]
            amount of blocks needed to confirm transaction.

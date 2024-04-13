@@ -152,9 +152,9 @@ int main(int argc, char **argv)
                 break;
             case 'o':
                 notify = atoi(optarg);
-                if (notify > ALL) {
-                    syslog(LOG_USER | LOG_ERR, "--notify-at out of range [0,1,2,3]");
-                    fprintf(stderr, "mnp: --notify-at out of range [0,1,2,3]\n");
+                if (notify >= CONFIRMED) {
+                    syslog(LOG_USER | LOG_ERR, "--notify-at out of range [0,1,2]");
+                    fprintf(stderr, "mnp: --notify-at out of range [0,1,2]\n");
                     closelog();
                     exit(EXIT_FAILURE);
                 }
@@ -388,21 +388,6 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
-    /*
-     * The command "monero-wallet-rpc --tx-notify "mnp %s"" is executed twice:
-     * once when a transaction is detected in the transaction pool (txpool),
-     * and again when the transaction is confirmed by a mined block.
-     *
-     * When tx_notify_status is TXPOOL, it means the transaction is detected in the mempool.
-     * When tx_notify_status is CONFIRMED, it means the transaction has been confirmed by a mined block.
-     *
-     * The program "mnp" cannot determine whether it is being called for the first or second time
-     * by "monero-wallet-rpc --tx-notify". Therefore, the file "/tmp/mywallet/transfer/subaddr"
-     * is not removed until the second call. This delay allows "mnp" to check for the existence of the file.
-     * If the file doesn't exist, it indicates the first call from "monero-wallet-rpc".
-     */
-    int tx_notify_status = TXPOOL;
-
     if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s",
                 workdir, PAYMENT_DIR, monero_wallet[GET_TXID].payid);
@@ -412,19 +397,16 @@ int main(int argc, char **argv)
     }
 
     /*
-     * set tx_notify_status and
      * mkfifo named pipe
      */
     if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
         /* file does exist. second call */
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = CONFIRMED. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
-        if (verbose) syslog(LOG_USER | LOG_INFO, "tx_notify_status = CONFIRMED\n");
-        tx_notify_status = CONFIRMED;
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
+        free(monero_wallet);
+        exit(EXIT_SUCCESS);
     } else {
         /* file does NOT exist. first call */
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "tx_notify_status = TXPOOL. named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
-        if (verbose) syslog(LOG_USER | LOG_INFO, "tx_notify_status = TXPOOL\n");
-        tx_notify_status = TXPOOL;
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
         if (notify != NONE) {
             int ret = mkfifo(monero_wallet[GET_TXID].fifo, pmode);
             if (ret == -1) {
@@ -441,100 +423,10 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
             break;
         case TXPOOL:
-            if (tx_notify_status == CONFIRMED) {
-                unlink(monero_wallet[GET_TXID].fifo);
-                free(monero_wallet);
-                exit(EXIT_SUCCESS);
-            } else if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
-                                                                               monero_wallet[GET_TXID].port);
-                fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                           monero_wallet[GET_TXID].port);
-                closelog();
-                exit(EXIT_FAILURE);
-            }
+            jail = 0;
             break;
         case CONFIRMED:
-            if (tx_notify_status == TXPOOL) {
-                free(monero_wallet);
-                exit(EXIT_SUCCESS);
-            }
-
-            /*
-             * else if (tx_notify_status == CONFIRMED) do this
-             * jail. Don't leave this jail until all requirements are met.
-             */
-            while (running) {
-
-                if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                    syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
-                                                                                   monero_wallet[GET_TXID].port);
-                    fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                               monero_wallet[GET_TXID].port);
-                    closelog();
-                    exit(EXIT_FAILURE);
-                }
-
-                monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
-                if (verbose) syslog(LOG_USER | LOG_INFO, "confirmation = %s\n", monero_wallet[GET_TXID].conf);
-
-                /* release "amount" out of jail */
-                if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) jail = 0;
-                if (jail == 0) running = 0;
-                sleep(SLEEPTIME);
-            }
-            break;
-        case ALL:
-            if (tx_notify_status == TXPOOL) {
-                if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                    syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
-                                                                                   monero_wallet[GET_TXID].port);
-                    fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                               monero_wallet[GET_TXID].port);
-                    closelog();
-                    exit(EXIT_FAILURE);
-                }
-                int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
-                if (fd == -1) {
-                    syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-                    fprintf(stderr, "mnp: error: %s", strerror(errno));
-                    closelog();
-                    exit(EXIT_FAILURE);
-                }
-
-                ssize_t retw = write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
-                if (retw == -1) {
-                    syslog(LOG_USER | LOG_ERR, "error write %s", strerror(errno));
-                    fprintf(stderr, "mnp: error: %s", strerror(errno));
-                    closelog();
-                    exit(EXIT_FAILURE);
-                }
-
-                close(fd);
-                exit(EXIT_SUCCESS);
-            }
-            /*
-            * else "tx_notify_status == CONFIRMED"
-            * jail. Don't leave this jail until all requirementa are met.
-            */
-            while (running) {
-
-                if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
-                    syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
-                                                                                   monero_wallet[GET_TXID].port);
-                    fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                               monero_wallet[GET_TXID].port);
-                    closelog();
-                    exit(EXIT_FAILURE);
-                }
-
-                monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
-
-                /* release "amount" out of jail */
-                if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) jail = 0;
-                if (jail == 0) running = 0;
-                sleep(SLEEPTIME);
-            }
+            jail = 1;
             break;
         default:
             syslog(LOG_USER | LOG_ERR, "Error, check --notify-at x\n");
@@ -542,6 +434,24 @@ int main(int argc, char **argv)
             closelog();
             exit(EXIT_FAILURE);
 	    break;
+    }
+
+    while (running) {
+        if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
+            syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+                                                                           monero_wallet[GET_TXID].port);
+            fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
+                                                                       monero_wallet[GET_TXID].port);
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+
+        monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
+
+        /* release "amount" out of jail */
+        if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) jail = 0;
+        if (jail == 0) running = 0;
+        sleep(SLEEPTIME);
     }
 
     int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
@@ -562,14 +472,12 @@ int main(int argc, char **argv)
 
     close(fd);
 
-    if (tx_notify_status == CONFIRMED || notify == TXPOOL) {
-        int retunlink = unlink(monero_wallet[GET_TXID].fifo);
-        if (retunlink == -1) {
-            syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-            fprintf(stderr, "mnp: error: %s", strerror(errno));
-            closelog();
-            exit(EXIT_FAILURE);
-        }
+    int retunlink = unlink(monero_wallet[GET_TXID].fifo);
+    if (retunlink == -1) {
+        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+        fprintf(stderr, "mnp: error: %s", strerror(errno));
+        closelog();
+        exit(EXIT_FAILURE);
     }
     free(monero_wallet);
     exit(EXIT_SUCCESS);
@@ -647,11 +555,10 @@ static void usage(int status)
     "               rpc port to cennect to.\n\n"
     "  -w, --workdir  [WORKDIR]\n"
     "               place to create the work directory.\n\n"
-    "      --notify-at [0,1,2,3] default = all\n"
+    "      --notify-at [0,1,2] default = confirmed\n"
     "               0, none\n"
     "               1, txpool\n"
-    "               2, confirmed\n"
-    "               3, all\n\n"
+    "               2, confirmed\n\n"
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
     "      --init\n"
