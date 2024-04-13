@@ -436,6 +436,7 @@ int main(int argc, char **argv)
 	    break;
     }
 
+    /* JAIL starts here */
     while (running) {
         if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
             syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
@@ -449,9 +450,12 @@ int main(int argc, char **argv)
         monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
 
         /* release "amount" out of jail */
-        if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) jail = 0;
-        if (jail == 0) running = 0;
-        sleep(SLEEPTIME);
+        if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) {
+            jail = 0;
+        } else if (notify != TXPOOL) {
+            sleep(SLEEPTIME);
+        }
+        running = jail;
     }
 
     int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
