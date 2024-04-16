@@ -263,9 +263,9 @@ sudo apt-get install qrencode
 #### **Generate QR Code:**
 Use qrencode to generate a QR code from the Monero URI string:
 ```bash
-mnp-payment --subaddr 1 | qrencode -t UTF8
+mnp-payment --subaddr 1 | tr -d '\n' | qrencode -t UTF8
 ```
-, ready for customer scanning.
+, ready for customer scanning. Monerujo has some problems with \n terminated strings, so it is better to remove them.
 
 These methods provide flexible options for setting up payments using mnp. Every output of ```mnp-payment``` can be used to create an QR-Code. 
 
