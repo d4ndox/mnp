@@ -40,6 +40,7 @@
 #include "globaldefs.h"
 #include <inttypes.h>
 #include <unistd.h>
+#include <ftw.h>
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
 int verbose = 0;
@@ -67,6 +68,7 @@ static char *optstring = "hu:r:i:p:a:w:o:n:tcvl";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
+static int remove_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf);
 static int remove_directory(const char *path);
 static void printmnp(void);
 static char *readStdin(void);
@@ -651,54 +653,37 @@ static void initshutdown(int sig)
 }
 
 /*
- * Remove the workdir
+ * Helper function for remove_directory.
+ *
+ * Returns:
+ *   - 0 on success, -1 on failure.
  */
-static int remove_directory(const char *path)
-{
-    DIR *d = opendir(path);
-    size_t path_len = strlen(path);
-    int r = -1;
-
-    if (d) {
-        struct dirent *p;
-        r = 0;
-
-        while (!r && (p=readdir(d)))
-        {
-            int r2 = -1;
-            char *buf;
-            size_t len;
-
-            /* Skip the names "." and ".." as we don't want to recurse on them. */
-            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
-                continue;
-            }
-
-            len = path_len + strlen(p->d_name) + 2;
-            buf = malloc(len);
-
-            if (buf) {
-                struct stat statbuf;
-
-                snprintf(buf, len, "%s/%s", path, p->d_name);
-                if (!lstat(buf, &statbuf)) {
-                    if (S_ISDIR(statbuf.st_mode)) {
-                        r2 = remove_directory(buf);
-                    } else {
-                        r2 = unlink(buf);
-                    }
-                }
-                free(buf);
-            }
-            r = r2;
-        }
-        closedir(d);
+static int remove_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+    if (remove(fpath) == -1) {
+        perror("remove");
+        return -1;
     }
-    if (!r) {
-        r = rmdir(path);
-    }
-    return r;
+    return 0;
 }
+
+/*
+ * Recursively removes a work directory and its pipes.
+ * Uses file descriptors to mitigate TOCTOU race condition.
+ *
+ * Parameters:
+ *   - path: Path of the directory to be removed.
+ *
+ * Returns:
+ *   - 0 on success, -1 on failure.
+ */
+static int remove_directory(const char *path) {
+    if (nftw(path, remove_callback, 64, FTW_DEPTH | FTW_PHYS) == -1) {
+        perror("nftw");
+        return -1;
+    }
+    return 0;
+}
+
 
 /*
  * Print version of Monero Named Pipes.

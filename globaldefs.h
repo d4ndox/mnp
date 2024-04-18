@@ -1,12 +1,13 @@
 #ifndef GLOBALDEFS_H
 #define GLOBALDEFS_H
 
+#define _XOPEN_SOURCE 500
 #define MAX_DATA_SIZE   (4096)
 #define MAX_IADDR_SIZE  (106)
 #define MAX_ADDR_SIZE   (96)
 #define MAX_PAYID_SIZE  (16)
 #define MAX_TXID_SIZE   (64)
-#define VERSION         "0.0.6"
+#define VERSION         "0.0.7"
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
 extern int verbose;
