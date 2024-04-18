@@ -450,6 +450,7 @@ int main(int argc, char **argv)
         }
 
         monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
+        if (monero_wallet[GET_TXID].conf == NULL) asprintf(&monero_wallet[GET_TXID].conf, "0");
 
         /* release "amount" out of jail */
         if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) {
