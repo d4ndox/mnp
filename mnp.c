@@ -152,7 +152,7 @@ int main(int argc, char **argv)
                 break;
             case 'o':
                 notify = atoi(optarg);
-                if (notify >= CONFIRMED) {
+                if (notify > CONFIRMED) {
                     syslog(LOG_USER | LOG_ERR, "--notify-at out of range [0,1,2]");
                     fprintf(stderr, "mnp: --notify-at out of range [0,1,2]\n");
                     closelog();
@@ -681,8 +681,7 @@ static int remove_directory(const char *path)
                 struct stat statbuf;
 
                 snprintf(buf, len, "%s/%s", path, p->d_name);
-
-                if (!stat(buf, &statbuf)) {
+                if (!lstat(buf, &statbuf)) {
                     if (S_ISDIR(statbuf.st_mode)) {
                         r2 = remove_directory(buf);
                     } else {
