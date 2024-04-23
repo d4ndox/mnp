@@ -207,6 +207,33 @@ int main(int argc, char **argv)
         }
     }
 
+    FILE *file = fopen(TMP_TXID_FILE, "a+");
+    if (file == NULL) {
+        perror("Error opening tmp file");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Test, if the current txid is already existing in temp file */
+   // Überprüfen, ob der aktuelle txid bereits in der Datei vorhanden ist
+    char line[MAX_TXID_SIZE + 1];
+    int txid_found = 0;
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
+        fprintf(stderr, "line = %s and txid = %s\n", line, txid);
+        if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
+            txid_found = 1;
+            break;
+        }
+    }
+
+    /* If the current txid is not found in temp file, add it to the file */
+    if (!txid_found) {
+        fprintf(file, "%s\n", txid);
+        fclose(file);
+    } else {
+        exit(EXIT_SUCCESS);
+    }
+
     char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
     mode_t mode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
@@ -296,7 +323,6 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
-
 
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");

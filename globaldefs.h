@@ -10,6 +10,7 @@
 #define VERSION         "0.0.7"
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
+#define TMP_TXID_FILE   "/tmp/mnp.txid"
 extern int verbose;
 
 struct MemoryStruct {
