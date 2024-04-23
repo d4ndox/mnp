@@ -4,14 +4,14 @@ Monero named pipes (mnp) is a lightweight payment processor designed to monitor 
 
 
 ```bash
-/tmp/mywallet/
+"/tmp/mywallet/"
 
 ├── transfer
-│   ├── subaddress1
-│   └── subaddress2
+│   ├── "subaddress1"
+│   └── "subaddress2"
 └── payment
-    ├── paymentID1
-    └── paymentID2
+    ├── "paymentID1"
+    └── "paymentID2"
 ```
 
 Monero Named Pipes enables users to control and track incoming payments through  command-line tools, facilitating seamless integration with existing  workflows.
