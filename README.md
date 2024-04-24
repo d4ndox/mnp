@@ -91,7 +91,7 @@ Usage: mnp [OPTION] [TXID]
   --confirmation [n]
            amount of blocks needed to confirm transaction.
 
-  --keep-open\n"
+  --keep-open
            Does not close the fifo pipe.
 
   --init
