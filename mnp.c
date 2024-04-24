@@ -57,6 +57,7 @@ static const struct option options[] = {
         {"workdir"      , required_argument, NULL, 'w'},
         {"notify-at"    , required_argument, NULL, 'o'},
         {"confirmation" , required_argument, NULL, 'n'},
+	{"keep-open"    , no_argument      , NULL, 'k'},
 	{"init"         , no_argument      , NULL, 't'},
 	{"cleanup"      , no_argument      , NULL, 'c'},
         {"version"      , no_argument      , NULL, 'v'},
@@ -64,7 +65,7 @@ static const struct option options[] = {
 	{NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:w:o:n:tcvl";
+static char *optstring = "hu:r:i:p:a:w:o:n:ktcvl";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
@@ -102,6 +103,7 @@ int main(int argc, char **argv)
     char *transferdir = NULL;
     char *paymentdir = NULL;
     int init = 0;
+    int keep_open = 0;
     int cleanup = 0;
     int confirmation = 0;
     int notify = CONFIRMED;
@@ -164,6 +166,9 @@ int main(int argc, char **argv)
             case 'n':
                 confirmation = atoi(optarg);
                 break;
+            case 'k':
+                keep_open = 1;
+                break;
             case 't':
                 init = 1;
                 break;
@@ -219,7 +224,6 @@ int main(int argc, char **argv)
     int txid_found = 0;
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
-        fprintf(stderr, "line = %s and txid = %s\n", line, txid);
         if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
             txid_found = 1;
             break;
@@ -427,21 +431,25 @@ int main(int argc, char **argv)
     /*
      * mkfifo named pipe
      */
+    int exist = 0;
     if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
         /* file does exist. second call */
         if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
-        free(monero_wallet);
-        exit(EXIT_SUCCESS);
-    } else {
-        /* file does NOT exist. first call */
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
-        if (notify != NONE) {
-            int ret = mkfifo(monero_wallet[GET_TXID].fifo, pmode);
-            if (ret == -1) {
-                syslog(LOG_USER | LOG_ERR, "could not create named pipe fifo %s error: %s", monero_wallet[GET_TXID].fifo, strerror(errno));
-            }
+        exist = 1;
+        if (keep_open == 0) {
+            free(monero_wallet);
+            exit(EXIT_SUCCESS);
         }
-    } if (verbose) syslog(LOG_USER | LOG_INFO, "named pipe fifo is up : %s", monero_wallet[GET_TXID].fifo);
+    }
+    /* file does NOT exist. first call */
+    if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo is created : %s", monero_wallet[GET_TXID].fifo);
+    if (notify != NONE && exist == 0) {
+        int ret = mkfifo(monero_wallet[GET_TXID].fifo, pmode);
+        if (ret == -1) {
+            syslog(LOG_USER | LOG_ERR, "could not create named pipe fifo %s error: %s", monero_wallet[GET_TXID].fifo, strerror(errno));
+        }
+    }
+    if (verbose) syslog(LOG_USER | LOG_INFO, "named pipe fifo is up : %s", monero_wallet[GET_TXID].fifo);
 
     int jail = 1;
 
@@ -504,13 +512,14 @@ int main(int argc, char **argv)
     }
 
     close(fd);
-
-    int retunlink = unlink(monero_wallet[GET_TXID].fifo);
-    if (retunlink == -1) {
-        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-        fprintf(stderr, "mnp: error: %s", strerror(errno));
-        closelog();
-        exit(EXIT_FAILURE);
+    if (keep_open == 0) {
+        int retunlink = unlink(monero_wallet[GET_TXID].fifo);
+        if (retunlink == -1) {
+            syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+            fprintf(stderr, "mnp: error: %s", strerror(errno));
+            closelog();
+            exit(EXIT_FAILURE);
+        }
     }
     free(monero_wallet);
     exit(EXIT_SUCCESS);
@@ -594,6 +603,8 @@ static void usage(int status)
     "               2, confirmed\n\n"
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
+    "      --keep-open\n"
+    "               Does not close the fifo pipe.\n\n"
     "      --init\n"
     "               create workdir for usage.\n\n"
     "      --cleanup\n"
