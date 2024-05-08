@@ -1,6 +1,6 @@
 # Monero Named Pipes
 
-Monero named pipes (mnp) is a lightweight payment processor designed to monitor incoming payments within a Unix shell environment, such as bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and uses named pipes for interaction, creating a set of files and directories within a specified directory. Default: */tmp/mywallet/*.
+Monero named pipes (mnp) is a lightweight wallet designed to monitor incoming payments within a Unix shell environment, such as bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and uses named pipes for interaction, creating a set of files and directories within a specified directory. Default: */tmp/mywallet/*.
 
 
 ```bash
