@@ -40,7 +40,6 @@
 #include "./inih/ini.h"
 #include "./cjson/cJSON.h"
 #include "rpc_call.h"
-#include "version.h"
 #include "validate.h"
 #include "globaldefs.h"
 
@@ -180,7 +179,6 @@ int main(int argc, char **argv)
     }
 
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
-    monero_wallet[0].monero_rpc_method = GET_VERSION;
 
     /* initialise monero_wallet with NULL */
     for (int i = 0; i < END_RPC_SIZE; i++) {

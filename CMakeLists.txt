@@ -10,8 +10,8 @@ include_directories(${CURL_INCLUDE_DIRS})
 
 #stndup warning
 set (CMAKE_C_FLAGS "-D_GNU_SOURCE")
-set(HEADER_FILES ../inih/ini.h ../cjson/cJSON.h ../wallet.h ../rpc_call.h ../version.h ../delquotes.h ../validate.h ../globaldefs.h)
-add_executable(mnp ../mnp.c ../inih/ini.c ../cjson/cJSON.c ../rpc_call.c ../version.c ../delquotes.c ../wallet.c ${HEADER_FILES})
+set(HEADER_FILES ../inih/ini.h ../cjson/cJSON.h ../wallet.h ../rpc_call.h ../delquotes.h ../validate.h ../globaldefs.h)
+add_executable(mnp ../mnp.c ../inih/ini.c ../cjson/cJSON.c ../rpc_call.c ../delquotes.c ../wallet.c ${HEADER_FILES})
 add_executable(mnp-payment ../mnp-payment.c ../inih/ini.c ../cjson/cJSON.c ../rpc_call.c ../delquotes.c ../validate.c ../wallet.c ${HEADER_FILES})
 
 target_link_libraries (mnp curl)

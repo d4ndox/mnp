@@ -69,9 +69,6 @@ int rpc_call(struct rpc_wallet *monero_wallet)
     cJSON *rpc_params = cJSON_CreateObject();
 
     switch (monero_wallet->monero_rpc_method) {
-        case GET_VERSION:
-            rpc_params = NULL;
-            break;
         case GET_HEIGHT:
             rpc_params = NULL;
             break;
@@ -187,9 +184,6 @@ char* get_method(enum monero_rpc_method method)
     char *mtd = NULL;
 
     switch (method) {
-        case GET_VERSION:
-            asprintf(&mtd, "%s", GET_VERSION_CMD);
-                break;
         case GET_HEIGHT:
             asprintf(&mtd, "%s", GET_HEIGHT_CMD);
                 break;

@@ -43,7 +43,6 @@
 #include "./cjson/cJSON.h"
 #include "wallet.h"
 #include "rpc_call.h"
-#include "version.h"
 #include "globaldefs.h"
 #include <inttypes.h>
 #include <unistd.h>
