@@ -338,7 +338,7 @@ You might consider to change the default color for 'ls' by adding this to your b
 ```
 The default color of named pipes set by Ubuntu is a pain:
 
-Licence: »GPLv3«
+Licence: »MIT«
 
 Author: »Unknown« (d4ndo)
 
