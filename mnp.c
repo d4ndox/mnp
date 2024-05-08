@@ -216,32 +216,31 @@ int main(int argc, char **argv)
         if (txid == NULL) {
             txid = readStdin();
         }
-    }
 
-    FILE *file = fopen(TMP_TXID_FILE, "a+");
-    if (file == NULL) {
-        perror("Error opening tmp file");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Test, if the current txid is already existing in temp file */
-   // Überprüfen, ob der aktuelle txid bereits in der Datei vorhanden ist
-    char line[MAX_TXID_SIZE + 1];
-    int txid_found = 0;
-    while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
-        if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
-            txid_found = 1;
-            break;
+        FILE *file = fopen(TMP_TXID_FILE, "a+");
+        if (file == NULL) {
+            perror("Error opening tmp file");
+            exit(EXIT_FAILURE);
         }
-    }
 
-    /* If the current txid is not found in temp file, add it to the file */
-    if (!txid_found) {
-        fprintf(file, "%s\n", txid);
-        fclose(file);
-    } else {
-        exit(EXIT_SUCCESS);
+        /* Test, if the current txid is already existing in temp file */
+        char line[MAX_TXID_SIZE + 1];
+        int txid_found = 0;
+        while (fgets(line, sizeof(line), file)) {
+            line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
+            if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
+                txid_found = 1;
+                break;
+            }
+        }
+
+        /* If the current txid is not found in temp file, add it to the file */
+        if (!txid_found) {
+            fprintf(file, "%s\n", txid);
+            fclose(file);
+        } else {
+            exit(EXIT_SUCCESS);
+        }
     }
 
     char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
