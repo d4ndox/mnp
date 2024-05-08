@@ -1,7 +1,7 @@
 #ifndef GLOBALDEFS_H
 #define GLOBALDEFS_H
 
-#define _XOPEN_SOURCE 500
+#define _XOPEN_SOURCE 700
 #define MAX_DATA_SIZE   (4096)
 #define MAX_IADDR_SIZE  (106)
 #define MAX_ADDR_SIZE   (96)
