@@ -7,7 +7,7 @@
 #define MAX_ADDR_SIZE   (96)
 #define MAX_PAYID_SIZE  (16)
 #define MAX_TXID_SIZE   (64)
-#define VERSION         "0.1.1"
+#define VERSION         "0.1.2"
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
 #define TMP_TXID_FILE   "/tmp/mnp.txid"
@@ -35,6 +35,7 @@ enum notify {
     NONE,
     TXPOOL,
     CONFIRMED,
+    UNLOCKED,
 };
 
 #define GET_HEIGHT_CMD  "get_height"

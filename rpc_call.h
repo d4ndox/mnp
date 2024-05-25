@@ -31,6 +31,7 @@ struct rpc_wallet {
        char *iaddr;
        char *amount;
        char *conf;
+       char *locked;
        char *fifo;
        int   idx;
        cJSON *reply;

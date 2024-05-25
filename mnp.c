@@ -83,6 +83,7 @@ static char *amount(const struct rpc_wallet *monero_wallet);
 static char *address(const struct rpc_wallet *monero_wallet);
 static char *payid(const struct rpc_wallet *monero_wallet);
 static char *confirm(const struct rpc_wallet *monero_wallet);
+static char *locked(const struct rpc_wallet *monero_wallet);
 
 int main(int argc, char **argv)
 {
@@ -108,6 +109,7 @@ int main(int argc, char **argv)
     char *workdir = NULL;
     char *transferdir = NULL;
     char *paymentdir = NULL;
+    char *locked0 = "true";
     int init = 0;
     int keep_open = 0;
     int cleanup = 0;
@@ -162,9 +164,9 @@ int main(int argc, char **argv)
                 break;
             case 'o':
                 notify = atoi(optarg);
-                if (notify > CONFIRMED) {
-                    syslog(LOG_USER | LOG_ERR, "--notify-at out of range [0,1,2]");
-                    fprintf(stderr, "mnp: --notify-at out of range [0,1,2]\n");
+                if (notify > UNLOCKED) {
+                    syslog(LOG_USER | LOG_ERR, "--notify-at out of range [0,1,2,3]");
+                    fprintf(stderr, "mnp: --notify-at out of range [0,1,2,3]\n");
                     closelog();
                     exit(EXIT_FAILURE);
                 }
@@ -276,6 +278,7 @@ int main(int argc, char **argv)
         monero_wallet[i].iaddr = NULL;
         monero_wallet[i].amount = NULL;
         monero_wallet[i].conf = NULL;
+        monero_wallet[i].locked = NULL;
         monero_wallet[i].fifo = NULL;
         monero_wallet[i].idx = 0;
         monero_wallet[i].reply = NULL;
@@ -424,6 +427,7 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
+    monero_wallet[GET_TXID].locked = locked(&monero_wallet[GET_TXID]);
 
     if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s",
@@ -469,6 +473,9 @@ int main(int argc, char **argv)
         case CONFIRMED:
             jail = 1;
             break;
+        case UNLOCKED:
+            jail = 1;
+            break;
         default:
             syslog(LOG_USER | LOG_ERR, "Error, check --notify-at x\n");
             fprintf(stderr, "mnp: error, check --notify-at x\n");
@@ -476,6 +483,8 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
 	    break;
     }
+
+    running = jail;
 
     /* JAIL starts here */
     while (running) {
@@ -490,13 +499,18 @@ int main(int argc, char **argv)
 
         monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
         if (monero_wallet[GET_TXID].conf == NULL) asprintf(&monero_wallet[GET_TXID].conf, "0");
+        monero_wallet[GET_TXID].locked = locked(&monero_wallet[GET_TXID]);
 
         /* release "amount" out of jail */
-        if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) {
+        if (notify == UNLOCKED) {
+            if (strncmp(monero_wallet[GET_TXID].locked, "false", MAX_TXID_SIZE) == 0) {
+                jail = 0;
+            }
+        } else if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) {
             jail = 0;
-        } else if (notify != TXPOOL) {
-            sleep(SLEEPTIME);
         }
+
+        sleep(SLEEPTIME);
         running = jail;
     }
 
@@ -575,6 +589,16 @@ static char *confirm(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(confirmations);
 }
 
+static char *locked(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
+    cJSON *locked = cJSON_GetObjectItem(transfer, "locked");
+
+    return cJSON_Print(locked);
+}
 
 /*
  * Print user help.
@@ -602,10 +626,11 @@ static void usage(int status)
     "               rpc port to cennect to.\n\n"
     "  -w, --workdir  [WORKDIR]\n"
     "               place to create the work directory.\n\n"
-    "      --notify-at [0,1,2] default = confirmed\n"
+    "      --notify-at [0,1,2,3] default = confirmed\n"
     "               0, none\n"
     "               1, txpool\n"
     "               2, confirmed\n\n"
+    "               3, unlocked\n\n"
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
     "      --keep-open\n"
