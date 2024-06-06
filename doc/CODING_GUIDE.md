@@ -154,23 +154,24 @@ The parameters within `struct rpc_wallet` include:
 ```c
 /* rpc_call.h */
 struct rpc_wallet {
-        int monero_rpc_method;
-        char *params;
-        char *account;
-        char *host;
-        char *port;
-        char *user;
-        char *pwd;
-        /* tx related */
-        char *txid;
-        char *payid;
-        char *saddr;
-        char *iaddr;
-        char *amount;
-        char *conf;
-        char *fifo;
-        int   idx;
-        cJSON *reply;
+       int monero_rpc_method;
+       char *params;
+       char *account;
+       char *host;
+       char *port;
+       char *user;
+       char *pwd;
+       /* tx related */
+       char *txid;
+       char *payid;
+       char *saddr;
+       char *iaddr;
+       char *amount;
+       char *conf;
+       char *locked;
+       char *fifo;
+       int   idx;
+       cJSON *reply;
 };
 ````
 
@@ -190,7 +191,6 @@ enum monero_rpc_method {
     MK_IADDR,
     MK_URI,
     SPLIT_IADDR,
-    GET_VERSION,
     END_RPC_SIZE
 };
 ```
