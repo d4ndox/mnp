@@ -13,9 +13,6 @@ tx
  │   └── "subaddress_2"
  └── txid_3
      └── "paymentId_1"
-
-"bc_height"
-"total_balance"
 ```
 
 Monero Named Pipes enables users to control and track incoming payments through  command-line tools, facilitating seamless integration with existing  workflows.
