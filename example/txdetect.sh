@@ -7,7 +7,7 @@ read_pipe() {
     local amount
 
     # Set timeout for cat command
-    if ! amount=$(timeout 25m cat "${dir}/${file}"); then
+    if ! amount=$(timeout 125m cat "${dir}/${file}"); then
         # Handle timeout - write to syslog and exit
         echo "Timeout occurred while reading from $file" >&2
         logger "Timeout occurred while reading from $file"
