@@ -60,7 +60,7 @@ static const struct option options[] = {
 
 static int handler(void *user, const char *section,
                    const char *name, const char *value);
-static char *optstring = "hu:r:i:p:a:s:nxvl";
+static char *optstring = "hu:r:i:p:a:x:s:nvl";
 static void usage(int status);
 static void printmnp(void);
 static char *readStdin(void);
