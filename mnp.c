@@ -108,6 +108,7 @@ int main(int argc, char **argv)
     char *txid = NULL;
     char *workdir = NULL;
     char *txdir = NULL;
+    char *txId = NULL;
     char *locked0 = "true";
     int init = 0;
     int cleanup = 0;
@@ -402,28 +403,28 @@ int main(int argc, char **argv)
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
     monero_wallet[GET_TXID].locked = locked(&monero_wallet[GET_TXID]);
 
-    asprintf(&txdir, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
+    asprintf(&txId, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
 
-    if (stat(txdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "txdir does exists : %s", txdir);
+    if (stat(txId, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "txId does exists : %s", txId);
     } else {
-        int status = mkdir(txdir, mode);
+        int status = mkdir(txId, mode);
         if (status == -1) {
-            syslog(LOG_USER | LOG_ERR, "could not create txdir %s error: %s", txdir, strerror(errno));
-            fprintf(stderr, "mnp: could not create txdir %s error: %s\n", txdir, strerror(errno));
+            syslog(LOG_USER | LOG_ERR, "could not create txId %s error: %s", txId, strerror(errno));
+            fprintf(stderr, "mnp: could not create txId %s error: %s\n", txId, strerror(errno));
             closelog();
             exit(EXIT_FAILURE);
         }
-    } if (verbose) syslog(LOG_USER | LOG_INFO, "txdir is up : %s", txdir);
+    } if (verbose) syslog(LOG_USER | LOG_INFO, "txId is up : %s", txId);
 
-    asprintf(&txdir, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
+    asprintf(&txId, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
 
     if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s",
-                txdir, monero_wallet[GET_TXID].payid);
+                txId, monero_wallet[GET_TXID].payid);
     } else {
         asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s",
-                txdir, monero_wallet[GET_TXID].saddr);
+                txId, monero_wallet[GET_TXID].saddr);
     }
 
     /*
@@ -518,6 +519,13 @@ int main(int argc, char **argv)
     }
 
     close(fd);
+    int retunlink = unlink(monero_wallet[GET_TXID].fifo);
+    if (retunlink == -1) {
+        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+        fprintf(stderr, "mnp: error: %s", strerror(errno));
+        closelog();
+        exit(EXIT_FAILURE);
+    }
     free(monero_wallet);
     exit(EXIT_SUCCESS);
 }
