@@ -1,72 +1,81 @@
 # Monero Named Pipes
 
-Monero named pipes (mnp) is a lightweight wallet designed to monitor incoming payments within a Unix shell environment, such as bash or zsh. mnp is developed with the *UNIX-philosophy* in mind and uses named pipes for interaction, creating a set of files and directories within a specified directory. Default: */tmp/mywallet/*.
+Monero named pipes (mnp) is a lightweight wallet designed to monitor incoming payments within a Unix shell environment. It uses named pipes for interaction, creating a set of files and directories within a specified working directory. Default: */tmp/mywallet/*.
 
 
 ```bash
 /tmp/mywallet/
 
-tx
+transactions
  ├── txid_1
- │   └── "subaddress_1"
+ │   └── "subaddress_1"
  ├── txid_2
  │   └── "subaddress_2"
  └── txid_3
      └── "paymentId_1"
 ```
 
-Monero Named Pipes enables users to control and track incoming payments through  command-line tools, facilitating seamless integration with existing  workflows.
+It enables users to control and track incoming payments through command-line tools.
 
-### Example
 
-Initialize and Setup
+## How to build mnp
 
-A short example in four simple steps to give you an idea of how mnp works.
-For more details, see "How to set up a payment".
-
-#### 1. Initalize mnp
+'libcurl' is required to build mnp. `apt-get install libcurl4`
 
 ```bash
-# initialise the workdir
+$ cd mnp
+$ mkdir build
+$ cmake -DCMAKE_BUILD_TYPE=Release ../
+$ make
+$ sudo make install
+```
+
+### Verify
+
+gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
+
+*Please also help audit the source code.*
+
+
+## How to run mnp?
+
+ Monero Named Pipes uses monero-wallet-rpc which comes with the Monero Command-line Tools. Download @ getmonero.org.
+
+- [ ] Step 1) Start monerod. It keeps the blockchain in sync.
+- [ ] Step 2) Start monero-wallet-rpc --tx-notify "/usr/bin/mnp %s". It listens on rpc port and takes care of your wallet.
+
+```bash
 $ mnp --init
-$ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 3 %s"
+$ monerod
+$ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 1 %s" --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
+$ mnp-payment --list
 ```
 
-#### 2. Monitor /tmp/mywallet/
+If `mnp-payment --list` fails, adapt rpc configuration in `~/.mnp.ini`
 
-To monitor /tmp/mywallet i recommend inotifywait. It efficiently waits for changes to files using Linux's inotify.
-The operating system takes care of the rest.
-```sudo apt-get install inotify-tools```
 
-```bash
-#!/bin/bash
-inotifywait -m /tmp/mywallet -e create -r |
-while read dir action file; do
-    echo $file;
-    amount=$(cat ${dir}${file});
-    echo "Received :" $amount;
-done
-```
-Be patient and wait for 3 confirmations.
+### Config file ~/.mnp.ini:
 
-#### 3. Setup a payment
-
-The amount is specified in the smallest unit piconero.
+The config file makes things easier. It is used by both `mnp` and `mnp-payment`.
 
 ```bash
-$ mnp-payment --amount 500000000000 --newaddr
-monero:BbE3cKKZp7repvTCHknzg4TihjuMmjNy78VSofgnk28r26WczcZvPcufchGqqML7yKEYZY91tytH47eCSA6fCJRRNy7cqSM?tx_amount=0.500000000000
-```
+; Monero named pipes (mnp)
+; Configuration file for mnp.
 
-Pipe the output to ```qrencode``` to create a QR-Code for your customer. 
+[rpc]                           ;rpc host configuration
+user = username                 ;rpc user
+password = password             ;rpc password
+host = 127.0.0.1                ;rpc ip address or domain
+port = 18083                    ;rpc port
 
-#### 4. Close mnp
+[mnp]                           ;general mnp configuration
+verbose = 0                     ;verbose mode
+account = 0                     ;choose account
 
-Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir. (optional)
-
-```bash
-# remove the workdir /tmp/mywallet
-$ mnp --cleanup
+[cfg]                           ;workdir configuration
+workdir = /tmp/mywallet         ;wallet working directory
+mode = rwx------                ;permission of workdir rwxrwxrwx
+pipe = rw-------                ;permission of pipes rwxrwxrwx
 ```
 
 
@@ -92,9 +101,6 @@ Usage: mnp [OPTION] [TXID]
 
   --confirmation [n]
            amount of blocks needed to confirm transaction.
-
-  --keep-open
-           Does not close the fifo pipe.
 
   --init
            create workdir for usage.
@@ -130,61 +136,6 @@ Usage: mnp-payment [OPTION] [PAYMENT_ID]
                returns a URI string.
 ```
 
-
-## How to build mnp
-
-'libcurl' is required to build mnp. `apt-get install libcurl4`
-
-```bash
-$ cd mnp
-$ mkdir build
-$ cmake -DCMAKE_BUILD_TYPE=Release ../
-$ make
-$ make install
-```
-
-### Verify
-
-gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
-
-*Please also help audit the source code.*
-
-
-## How to run mnp?
-
- Monero Named Pipes uses monero-wallet-rpc which comes with the Monero Command-line Tools. Download @ getmonero.org.
-
-- [ ] Step 1) Start monerod. It keeps the blockchain in sync.
-- [ ] Step 2) Start monero-wallet-rpc --tx-notify "/usr/bin/mnp %s". It listens on rpc port and takes care of your wallet.
-
-```bash
-$ monerod
-$ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 3 %s" --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
-```
-
-### Config file ~/.mnp.ini:
-
-The config file makes things easier. It is used by both `mnp` and `mnp-payment`.
-
-```bash
-; Monero named pipes (mnp)
-; Configuration file for mnp.
-
-[rpc]                           ;rpc host configuration
-user = username                 ;rpc user
-password = password             ;rpc password
-host = 127.0.0.1                ;rpc ip address or domain
-port = 18083                    ;rpc port
-
-[mnp]                           ;general mnp configuration
-verbose = 0                     ;verbose mode
-account = 0                     ;choose account
-
-[cfg]                           ;workdir configuration
-workdir = /tmp/mywallet         ;wallet working directory
-mode = rwx------                ;permission of workdir rwxrwxrwx
-pipe = rw-------                ;permission of pipes rwxrwxrwx
-```
 
 ## Setting up a payment:
 
@@ -270,7 +221,7 @@ Use qrencode to generate a QR code from the Monero URI string:
 ```bash
 mnp-payment --subaddr 1 | tr -d '\n' | qrencode -t UTF8
 ```
-, ready for customer scanning. Monerujo has some problems with \n terminated strings, so it is better to remove them.
+Monerujo has some problems with \n terminated strings, so it is better to remove them.
 
 These methods provide flexible options for setting up payments using mnp. Every output of ```mnp-payment``` can be used to create an QR-Code. 
 
@@ -282,14 +233,16 @@ These methods provide flexible options for setting up payments using mnp. Every 
 ```bash
 #!/bin/bash
 
-# Function to handle reading from a named pipe
+WATCHDIR="/tmp/mywallet/transactions"
+
+# Function to handle reading from a pipe
 read_pipe() {
     local dir="$1"
     local file="$2"
     local amount
 
     # Set timeout for cat command
-    if ! amount=$(timeout 60m cat "${dir}/${file}"); then
+    if ! amount=$(timeout 125m cat "${dir}/${file}"); then
         # Handle timeout - write to syslog and exit
         echo "Timeout occurred while reading from $file" >&2
         logger "Timeout occurred while reading from $file"
@@ -302,35 +255,44 @@ read_pipe() {
 # Trap SIGINT to clean up child processes
 trap 'kill $(jobs -p); exit' SIGINT
 
-# Watch for new pipes using inotifywait
-inotifywait -m /tmp/mywallet -e create -r |
-while read dir action file; do
-    # Check if the created file is a named pipe
-    if [ -p "${dir}/${file}" ]; then
-        echo "New pipe detected: $file"
-        # Call function to read from pipe in a background process
-        read_pipe "$dir" "$file" &
+# 1. At start all existing pipes need to be read.
+find "$WATCHDIR" -type p 2>/dev/null | while read fifo; do
+    dir=$(dirname "$fifo")
+    file=$(basename "$fifo")
+    (
+        read_pipe "$dir" "$file"
+    ) &
+done
+
+# Watch for new directories using inotifywait
+inotifywait -m "$WATCHDIR" -e create --format '%w%f' |
+while read new_path; do
+    if [ -d "$new_path" ]; then
+        echo "New txId detected: $new_path"
+
+        # Lesen der einzigen Datei im Verzeichnis
+        pipe_file=$(ls "$new_path")
+        if [ -p "$new_path/$pipe_file" ]; then
+            echo "New fifo pipe detected: $pipe_file in $new_path"
+            read_pipe "$new_path" "$pipe_file" &
+        else
+            echo "No pipe found in $new_path"
+        fi
     fi
 done
 ```
 
-### Using Python:
+See example for more.
 
-This allows interaction with any scripting language (Perl, Python, ...)
+## Close mnp
 
-```bash
-#!/bin/bash
-while inotifywait -m /tmp/mywallet -e create -r |
-while read dir action file; do
-    python check_payment.py ${dir}/${file} &
-done
-```
-
-### Very short bash script:
+Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir. (optional)
 
 ```bash
-while [ ! –e ${tx} ]
+# remove the workdir /tmp/mywallet
+$ mnp --cleanup
 ```
+
 
 ## Information
 

@@ -63,7 +63,6 @@ static const struct option options[] = {
         {"workdir"      , required_argument, NULL, 'w'},
         {"notify-at"    , required_argument, NULL, 'o'},
         {"confirmation" , required_argument, NULL, 'n'},
-	{"keep-open"    , no_argument      , NULL, 'k'},
 	{"init"         , no_argument      , NULL, 't'},
 	{"cleanup"      , no_argument      , NULL, 'c'},
         {"version"      , no_argument      , NULL, 'v'},
@@ -71,7 +70,7 @@ static const struct option options[] = {
 	{NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:w:o:n:ktcvl";
+static char *optstring = "hu:r:i:p:a:w:o:n:tcvl";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
@@ -80,6 +79,7 @@ static int remove_directory(const char *path);
 static void printmnp(void);
 static char *readStdin(void);
 static char *amount(const struct rpc_wallet *monero_wallet);
+static char *transactionid(const struct rpc_wallet *monero_wallet);
 static char *address(const struct rpc_wallet *monero_wallet);
 static char *payid(const struct rpc_wallet *monero_wallet);
 static char *confirm(const struct rpc_wallet *monero_wallet);
@@ -107,11 +107,10 @@ int main(int argc, char **argv)
 
     char *txid = NULL;
     char *workdir = NULL;
-    char *transferdir = NULL;
-    char *paymentdir = NULL;
+    char *txdir = NULL;
+    char *txId = NULL;
     char *locked0 = "true";
     int init = 0;
-    int keep_open = 0;
     int cleanup = 0;
     int confirmation = 0;
     int notify = CONFIRMED;
@@ -173,9 +172,6 @@ int main(int argc, char **argv)
                 break;
             case 'n':
                 confirmation = atoi(optarg);
-                break;
-            case 'k':
-                keep_open = 1;
                 break;
             case 't':
                 init = 1;
@@ -353,54 +349,31 @@ int main(int argc, char **argv)
         }
     } if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is up : %s", workdir);
 
-    /* create transferdir directory. TEST if directory does exist */
+    /* create txdir directory. TEST if directory does exist */
     struct stat transfer;
 
-    asprintf(&transferdir, "%s/%s", workdir, TRANSFER_DIR);
-    if (stat(transferdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "transferdir does exists : %s", transferdir);
+    asprintf(&txdir, "%s/%s", workdir, TRANSACTION_DIR);
+    if (stat(txdir, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "txdir does exists : %s", txdir);
     } else {
-        int status = mkdir(transferdir, mode);
+        int status = mkdir(txdir, mode);
         if (status == -1) {
-            syslog(LOG_USER | LOG_ERR, "could not create transferdir %s error: %s", transferdir, strerror(errno));
-            fprintf(stderr, "mnp: could not create transferdir %s error: %s\n", transferdir, strerror(errno));
+            syslog(LOG_USER | LOG_ERR, "could not create txdir %s error: %s", txdir, strerror(errno));
+            fprintf(stderr, "mnp: could not create txdir %s error: %s\n", txdir, strerror(errno));
             closelog();
             exit(EXIT_FAILURE);
         }
-    } if (verbose) syslog(LOG_USER | LOG_INFO, "transferdir is up : %s", transferdir);
+    } if (verbose) syslog(LOG_USER | LOG_INFO, "txdir is up : %s", txdir);
 
-
-    /* create paymentdir directory. TEST if directory does exist */
-    struct stat payment;
-
-    asprintf(&paymentdir, "%s/%s", workdir, PAYMENT_DIR);
-    if (stat(paymentdir, &payment) == 0 && S_ISDIR(payment.st_mode)) {
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "paymentdir does exists : %s", paymentdir);
-    } else {
-        int status = mkdir(paymentdir, mode);
-        if (status == -1) {
-        syslog(LOG_USER | LOG_ERR, "could not create paymentdir %s error: %s", paymentdir, strerror(errno));
-        fprintf(stderr, "mnp: could not create paymentdir %s error: %s\n", paymentdir, strerror(errno));
-        closelog();
-        exit(EXIT_FAILURE);
-        }
-    } if (verbose) syslog(LOG_USER | LOG_INFO, "paymentdir is up : %s", paymentdir);
 
     if (init) exit(EXIT_SUCCESS);
 
     if (cleanup) {
-        int ret = remove_directory(transferdir);
+        int ret = remove_directory(txdir);
         if (ret == -1) {
-            syslog(LOG_USER | LOG_ERR, "could not del transferdir %s error: %s", transferdir, strerror(errno));
+            syslog(LOG_USER | LOG_ERR, "could not del txdir %s error: %s", txdir, strerror(errno));
         } else {
-            if (verbose) syslog(LOG_USER | LOG_INFO, "transferdir is down %s", transferdir);
-        }
-
-        ret = remove_directory(paymentdir);
-        if (ret == -1) {
-            syslog(LOG_USER | LOG_ERR, "could not del paymentdir %s error: %s", paymentdir, strerror(errno));
-        } else {
-            if (verbose) syslog(LOG_USER | LOG_INFO, "paymentdir is down %s", paymentdir);
+            if (verbose) syslog(LOG_USER | LOG_INFO, "txdir is down %s", txdir);
         }
 
         ret = remove_directory(workdir);
@@ -424,17 +397,34 @@ int main(int argc, char **argv)
 
     int txsize = 1;
     monero_wallet[GET_TXID].amount = amount(&monero_wallet[GET_TXID]);
+    monero_wallet[GET_TXID].txid = delQuotes(transactionid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
     monero_wallet[GET_TXID].locked = locked(&monero_wallet[GET_TXID]);
 
-    if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
-        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s",
-                workdir, PAYMENT_DIR, monero_wallet[GET_TXID].payid);
+    asprintf(&txId, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
+
+    if (stat(txId, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "txId does exists : %s", txId);
     } else {
-        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s/%s",
-                workdir, TRANSFER_DIR, monero_wallet[GET_TXID].saddr);
+        int status = mkdir(txId, mode);
+        if (status == -1) {
+            syslog(LOG_USER | LOG_ERR, "could not create txId %s error: %s", txId, strerror(errno));
+            fprintf(stderr, "mnp: could not create txId %s error: %s\n", txId, strerror(errno));
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+    } if (verbose) syslog(LOG_USER | LOG_INFO, "txId is up : %s", txId);
+
+    asprintf(&txId, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
+
+    if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
+        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s",
+                txId, monero_wallet[GET_TXID].payid);
+    } else {
+        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s",
+                txId, monero_wallet[GET_TXID].saddr);
     }
 
     /*
@@ -445,10 +435,8 @@ int main(int argc, char **argv)
         /* file does exist. second call */
         if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
         exist = 1;
-        if (keep_open == 0) {
-            free(monero_wallet);
-            exit(EXIT_SUCCESS);
-        }
+        free(monero_wallet);
+        exit(EXIT_SUCCESS);
     }
     /* file does NOT exist. first call */
     if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo is created : %s", monero_wallet[GET_TXID].fifo);
@@ -531,14 +519,12 @@ int main(int argc, char **argv)
     }
 
     close(fd);
-    if (keep_open == 0) {
-        int retunlink = unlink(monero_wallet[GET_TXID].fifo);
-        if (retunlink == -1) {
-            syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-            fprintf(stderr, "mnp: error: %s", strerror(errno));
-            closelog();
-            exit(EXIT_FAILURE);
-        }
+    int retunlink = unlink(monero_wallet[GET_TXID].fifo);
+    if (retunlink == -1) {
+        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+        fprintf(stderr, "mnp: error: %s", strerror(errno));
+        closelog();
+        exit(EXIT_FAILURE);
     }
     free(monero_wallet);
     exit(EXIT_SUCCESS);
@@ -554,6 +540,17 @@ static char *amount(const struct rpc_wallet *monero_wallet)
     cJSON *amount = cJSON_GetObjectItem(transfer, "amount");
 
     return cJSON_Print(amount);
+}
+
+static char *transactionid(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
+    cJSON *transactionid = cJSON_GetObjectItem(transfer, "txid");
+
+    return cJSON_Print(transactionid);
 }
 
 static char *address(const struct rpc_wallet *monero_wallet)
@@ -633,8 +630,6 @@ static void usage(int status)
     "               3, unlocked\n\n"
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
-    "      --keep-open\n"
-    "               Does not close the fifo pipe.\n\n"
     "      --init\n"
     "               create workdir for usage.\n\n"
     "      --cleanup\n"

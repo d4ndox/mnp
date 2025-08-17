@@ -53,8 +53,7 @@ enum notify {
 
 #define GET_PAYMENT_CMD "get_bulk_payments"
 
-#define TRANSFER_DIR    "transfer"
-#define PAYMENT_DIR     "payment"
+#define TRANSACTION_DIR "transactions"
 
 #define PAYNULL         "0000000000000000"
 #define NOPARAMS        NULL
