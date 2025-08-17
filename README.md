@@ -51,7 +51,7 @@ $ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 1 %s" --rpc-b
 $ mnp-payment --list
 ```
 
-If 'mnp-payment --list' fails, adapt rpc configuration in '~/.mnp.ini'
+If `mnp-payment --list` fails, adapt rpc configuration in `~/.mnp.ini`
 
 
 ### Config file ~/.mnp.ini:
