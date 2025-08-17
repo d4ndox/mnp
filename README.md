@@ -48,7 +48,11 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 $ mnp --init
 $ monerod
 $ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 1 %s" --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
+$ mnp-payment --list
 ```
+
+If 'mnp-payment --list' fails, adapt rpc configuration in '~/.mnp.ini'
+
 
 ### Config file ~/.mnp.ini:
 
