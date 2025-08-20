@@ -23,6 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <assert.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
@@ -70,6 +71,9 @@ static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
 static void printmnp(void);
+static char *balance(const struct rpc_wallet *monero_wallet);
+static char *bcheight(const struct rpc_wallet *monero_wallet);
+
 
 int main(int argc, char **argv)
 {
@@ -198,6 +202,10 @@ int main(int argc, char **argv)
         monero_wallet[i].port = NULL;
         monero_wallet[i].user = NULL;
         monero_wallet[i].pwd = NULL;
+        /* mnpd relatted */
+        monero_wallet[i].balance = NULL;
+        monero_wallet[i].height = NULL;
+        monero_wallet[i].file = NULL;
         /* tx related */
         monero_wallet[i].txid = NULL;
         monero_wallet[i].payid = NULL;
@@ -291,36 +299,71 @@ int main(int argc, char **argv)
             }
             switch (i) {
                 case GET_HEIGHT:
+                   if (monero_wallet[i].height == NULL) {
+                       asprintf(&monero_wallet[i].height, "%s", "-1");
+                   }
+
+                   if (strcmp(bcheight(&monero_wallet[i]), monero_wallet[i].height) == 0) {
+                       break;
+                   }
+
+                   asprintf(&monero_wallet[i].file, "%s/%s", workdir, BC_HEIGHT_FILE);
+                   asprintf(&monero_wallet[i].height, "%s", bcheight(&monero_wallet[i]));
+
+                    FILE *fdh = fopen(monero_wallet[i].file, "w");
+                    if (fdh == NULL) {
+                        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+                        fprintf(stderr, "mnpd1: error: %s", strerror(errno));
+                        closelog();
+                        exit(EXIT_FAILURE);
+                    }
+
+                    ssize_t retheight = fprintf(fdh, "%s\n", monero_wallet[i].height);
+                    if (retheight < 0) {
+                        syslog(LOG_USER | LOG_ERR, "error: write %s", strerror(errno));
+                        fprintf(stderr, "mnpd2: error: %s", strerror(errno));
+                        closelog();
+                        exit(EXIT_FAILURE);
+                    }
+                    fclose(fdh);
                     break;
                 case GET_BALANCE:
-                    asprintf(&monero_wallet[i].file, "%s/%s", workdir, BALANCE_FILE);
 
-                    int fd = open(monero_wallet[i].file, pmode);
-                    if (fd == -1) {
+                   if (monero_wallet[i].balance == NULL) {
+                       asprintf(&monero_wallet[i].balance, "%s", "-1");
+                   }
+
+                   if (strcmp(balance(&monero_wallet[i]), monero_wallet[i].balance) == 0) {
+                       break;
+                   } 
+
+                   asprintf(&monero_wallet[i].file, "%s/%s", workdir, BALANCE_FILE);
+                   asprintf(&monero_wallet[i].balance, "%s", balance(&monero_wallet[i]));
+
+                   FILE *fdb = fopen(monero_wallet[i].file, "w");
+                   if (fdb == NULL) {
                         syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-                        fprintf(stderr, "mnpd: error: %s", strerror(errno));
+                        fprintf(stderr, "mnpd1: error: %s", strerror(errno));
+                        closelog();
+                        exit(EXIT_FAILURE);
+                   }
+
+                   ssize_t retbalance = fprintf(fdb, "%s\n",  monero_wallet[i].balance);
+                   if (retbalance < 0) {
+                        syslog(LOG_USER | LOG_ERR, "error: write %s", strerror(errno));
+                        fprintf(stderr, "mnpd2: error: %s", strerror(errno));
                         closelog();
                         exit(EXIT_FAILURE);
                     }
 
-                    if (flock(fd, LOCK_EX) == -1) { // Exklusiver Lock setzen
-                        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-                        fprintf(stderr, "mnpd: error: %s", strerror(errno));
-                        closelog();
-                        exit(EXIT_FAILURE);
-                    }
-
-                    
-
-                    flock(fd, LOCK_UN); // Lock freigebe
-                    close(fd);
+                    fclose(fdb);
                     break;
                 default:
                     fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
                     break;
             }
         } /* end for loop */
-    ret = usleep(SLEEPTIME); 
+    ret = sleep(SLEEPTIME); 
     } /* end while loop */
 
     /* delete json + workdir and exit */
@@ -405,6 +448,27 @@ static int handler(void *user, const char *section, const char *name,
 static void initshutdown(int sig)
 {
     running = 0;
+}
+
+
+static char *balance(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *balance = cJSON_GetObjectItem(result, "balance");
+
+    return cJSON_Print(balance);
+}
+
+static char *bcheight(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *height = cJSON_GetObjectItem(result, "height");
+
+    return cJSON_Print(height);
 }
 
 
