@@ -131,7 +131,7 @@ int rpc_call(struct rpc_wallet *monero_wallet)
 
     char *method_call = cJSON_Print(rpc_frame);
     if (method_call == NULL) ret = -1;
-    if (monero_wallet->monero_rpc_method == GET_BALANCE) fprintf(stderr, "method = %s", method_call);
+    // if (monero_wallet->monero_rpc_method == GET_BALANCE) fprintf(stderr, "method = %s", method_call);
     /*
      * rpc method call send to the wallet
      */
