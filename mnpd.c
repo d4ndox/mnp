@@ -1,0 +1,426 @@
+/*
+ * Copyright (c) 2025 d4ndo@proton.me
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <syslog.h>
+#include <curl/curl.h>
+#include <getopt.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <errno.h>
+#include "./inih/ini.h"
+#include "./cjson/cJSON.h"
+#include "wallet.h"
+#include "rpc_call.h"
+#include "globaldefs.h"
+#include <inttypes.h>
+#include <unistd.h>
+
+/* verbose is extern @ globaldefs.h. Be noisy.*/
+int verbose = 0;
+
+static volatile sig_atomic_t running = 1;
+
+static const struct option options[] = {
+	{"help"         , no_argument      , NULL, 'h'},
+        {"rpc_user"     , required_argument, NULL, 'u'},
+        {"rpc_password" , required_argument, NULL, 'r'},
+        {"rpc_host"     , required_argument, NULL, 'i'},
+        {"rpc_port"     , required_argument, NULL, 'p'},
+        {"account"      , required_argument, NULL, 'a'},
+        {"workdir"      , required_argument, NULL, 'w'},
+        {"version"      , no_argument      , NULL, 'v'},
+	{"verbose"      , no_argument      , &verbose, 1},
+	{NULL, 0, NULL, 0}
+};
+
+static char *optstring = "hu:r:i:p:a:w:vl";
+static void usage(int status);
+static int handler(void *user, const char *section, const char *name, const char *value);
+static void initshutdown(int);
+static void printmnp(void);
+
+int main(int argc, char **argv)
+{
+    /* keeps the old status of blockchain hight
+     * needs to be compared with every rpc call
+     * write to fifo pipe if value changed
+     */
+    char *status_bc_height = NULL;
+    char *status_balance = NULL;
+
+    /* signal handler for shutdown */
+    signal(SIGHUP, initshutdown);
+    signal(SIGINT, initshutdown);
+    signal(SIGQUIT, initshutdown);
+    signal(SIGTERM, initshutdown);
+    signal(SIGPIPE, SIG_IGN);
+
+    /* variables are set by getopt and/or config parser handler()*/
+    int opt, lindex = -1;
+    char *rpc_user = NULL;
+    char *rpc_password = NULL;
+    char *rpc_host = NULL;
+    char *rpc_port = NULL;
+    char *account = NULL;
+
+    char *txid = NULL;
+
+    char *workdir = NULL;
+    int ret = 0;
+    
+    /* prepare for reading the config ini file */
+    const char *homedir;
+
+    if ((homedir = getenv("home")) == NULL) {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+
+    char *ini = NULL;
+    char *home = strndup(homedir, MAX_DATA_SIZE);
+    asprintf(&ini, "%s/%s", home, CONFIG_FILE);
+    free(home);
+
+    /* parse config ini file */
+    struct Config config;
+
+    if (ini_parse(ini, handler, &config) < 0) {
+        fprintf(stderr, "can't load %s. try make install.\n", ini);
+        exit(EXIT_FAILURE);
+    }
+    free(ini);
+
+   /* get command line options */
+    while((opt = getopt_long(argc, argv, optstring, options, &lindex)) != -1) {
+        switch(opt) {
+            case 'h':
+	        usage(EXIT_SUCCESS);
+		exit(EXIT_SUCCESS);
+                break;
+	    case 'u':
+                rpc_user = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'r':
+                rpc_password = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'i':
+                rpc_host = strndup(optarg, MAX_DATA_SIZE);
+	    case 'p':
+                rpc_port = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'a':
+                account = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'w':
+                workdir = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'v':
+                printmnp();
+                exit(EXIT_SUCCESS);
+                break;
+            case 0:
+	        break;
+            default:
+	        break;
+        }
+    }
+
+    /* if no command line option is set - use the config ini file */
+    if (account == NULL) {
+        account = strndup(config.mnp_account, MAX_DATA_SIZE);
+    } if (rpc_user == NULL) {
+        rpc_user = strndup(config.rpc_user, MAX_DATA_SIZE);
+    } if (rpc_password == NULL) {
+        rpc_password = strndup(config.rpc_password, MAX_DATA_SIZE);
+    } if (rpc_host == NULL) {
+        rpc_host = strndup(config.rpc_host, MAX_DATA_SIZE);
+    } if (rpc_port == NULL) {
+        rpc_port = strndup(config.rpc_port, MAX_DATA_SIZE);
+    } if (workdir == NULL) {
+        workdir = strndup(config.cfg_workdir, MAX_DATA_SIZE);
+    } if (verbose == 0) {
+        verbose = atoi(config.mnp_verbose);
+    }
+
+    const char *perm = strndup(config.cfg_mode, MAX_DATA_SIZE);
+    mode_t mode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
+                  (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
+                  (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
+
+    perm = strndup(config.cfg_pipe, MAX_DATA_SIZE);
+    mode_t pmode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
+                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
+                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
+
+    if (DEBUG) fprintf(stderr, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
+    if (DEBUG) fprintf(stderr, "pmode_t = %03o and mode = %s\n", pmode, config.cfg_pipe);
+   
+    struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
+    if (DEBUG) printf("enum size = %d\n", END_RPC_SIZE);
+
+    /* initialise monero_wallet with NULL */
+    for (int i = 0; i < END_RPC_SIZE; i++) {
+        monero_wallet[i].monero_rpc_method = i;
+        monero_wallet[i].params = NULL;
+        monero_wallet[i].account = NULL;
+        monero_wallet[i].host = NULL;
+        monero_wallet[i].port = NULL;
+        monero_wallet[i].user = NULL;
+        monero_wallet[i].pwd = NULL;
+        /* tx related */
+        monero_wallet[i].txid = NULL;
+        monero_wallet[i].payid = NULL;
+        monero_wallet[i].saddr = NULL;
+        monero_wallet[i].iaddr = NULL;
+        monero_wallet[i].amount = NULL;
+        monero_wallet[i].conf = NULL;
+        monero_wallet[i].locked = NULL;
+        monero_wallet[i].fifo = NULL;
+        monero_wallet[i].idx = 0;
+        monero_wallet[i].reply = NULL;
+    }
+
+    for (int i = 0; i < END_RPC_SIZE; i++) {
+
+        if (account != NULL) {
+            monero_wallet[i].account = strndup(account, MAX_DATA_SIZE);
+        } else {
+            monero_wallet[i].account = strndup("0", MAX_DATA_SIZE);
+        }
+        if (rpc_host != NULL) {
+            monero_wallet[i].host = strndup(rpc_host, MAX_DATA_SIZE);
+        } else {
+            syslog(LOG_USER | LOG_ERR, "rpc_host is missing");
+            fprintf(stderr, "mnpd: rpc_host is missing\n");
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+        if (rpc_port != NULL) {
+            monero_wallet[i].port = strndup(rpc_port, MAX_DATA_SIZE);
+        } else {
+            syslog(LOG_USER | LOG_ERR, "rpc_port is missing");
+            fprintf(stderr, "mnpd: rpc_port is missing\n");
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+        if (rpc_user != NULL) {
+            monero_wallet[i].user = strndup(rpc_user, MAX_DATA_SIZE);
+        } else {
+            syslog(LOG_USER | LOG_ERR, "rpc_user is missing");
+            fprintf(stderr, "mnpd: rpc_user is missing\n");
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+        if (rpc_password != NULL) {
+            monero_wallet[i].pwd = strndup(rpc_password, MAX_DATA_SIZE);
+        } else {
+            syslog(LOG_USER | LOG_ERR, "rpc_password is missing");
+            fprintf(stderr, "mnpd: rpc_password is missing\n");
+            closelog();
+            exit(EXIT_FAILURE);
+        }
+    }
+
+
+    /* if no account is set - use the default account 0 */
+    if (account == NULL) asprintf(&account, "0");
+
+    if (verbose) {
+        fprintf(stdout, "Starting ... \n");
+        printmnp();
+    }
+
+    /* TEST if work directory does exist */
+    struct stat sb;
+
+    if (stat(workdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+        /*NOP*/
+    } else {
+        fprintf(stderr, "Could not find workdir %s. Run mnp --init\n", workdir);
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(stdout, "Working directory: %s\n", workdir);
+
+    /* 
+     * Start main loop
+     */
+    fprintf(stdout, "Running\n");
+    while (running) {
+
+        for (int i = 0; i < 2; i++) {
+            int ret = 0;
+            if (0 > (ret = rpc_call(&monero_wallet[i]))) {
+                syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[i].host,
+                                                                               monero_wallet[i].port);
+                fprintf(stderr, "mnpd: could not connect to host: %s:%s\n", monero_wallet[i].host,
+                                                                           monero_wallet[i].port);
+                closelog();
+                exit(EXIT_FAILURE);
+            }
+            switch (i) {
+                case GET_HEIGHT:
+                    break;
+                case GET_BALANCE:
+                    asprintf(&monero_wallet[i].file, "%s/%s", workdir, BALANCE_FILE);
+
+                    int fd = open(monero_wallet[i].file, pmode);
+                    if (fd == -1) {
+                        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+                        fprintf(stderr, "mnpd: error: %s", strerror(errno));
+                        closelog();
+                        exit(EXIT_FAILURE);
+                    }
+
+                    if (flock(fd, LOCK_EX) == -1) { // Exklusiver Lock setzen
+                        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
+                        fprintf(stderr, "mnpd: error: %s", strerror(errno));
+                        closelog();
+                        exit(EXIT_FAILURE);
+                    }
+
+                    
+
+                    flock(fd, LOCK_UN); // Lock freigebe
+                    close(fd);
+                    break;
+                default:
+                    fprintf(stderr, "See main loop (END_RPC_SIZE-x) adjust x to the correct size\n");
+                    break;
+            }
+        } /* end for loop */
+    ret = usleep(SLEEPTIME); 
+    } /* end while loop */
+
+    /* delete json + workdir and exit */
+    //remove_directory(workdir);
+    free(monero_wallet);
+}
+
+/*
+ * Print user help.
+ */
+static void usage(int status)
+{
+    int ok = status ? 0 : 1;
+    if (ok)
+    fprintf(stdout,
+    "Usage: mnpd [OPTION]\n\n"
+    "  -a  --account [ACCOUNT]\n"
+    "               Monero account number. 0 = default.\n\n"
+    "      --rpc_user [RPC_USER]\n"
+    "               rpc user for monero-wallet-rpc.\n"
+    "               Needed for authetification @ rpc wallet.\n\n"
+    "      --rpc_password [RPC_PASSWORD]\n"
+    "               rpc password for monero-wallet-rpc.\n"
+    "               Needed for authetification @ rpc wallet.\n\n"
+    "      --rpc_host [RPC_HOST]\n"
+    "               rpc host ip address or domain.\n\n"
+    "      --rpc_port [RPC_PORT]\n"
+    "               rpc port to cennect to.\n\n"
+    "  -w, --workdir]\n"
+    "               open Monero Named Pipes here.\n\n"
+    "  -v, --version\n"
+    "               Display the version number of mnp.\n\n"
+    "      --verbose\n"
+    "               Display verbose information to stderr.\n\n"
+    "  -h, --help   Display this help message.\n"
+    );
+    else
+    fprintf(stderr,
+    "Use mnpd --help for more information\n"
+    "Monero Named Pipes Daemon.\n"
+    );
+}
+
+
+/*
+ * Parse INI file handler
+ */
+static int handler(void *user, const char *section, const char *name,
+                   const char *value)
+{
+    struct Config *pconfig = (struct Config*)user;
+
+    #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+    if (MATCH("rpc", "user")) {
+        pconfig->rpc_user = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("rpc", "password")) {
+        pconfig->rpc_password = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("rpc", "host")) {
+        pconfig->rpc_host = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("rpc", "port")) {
+        pconfig->rpc_port = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("mnp", "verbose")) {
+        pconfig->mnp_verbose = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("mnp", "account")) {
+        pconfig->mnp_account = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("cfg", "workdir")) {
+        pconfig->cfg_workdir = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("cfg", "mode")) {
+        pconfig->cfg_mode = strndup(value, MAX_DATA_SIZE);
+    } else if (MATCH("cfg", "pipe")) {
+        pconfig->cfg_pipe = strndup(value, MAX_DATA_SIZE);
+    } else {
+        return 0;  /* unknown section/name, error */
+    }
+    return 1;
+}
+
+
+/*
+ * Stop the mainloop and destroy all fifo's
+ */
+static void initshutdown(int sig)
+{
+    running = 0;
+}
+
+
+/*
+ * Print version of Monero Named Pipes.
+ */
+static void printmnp(void)
+{
+                printf("\033[0;32m"
+                "       __        \n"
+                "  w  c(..)o    ( \n"
+                "   \\__(-)    __) \n"
+                "       /\\   (    \n"
+                "      /(_)___)   \n"
+                "     w /|        \n"
+                "      | \\        \n"
+                "      m  m \033[0m Monero Named Pipes Daemon. Version: %s\n\n", VERSION);
+}
+
