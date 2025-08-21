@@ -24,7 +24,11 @@ struct rpc_wallet {
        char *port;
        char *user;
        char *pwd;
-       /* tx related */
+       /* mnpd related */
+       char *balance;
+       char *height;
+       char *file;
+       /* mnp related */
        char *txid;
        char *payid;
        char *saddr;

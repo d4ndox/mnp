@@ -59,5 +59,5 @@ enum notify {
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"
-#define SLEEPTIME       (60)
+#define SLEEPTIME       (5)
 #endif
