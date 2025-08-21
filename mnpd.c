@@ -74,6 +74,9 @@ static char *bcheight(const struct rpc_wallet *monero_wallet);
 
 int main(int argc, char **argv)
 {
+    /* open syslog /var/log/messages and /var/log/syslog */
+    openlog("mnpd:", LOG_PID, LOG_USER);
+
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
     signal(SIGINT, initshutdown);
