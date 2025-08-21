@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 d4ndo@proton.me
+ * Copyright (c) 2025 d4ndo@proton.me
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -59,7 +59,6 @@ int val_hex_input(const char *hex, const unsigned int size) {
 
     return 0;
 }
-
 
 
 /*
