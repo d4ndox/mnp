@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 d4ndo@proton.me
+ * Copyright (c) 2025 d4ndo@proton.me
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -33,6 +33,16 @@
 /* defined redundant because of static */
 static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
+
+/**
+ * Function to perform an HTTP POST request to a Monero wallet (monero-wallet-rpc).
+ *
+ * @param urlport The URL and port of the wallet RPC endpoint.
+ * @param cmd The JSON-RPC command to send to the wallet.
+ * @param userpwd The username and password for rpc authentication.
+ * @param answer A pointer to a char* that will be set to the response from the wallet.
+ * @return The size of the response, or -1 on error.
+ */
 int wallet(const char *urlport, const char *cmd, const char *userpwd, char **answer)
 {
     CURL *curl_handle;
@@ -82,6 +92,16 @@ int wallet(const char *urlport, const char *cmd, const char *userpwd, char **ans
     return chunk.size;
 }
 
+
+/**
+ * Callback function to write memory.
+ *
+ * @param contents Pointer to the data to be written.
+ * @param size Size of each element in the data.
+ * @param nmemb Number of elements in the data.
+ * @param userp Pointer to a MemoryStruct containing the memory buffer and size.
+ * @return The number of bytes actually written to the memory buffer.
+ */
 static size_t
 WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
