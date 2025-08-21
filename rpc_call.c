@@ -33,6 +33,12 @@
 #include "globaldefs.h"
 
 
+/**
+ * Function to call an RPC method for a Monero wallet.
+ *
+ * @param monero_wallet A pointer to a structure containing wallet information.
+ * @return 0 on success, -1 on error.
+ */
 int rpc_call(struct rpc_wallet *monero_wallet)
 {
     int ret = 0;
@@ -179,6 +185,13 @@ int rpc_call(struct rpc_wallet *monero_wallet)
 }
 
 
+/**
+ * Function to retrieve the RPC method based on the specified method.
+ *
+ * @param method An enumeration value indicating the RPC method to retrieve.
+ * @return A pointer to a string containing the RPC method.
+ * The caller is responsible for freeing the memory.
+ */
 char* get_method(enum monero_rpc_method method)
 {
     char *mtd = NULL;
