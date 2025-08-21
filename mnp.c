@@ -23,9 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* 
- * std. c libraries 
- */
+/* std. c libraries */
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -38,23 +36,17 @@
 #include <string.h>
 #include <unistd.h>
 
-/* 
- * system headers 
- */
+/* system headers */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <syslog.h>
 
-/* 
- * third party libraries 
- */
+/* third party libraries */
 #include "./cjson/cJSON.h"
 #include <curl/curl.h>
 #include "./inih/ini.h"
 
-/* 
- * local headers 
- */
+/* local headers */
 #include "delquotes.h"
 #include "globaldefs.h"
 #include "rpc_call.h"
