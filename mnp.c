@@ -23,30 +23,32 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <syslog.h>
-#include <pwd.h>
+/* std. C libraries */
 #include <assert.h>
-#include <stdio.h>
-#include <curl/curl.h>
-#include <getopt.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <dirent.h>
 #include <errno.h>
-#include "delquotes.h"
-#include "./inih/ini.h"
-#include "./cjson/cJSON.h"
-#include "wallet.h"
-#include "rpc_call.h"
-#include "globaldefs.h"
-#include <inttypes.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <ftw.h>
+#include <getopt.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <string.h>
+#include <unistd.h>
+/* system headers */
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <syslog.h>
+/* third party libraries */
+#include "./cjson/cJSON.h"
+#include <curl/curl.h>
+#include "./inih/ini.h"
+/* local headers */
+#include "delquotes.h"
+#include "globaldefs.h"
+#include "rpc_call.h"
+#include "wallet.h"
+
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
 int verbose = 0;
@@ -54,20 +56,20 @@ int verbose = 0;
 static volatile sig_atomic_t running = 1;
 
 static const struct option options[] = {
-	{"help"         , no_argument      , NULL, 'h'},
-        {"rpc_user"     , required_argument, NULL, 'u'},
-        {"rpc_password" , required_argument, NULL, 'r'},
-        {"rpc_host"     , required_argument, NULL, 'i'},
-        {"rpc_port"     , required_argument, NULL, 'p'},
-        {"account"      , required_argument, NULL, 'a'},
-        {"workdir"      , required_argument, NULL, 'w'},
-        {"notify-at"    , required_argument, NULL, 'o'},
-        {"confirmation" , required_argument, NULL, 'n'},
-	{"init"         , no_argument      , NULL, 't'},
-	{"cleanup"      , no_argument      , NULL, 'c'},
-        {"version"      , no_argument      , NULL, 'v'},
-	{"verbose"      , no_argument      , &verbose, 1},
-	{NULL, 0, NULL, 0}
+    {"help"         , no_argument      , NULL, 'h'},
+    {"rpc_user"     , required_argument, NULL, 'u'},
+    {"rpc_password" , required_argument, NULL, 'r'},
+    {"rpc_host"     , required_argument, NULL, 'i'},
+    {"rpc_port"     , required_argument, NULL, 'p'},
+    {"account"      , required_argument, NULL, 'a'},
+    {"workdir"      , required_argument, NULL, 'w'},
+    {"notify-at"    , required_argument, NULL, 'o'},
+    {"confirmation" , required_argument, NULL, 'n'},
+    {"init"         , no_argument      , NULL, 't'},
+    {"cleanup"      , no_argument      , NULL, 'c'},
+    {"version"      , no_argument      , NULL, 'v'},
+    {"verbose"      , no_argument      , &verbose, 1},
+    {NULL, 0, NULL, 0}
 };
 
 static char *optstring = "hu:r:i:p:a:w:o:n:tcvl";
