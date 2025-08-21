@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 d4ndo@proton.me
+ * Copyright (c) 2025 d4ndo@proton.me
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -63,7 +63,7 @@ int rpc_call(struct rpc_wallet *monero_wallet)
         ret = -1;
     }
 
-     /*
+    /*
      * Pack the method string into a JSON frame for rpc call.
      */
     char *method = get_method(monero_wallet->monero_rpc_method);
