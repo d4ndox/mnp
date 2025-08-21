@@ -9,7 +9,6 @@
  * sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
-mod
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
@@ -24,30 +23,27 @@ mod
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/* std. C libraries */
 #include <assert.h>
-#include <unistd.h>
-#include <sys/types.h>
+#include <errno.h>
+#include <getopt.h>
 #include <pwd.h>
 #include <stdio.h>
-#include <syslog.h>
-#include <curl/curl.h>
-#include <getopt.h>
-#include <signal.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <errno.h>
-#include "./inih/ini.h"
-#include "./cjson/cJSON.h"
-#include "wallet.h"
-#include "rpc_call.h"
-#include "globaldefs.h"
-#include <inttypes.h>
 #include <unistd.h>
+/* system headers */
+#include <sys/stat.h>
+#include <syslog.h>
+/* third party libraries */
+#include "./cjson/cJSON.h"
+#include <curl/curl.h>
+#include "./inih/ini.h"
+/* local headers */
+#include "globaldefs.h"
+#include "rpc_call.h"
+#include "wallet.h"
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
 int verbose = 0;
@@ -55,16 +51,16 @@ int verbose = 0;
 static volatile sig_atomic_t running = 1;
 
 static const struct option options[] = {
-	{"help"         , no_argument      , NULL, 'h'},
-        {"rpc_user"     , required_argument, NULL, 'u'},
-        {"rpc_password" , required_argument, NULL, 'r'},
-        {"rpc_host"     , required_argument, NULL, 'i'},
-        {"rpc_port"     , required_argument, NULL, 'p'},
-        {"account"      , required_argument, NULL, 'a'},
-        {"workdir"      , required_argument, NULL, 'w'},
-        {"version"      , no_argument      , NULL, 'v'},
-	{"verbose"      , no_argument      , &verbose, 1},
-	{NULL, 0, NULL, 0}
+    {"help"         , no_argument      , NULL, 'h'},
+    {"rpc_user"     , required_argument, NULL, 'u'},
+    {"rpc_password" , required_argument, NULL, 'r'},
+    {"rpc_host"     , required_argument, NULL, 'i'},
+    {"rpc_port"     , required_argument, NULL, 'p'},
+    {"account"      , required_argument, NULL, 'a'},
+    {"workdir"      , required_argument, NULL, 'w'},
+    {"version"      , no_argument      , NULL, 'v'},
+    {"verbose"      , no_argument      , &verbose, 1},
+    {NULL, 0, NULL, 0}
 };
 
 static char *optstring = "hu:r:i:p:a:w:vl";
@@ -78,13 +74,6 @@ static char *bcheight(const struct rpc_wallet *monero_wallet);
 
 int main(int argc, char **argv)
 {
-    /* keeps the old status of blockchain hight
-     * needs to be compared with every rpc call
-     * write to fifo pipe if value changed
-     */
-    char *status_bc_height = NULL;
-    char *status_balance = NULL;
-
     /* signal handler for shutdown */
     signal(SIGHUP, initshutdown);
     signal(SIGINT, initshutdown);
@@ -99,9 +88,7 @@ int main(int argc, char **argv)
     char *rpc_host = NULL;
     char *rpc_port = NULL;
     char *account = NULL;
-
     char *txid = NULL;
-
     char *workdir = NULL;
     int ret = 0;
 
@@ -380,13 +367,13 @@ int main(int argc, char **argv)
                     break;
             }
         } /* end for loop */
-    ret = sleep(SLEEPTIME);
+        ret = sleep(SLEEPTIME);
     } /* end while loop */
 
-    /* delete json + workdir and exit */
-    //remove_directory(workdir);
     free(monero_wallet);
+    exit(EXIT_SUCCESS);
 }
+
 
 /*
  * Print user help.
@@ -468,6 +455,9 @@ static void initshutdown(int sig)
 }
 
 
+/*
+ * parse the total balance of the wallet
+ */
 static char *balance(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
@@ -478,6 +468,10 @@ static char *balance(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(balance);
 }
 
+
+/*
+ * parse the blockchain height
+ */
 static char *bcheight(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
