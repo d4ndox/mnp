@@ -23,39 +23,46 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <unistd.h>
-#include <sys/types.h>
+/* std. C libraries */
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <ftw.h>
+#include <getopt.h>
 #include <pwd.h>
 #include <stdio.h>
-#include <curl/curl.h>
-#include <getopt.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
-#include <sys/types.h>
+#include <unistd.h>
+/* system headers */
 #include <sys/stat.h>
-#include <dirent.h>
-#include <errno.h>
-#include <inttypes.h>
-#include "delquotes.h"
-#include "./inih/ini.h"
+#include <sys/types.h>
+#include <syslog.h>
+/* third party libraries */
 #include "./cjson/cJSON.h"
+#include <curl/curl.h>
+#include "./inih/ini.h"
+/* local headers */
+#include "delquotes.h"
+#include "globaldefs.h"
 #include "rpc_call.h"
 #include "validate.h"
-#include "globaldefs.h"
+#include "wallet.h"
 
 static const struct option options[] = {
-	{"help"         , no_argument      , NULL, 'h'},
-        {"rpc_user"     , required_argument, NULL, 'u'},
-        {"rpc_password" , required_argument, NULL, 'r'},
-        {"rpc_host"     , required_argument, NULL, 'i'},
-        {"rpc_port"     , required_argument, NULL, 'p'},
-        {"account"      , required_argument, NULL, 'a'},
-        {"amount"       , required_argument, NULL, 'x'},
-        {"subaddr"      , required_argument, NULL, 's'},
-        {"newaddr"      , no_argument      , NULL, 'n'},
-        {"version"      , no_argument      , NULL, 'v'},
-        {"list"         , no_argument      , NULL, 'l'},
-	{NULL, 0, NULL, 0}
+    {"help"         , no_argument      , NULL, 'h'},
+    {"rpc_user"     , required_argument, NULL, 'u'},
+    {"rpc_password" , required_argument, NULL, 'r'},
+    {"rpc_host"     , required_argument, NULL, 'i'},
+    {"rpc_port"     , required_argument, NULL, 'p'},
+    {"account"      , required_argument, NULL, 'a'},
+    {"amount"       , required_argument, NULL, 'x'},
+    {"subaddr"      , required_argument, NULL, 's'},
+    {"newaddr"      , no_argument      , NULL, 'n'},
+    {"version"      , no_argument      , NULL, 'v'},
+    {"list"         , no_argument      , NULL, 'l'},
+    {NULL, 0, NULL, 0}
 };
 
 static int handler(void *user, const char *section,

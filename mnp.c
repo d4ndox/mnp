@@ -49,7 +49,6 @@
 #include "rpc_call.h"
 #include "wallet.h"
 
-
 /* verbose is extern @ globaldefs.h. Be noisy.*/
 int verbose = 0;
 
