@@ -89,6 +89,14 @@ static char *payid(const struct rpc_wallet *monero_wallet);
 static char *confirm(const struct rpc_wallet *monero_wallet);
 static char *locked(const struct rpc_wallet *monero_wallet);
 
+
+/**
+ * Main function to execute the Monero Named Pipes program.
+ *
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line argument strings.
+ * @return 0 on successful execution, EXIT_FAILURE on error.
+ */
 int main(int argc, char **argv)
 {
     /* open syslog /var/log/messages and /var/log/syslog */
@@ -535,6 +543,12 @@ int main(int argc, char **argv)
 }
 
 
+/**
+ * Extracts the amount from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the amount, or NULL if the extraction fails.
+ */
 static char *amount(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
@@ -546,6 +560,12 @@ static char *amount(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(amount);
 }
 
+/**
+ * Extracts the transaction ID from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the transaction ID, or NULL if the extraction fails.
+ */
 static char *transactionid(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
@@ -557,6 +577,13 @@ static char *transactionid(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(transactionid);
 }
 
+
+/**
+ * Extracts the address from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the address, or NULL if the extraction fails.
+ */
 static char *address(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
@@ -568,6 +595,13 @@ static char *address(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(address);
 }
 
+
+/**
+ * Extracts the payment ID from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the payment ID, or NULL if the extraction fails.
+ */
 static char *payid(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
@@ -579,6 +613,13 @@ static char *payid(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(payment_id);
 }
 
+
+/**
+ * Extracts the number of confirmations from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the number of confirmations, or NULL if the extraction fails.
+ */
 static char *confirm(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
@@ -590,6 +631,13 @@ static char *confirm(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(confirmations);
 }
 
+
+/**
+ * Extracts the locked status from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the locked status, or NULL if the extraction fails.
+ */
 static char *locked(const struct rpc_wallet *monero_wallet)
 {
     assert (monero_wallet != NULL);
@@ -601,8 +649,11 @@ static char *locked(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(locked);
 }
 
-/*
- * Print user help.
+
+/**
+ * Prints user help information.
+ *
+ * @param status The status code to determine the output stream (0 for success, non-zero for error).
  */
 static void usage(int status)
 {
@@ -652,8 +703,10 @@ static void usage(int status)
 }
 
 
-/*
- * read paymentId from stdin
+/**
+ * Reads the payment ID from standard input.
+ *
+ * @return A dynamically allocated string containing the payment ID read from stdin, or NULL if an error occurs.
  */
 static char *readStdin(void)
 {
@@ -678,8 +731,14 @@ static char *readStdin(void)
 }
 
 
-/*
- * Parse INI file handler
+/**
+ * Parses the INI file and handles the configuration settings.
+ *
+ * @param user A pointer to the user data structure (Config).
+ * @param section The section name in the INI file.
+ * @param name The name of the setting in the INI file.
+ * @param value The value of the setting in the INI file.
+ * @return 1 on success, 0 on failure.
  */
 static int handler(void *user, const char *section, const char *name,
                    const char *value)
@@ -711,19 +770,26 @@ static int handler(void *user, const char *section, const char *name,
     return 1;
 }
 
-/*
- * Stop the mainloop and destroy all fifo's
+
+/**
+ * Handles the shutdown signal and stops the main loop.
+ *
+ * @param sig The signal number received.
  */
 static void initshutdown(int sig)
 {
     running = 0;
 }
 
-/*
- * Helper function for remove_directory.
+
+/**
+ * Callback function for removing files and directories.
  *
- * Returns:
- *   - 0 on success, -1 on failure.
+ * @param fpath The path of the file or directory to be removed.
+ * @param sb The stat structure containing information about the file or directory.
+ * @param typeflag The type of the file or directory (file, directory, etc.).
+ * @param ftwbuf Additional information about the file or directory.
+ * @return 0 on success, -1 on failure.
  */
 static int remove_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
     if (remove(fpath) == -1) {
@@ -733,7 +799,8 @@ static int remove_callback(const char *fpath, const struct stat *sb, int typefla
     return 0;
 }
 
-/*
+
+/**
  * Recursively removes a work directory and its pipes.
  * Uses file descriptors to mitigate TOCTOU race condition.
  *
@@ -752,8 +819,8 @@ static int remove_directory(const char *path) {
 }
 
 
-/*
- * Print version of Monero Named Pipes.
+/**
+ * Prints the version information of Monero Named Pipes.
  */
 static void printmnp(void)
 {
