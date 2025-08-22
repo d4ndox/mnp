@@ -705,7 +705,7 @@ static void usage(int status)
 
 
 /**
- * Reads the payment ID from standard input.
+ * Reads the transaction ID from standard input.
  *
  * @return A dynamically allocated string containing the payment ID read from stdin, or NULL if an error occurs.
  */
