@@ -41,21 +41,26 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 *Please also help audit the source code.*
 
 
-## How to run mnp?
+## How to Run mnp?
 
- Monero Named Pipes uses monero-wallet-rpc which comes with the Monero Command-line Tools. Download @ getmonero.org.
+Monero Named Pipes (mnp) utilizes `monero-wallet-rpc`, which is part of the Monero Command-line Tools. You can download it from [getmonero.org](https://getmonero.org/).
 
-- [ ] Step 1) Start monerod. It keeps the blockchain in sync.
-- [ ] Step 2) Start monero-wallet-rpc --tx-notify "/usr/bin/mnp %s". It listens on rpc port and takes care of your wallet.
+### Prerequisites
 
-```bash
-$ mnp --init
-$ monerod
-$ monero-wallet-rpc --tx-notify "/usr/local/bin/mnp --confirmation 1 %s" --rpc-bind-ip 127.0.0.1 --rpc-bind-port 18083 --rpc-login username:password --wallet-file mywallet --prompt-for-password
-$ mnp-payment --list
-```
+1. **Monero Daemon (`monerod`)**:
+   - Ensure `monerod` is installed and running to keep the blockchain in sync.
 
-If `mnp-payment --list` fails, adapt rpc configuration in `~/.mnp.ini`
+2. **Monero Wallet RPC (`monero-wallet-rpc`)**:
+   - Install `monero-wallet-rpc` and configure it to listen on the RPC port.
+
+3. **mnp**:
+   - Ensure `mnp` is installed and accessible from your PATH.
+
+### Steps to Run mnp
+
+1. **Start `monerod`**:
+   ```bash
+   $ monerod --detach
 
 
 ### Config file ~/.mnp.ini:
