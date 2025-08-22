@@ -81,7 +81,7 @@ Create a New Subaddress:
 ```bash
 mnp-payment --newaddr --amount 650000
 ```
-_monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000_
+`monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000`
 
 
 ## How to Monitor /tmp/wallet/transactions
