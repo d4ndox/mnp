@@ -50,17 +50,17 @@ For details see the wiki [Getting Started](https://github.com/d4ndox/mnp/wiki/Ge
 mnp --init
 ```
 
-2. Start monerod:
+2. Start `monerod`:
 ```bash
 monerod --detach
 ```
 
-3. Start monero-wallet-rpc with configuration:
+3. Start `monero-wallet-rpc` with configuration:
 ```bash
 monero-wallet-rpc --config-file notify-mnp.cfg
 ```
 
-notify-mnp.cfg example:
+`notify-mnp.cfg` example:
 ```cfg
 rpc-bind-ip=127.0.0.1
 rpc-bind-port=18083
