@@ -95,12 +95,10 @@ Read the pipes:
 find /tmp/mywallet/transactions -type p -exec cat {} \;
 ```
 
-The pipe is closed as soon, it has been read.
-
 
 ## Close mnp [Optional]
 
-Remove thw work directory:
+Remove the work directory:
 ```bash
 mnp --cleanup
 ```
