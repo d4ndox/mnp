@@ -43,7 +43,7 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 ## How to Run mnp?
 
-For details see the wiki on [Getting Started](https://github.com/d4ndox/mnp/wiki/Getting-started).
+For details see the wiki [Getting Started](https://github.com/d4ndox/mnp/wiki/Getting-started).
 
 To create a work directory for your wallet run:
 ```bash
@@ -70,25 +70,27 @@ password=mywalletpassword
 tx-notify=/usr/local/bin/mnp --confirmation 1 %s
 ```
 
-[OPTIONAL] Start the Monero Named Pipe **Daemon** to monitor the blockchain height and total balance: `mnpd`
+[OPTIONAL] 
+
+Start the Monero Named Pipe **Daemon** to monitor the _bcheight_ and total _balance_: `mnpd`
 
 
 ## How to set up a payment:
 
-For details see the wiki on [Setup a Payment](https://github.com/d4ndox/mnp/wiki/Setup-a-payment).
+For details see the wiki [Setup a Payment](https://github.com/d4ndox/mnp/wiki/Setup-a-payment).
 
 Create a New Subaddress:
 ```bash
 mnp-payment --newaddr --amount 650000
-monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000
 ```
+_monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000_
 
 
 ## How to Monitor /tmp/wallet/transactions
 
-For details see the wiki on [Monitor a Payment](https://github.com/d4ndox/mnp/wiki/Monitor-a-payment).
+For details see the wiki [Monitor a Payment](https://github.com/d4ndox/mnp/wiki/Monitor-a-payment).
 
-Using a cat to read the pipe:
+Using cat to read the pipe:
 ```bash
 find /tmp/mywallet/transactions -type p -exec cat {} \;
 ```
@@ -104,7 +106,6 @@ Close the working directory /tmp/myallet/. If you stopped all monitoring you mig
 # remove the workdir /tmp/mywallet
 mnp --cleanup
 ```
-
 
 ## Information
 
