@@ -26,7 +26,7 @@ $ tree /tmp/mywallet/
 
 libcurl is required. Install it with:
 ```bash
-`apt-get install libcurl4
+apt-get install libcurl4
 ```
 
 Build and install mnp:
