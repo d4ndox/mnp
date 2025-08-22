@@ -822,6 +822,7 @@ static int remove_directory(const char *path) {
 
 /**
  * Prints the version information of Monero Named Pipes.
+ * ASCII art by ejm. Probs to ejm for this awesome art!
  */
 static void printmnp(void)
 {
@@ -835,4 +836,3 @@ static void printmnp(void)
                 "      | \\        \n"
                 "      m  m \033[0m Monero Named Pipes. Version: %s\n\n", VERSION);
 }
-

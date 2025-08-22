@@ -512,8 +512,9 @@ static void initshutdown(int sig)
 }
 
 
-/*
- * Print version of Monero Named Pipes.
+/**
+ * Prints the version information of Monero Named Pipes.
+ * ASCII art by ejm. Probs to ejm for this awesome art!
  */
 static void printmnp(void)
 {

@@ -504,7 +504,8 @@ static void usage(int status)
 
 
 /**
- * Prints the version information of Monero Named Pipes Payment.
+ * Prints the version information of Monero Named Pipes.
+ * ASCII art by ejm. Probs to ejm for this awesome art!
  */
 static void printmnp(void)
 {
@@ -518,4 +519,3 @@ static void printmnp(void)
                 "      | \\        \n"
                 "      m  m \033[0m Monero Named Pipes. mnp-payment Version: %s\n\n", VERSION);
 }
-
