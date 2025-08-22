@@ -50,7 +50,7 @@ To create a work directory for your wallet run:
 ```bash
 mnp --init
 ```
-[OPTIONAL] Start the Monero Named Pipe **Daemon** to monitor the blockchain height and total balance: `mnpd`
+
 [OPTIONAL] Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir: `mnp --cleanup`
 
 ### Steps to Run mnp
@@ -60,10 +60,12 @@ mnp --init
  $ monerod --detach
 ```
 
-**1. Start `monerod`**
+**2. Start `monero-wallet-rpc`**
 ```bash
  $ monero-wallet-rpc --config-file notify-mnp.cfg
 ```
+
+_notify-mnp.cfg_
 ```cfg
 rpc-bind-ip=127.0.0.1
 rpc-bind-port=18083
@@ -72,6 +74,9 @@ wallet-file=mywallet
 password=mywalletpassword
 tx-notify=/usr/local/bin/mnp --confirmation 1 %s
 ```
+
+[OPTIONAL] Start the Monero Named Pipe **Daemon** to monitor the blockchain height and total balance: `mnpd`
+
 ### Config file ~/.mnp.ini:
 
 The config file makes things easier. It is used by both `mnp` and `mnp-payment`.
