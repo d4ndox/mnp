@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* std. C libraries */
+/* std. c libraries */
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -35,14 +35,17 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+
 /* system headers */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <syslog.h>
+
 /* third party libraries */
 #include "./cjson/cJSON.h"
 #include <curl/curl.h>
 #include "./inih/ini.h"
+
 /* local headers */
 #include "delquotes.h"
 #include "globaldefs.h"
@@ -72,6 +75,14 @@ static void usage(int status);
 static void printmnp(void);
 static char *readStdin(void);
 
+
+/**
+ * Main function to execute the Monero Named Pipes Payment program.
+ *
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line argument strings.
+ * @return 0 on successful execution, EXIT_FAILURE on error.
+ */
 int main(int argc, char **argv)
 {
     /* variables are set by getopt and/or config parser handler()*/
@@ -384,8 +395,10 @@ int main(int argc, char **argv)
 }
 
 
-/*
- * read paymentId from stdin
+/**
+ * Reads the payment ID from standard input.
+ *
+ * @return A dynamically allocated string containing the payment ID read from stdin, or NULL if an error occurs.
  */
 static char *readStdin(void)
 {
@@ -409,9 +422,14 @@ static char *readStdin(void)
 }
 
 
-
-/*
- * Parse INI file handler
+/**
+ * Parses the INI file and handles the configuration settings.
+ *
+ * @param user A pointer to the user data structure (Config).
+ * @param section The section name in the INI file.
+ * @param name The name of the setting in the INI file.
+ * @param value The value of the setting in the INI file.
+ * @return 1 on success, 0 on failure.
  */
 static int handler(void *user, const char *section, const char *name,
                    const char *value)
@@ -437,9 +455,10 @@ static int handler(void *user, const char *section, const char *name,
 }
 
 
-
-/*
- * Print user help.
+/**
+ * Prints user help information.
+ *
+ * @param status The status code to determine the output stream (0 for success, non-zero for error).
  */
 static void usage(int status)
 {
@@ -484,8 +503,8 @@ static void usage(int status)
 }
 
 
-/*
- * Print version of Monero Named Pipes.
+/**
+ * Prints the version information of Monero Named Pipes Payment.
  */
 static void printmnp(void)
 {
