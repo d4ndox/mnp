@@ -50,39 +50,28 @@ To create a work directory for your wallet run:
 ```bash
 mnp --init
 ```
-[OPTIONAL] Start the Monero Named Pipe **Daemon** to monitor the blockchain height and total balance:
-
-```bash
-mnpd
-```
-
-[OPTIONAL] Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir:
-
-```bash
-# remove the workdir /tmp/mywallet
-$ mnp --cleanup
-```
-
-Monero Named Pipes (mnp) utilizes `monero-wallet-rpc`, which is part of the Monero Command-line Tools. You can download it from [getmonero.org](https://getmonero.org/).
-
-### Prerequisites
-
-1. **Monero Daemon (`monerod`)**:
-   - Ensure `monerod` is installed and running to keep the blockchain in sync.
-
-2. **Monero Wallet RPC (`monero-wallet-rpc`)**:
-   - Install `monero-wallet-rpc` and configure it to listen on the RPC port.
-
-3. **mnp**:
-   - Ensure `mnp` is installed and accessible from your PATH.
+[OPTIONAL] Start the Monero Named Pipe **Daemon** to monitor the blockchain height and total balance: `mnpd`
+[OPTIONAL] Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir: `mnp --cleanup`
 
 ### Steps to Run mnp
 
-1. **Start `monerod`**:
-   ```bash
-   $ monerod --detach
+**1. Start `monerod`**
+```bash
+ $ monerod --detach
+```
 
-
+**1. Start `monerod`**
+```bash
+ $ monero-wallet-rpc --config-file notify-mnp.cfg
+```
+```cfg
+rpc-bind-ip=127.0.0.1
+rpc-bind-port=18083
+rpc-login=username:password
+wallet-file=mywallet
+password=mywalletpassword
+tx-notify=/usr/local/bin/mnp --confirmation 1 %s
+```
 ### Config file ~/.mnp.ini:
 
 The config file makes things easier. It is used by both `mnp` and `mnp-payment`.
