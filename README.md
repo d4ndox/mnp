@@ -22,7 +22,7 @@ $ tree /tmp/mywallet/
 It enables users to control and track incoming payments through command-line tools.
 
 
-## How to build mnp
+## How to build mnp?
 
 'libcurl' is required to build mnp. `apt-get install libcurl4`
 
@@ -69,7 +69,7 @@ tx-notify=/usr/local/bin/mnp --confirmation 1 %s
 Start the Monero Named Pipe **Daemon** to monitor the _bcheight_ and total _balance_: `mnpd`
 
 
-## How to set up a payment:
+## How to set up a payment?
 
 For details see the wiki [Setup a Payment](https://github.com/d4ndox/mnp/wiki/Setup-a-payment).
 
@@ -80,7 +80,7 @@ mnp-payment --newaddr --amount 650000
 `monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000`
 
 
-## How to Monitor /tmp/wallet/transactions
+## How to Monitor /tmp/wallet/transactions ?
 
 For details see the wiki [Monitor a Payment](https://github.com/d4ndox/mnp/wiki/Monitor-a-payment).
 
