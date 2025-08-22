@@ -34,7 +34,7 @@ $ make
 $ sudo make install
 ```
 
-### Verify
+#### Verify
 
 gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
