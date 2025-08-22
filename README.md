@@ -45,19 +45,16 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 For details see the wiki [Getting Started](https://github.com/d4ndox/mnp/wiki/Getting-started).
 
-Create a work directory for your wallet (`/tmp/mywallet/` is default):
+(`/tmp/mywallet/` is default):
 ```bash
 mnp --init
 ```
-Start `monerod`
 ```bash
 monerod --detach
 ```
-Start `monero-wallet-rpc`
 ```bash
 monero-wallet-rpc --config-file notify-mnp.cfg
 ```
-
 _notify-mnp.cfg_
 ```cfg
 rpc-bind-ip=127.0.0.1
@@ -67,7 +64,6 @@ wallet-file=mywallet
 password=mywalletpassword
 tx-notify=/usr/local/bin/mnp --confirmation 1 %s
 ```
-
 [OPTIONAL] 
 
 Start the Monero Named Pipe **Daemon** to monitor the _bcheight_ and total _balance_: `mnpd`
