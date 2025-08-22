@@ -88,62 +88,7 @@ pipe = rw-------                ;permission of pipes rwxrwxrwx
 ```
 
 
-## Command line option:
 
-mnp is called from monero-wallet-rpc --tx-notify or some other source.
-
-```bash
-Usage: mnp [OPTION] [TXID]
-
-   [TX_ID]
-	   TXID is the transaction identifier passed from
-	   monero-wallet-rpc --tx-notify or some other source.
-
-  --account [ACCOUNT]
-           Monero account number. 0 = default.
-
-  --notify-at [0,1,2,3] default = confirmed
-           0, none
-           1, txpool
-           2, confirmed
-           3, unlocked
-
-  --confirmation [n]
-           amount of blocks needed to confirm transaction.
-
-  --init
-           create workdir for usage.
-
-  --cleanup
-           delete workdir.
-```
-
-mnp-payment is used to prepare a payment.
-
-```bash
-Usage: mnp-payment [OPTION] [PAYMENT_ID]
-
-  [PAYMENT_ID]
-		PAYMENT_ID is a 16 hex unique char to
-		identify the payment. Returns an
-		integrated address.
-
-  -a  --account [ACCOUNT]
-               Monero account number. 0 = default.
-
-  -l, --list
-               list all subaddresses + address_indices.
-
-  -s  --subaddr [INDEX]
-               returns subaddress on INDEX.
-
-  -n  --newaddr
-               returns a new created subaddress.
-
-  -x  --amount [AMOUNT]
-               AMOUNT is specified in piconero.
-               returns a URI string.
-```
 
 
 ## Setting up a payment:
