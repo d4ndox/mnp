@@ -4,15 +4,19 @@ Monero named pipes (mnp) is a lightweight wallet designed to monitor incoming pa
 
 
 ```bash
+$ tree /tmp/mywallet/
 /tmp/mywallet/
+├── balance
+├── bc_height
+└── transactions
+    ├── 96fcb1d41d8b90af1dcae770a2ef4bf84b984412fc2a4a6ea9a169dce43f8ee4
+    │   └── BdQNo1EL1KVcnwQEiHWnDKJun4MshkC8s2RjbF1yoT9pKfc9zWtWwkf3NxuBDfKKhkAwBJK7UPeigKmVWVaXg5iPFqLqq6A
+    ├── 9da47eec38e70001e251761dabcc69780ab96ca4c2ab7b83b67f86ca00dfeb7b
+    │   └── 1be3bfb7413adda5
+    └── c503489e9e4edb4451288fc6548b0d765ccd0890634d6e7e523ef0cdaf86cd1e
+        └── BdQNo1EL1KVcnwQEiHWnDKJun4MshkC8s2RjbF1yoT9pKfc9zWtWwkf3NxuBDfKKhkAwBJK7UPeigKmVWVaXg5iPFqLqq6A
 
-transactions
- ├── txid_1
- │   └── "subaddress_1"
- ├── txid_2
- │   └── "subaddress_2"
- └── txid_3
-     └── "paymentId_1"
+4 directories, 5 files
 ```
 
 It enables users to control and track incoming payments through command-line tools.
