@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* std. C libraries */
+/* std. c libraries */
 #include <assert.h>
 #include <errno.h>
 #include <getopt.h>
@@ -33,13 +33,16 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+
 /* system headers */
 #include <sys/stat.h>
 #include <syslog.h>
+
 /* third party libraries */
 #include "./cjson/cJSON.h"
 #include <curl/curl.h>
 #include "./inih/ini.h"
+
 /* local headers */
 #include "globaldefs.h"
 #include "rpc_call.h"
@@ -72,6 +75,13 @@ static char *balance(const struct rpc_wallet *monero_wallet);
 static char *bcheight(const struct rpc_wallet *monero_wallet);
 
 
+/**
+ * Main function to execute the Monero Named Pipes Daemon program.
+ *
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line argument strings.
+ * @return 0 on successful execution, EXIT_FAILURE on error.
+ */
 int main(int argc, char **argv)
 {
     /* open syslog /var/log/messages and /var/log/syslog */
@@ -378,8 +388,44 @@ int main(int argc, char **argv)
 }
 
 
-/*
- * Print user help.
+/**
+ * Extracts the total balance from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the amount, or NULL if the extraction fails.
+ */
+static char *balance(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *balance = cJSON_GetObjectItem(result, "balance");
+
+    return cJSON_Print(balance);
+}
+
+
+/**
+ * Extracts the blockchain height from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the amount, or NULL if the extraction fails.
+ */
+static char *bcheight(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *height = cJSON_GetObjectItem(result, "height");
+
+    return cJSON_Print(height);
+}
+
+
+/**
+ * Prints user help information.
+ *
+ * @param status The status code to determine the output stream (0 for success, non-zero for error).
  */
 static void usage(int status)
 {
@@ -415,8 +461,14 @@ static void usage(int status)
 }
 
 
-/*
- * Parse INI file handler
+/**
+ * Parses the INI file and handles the configuration settings.
+ *
+ * @param user A pointer to the user data structure (Config).
+ * @param section The section name in the INI file.
+ * @param name The name of the setting in the INI file.
+ * @param value The value of the setting in the INI file.
+ * @return 1 on success, 0 on failure.
  */
 static int handler(void *user, const char *section, const char *name,
                    const char *value)
@@ -449,40 +501,14 @@ static int handler(void *user, const char *section, const char *name,
 }
 
 
-/*
- * Stop the mainloop and destroy all fifo's
+/**
+ * Handles the shutdown signal and stops the main loop.
+ *
+ * @param sig The signal number received.
  */
 static void initshutdown(int sig)
 {
     running = 0;
-}
-
-
-/*
- * parse the total balance of the wallet
- */
-static char *balance(const struct rpc_wallet *monero_wallet)
-{
-    assert (monero_wallet != NULL);
-
-    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    cJSON *balance = cJSON_GetObjectItem(result, "balance");
-
-    return cJSON_Print(balance);
-}
-
-
-/*
- * parse the blockchain height
- */
-static char *bcheight(const struct rpc_wallet *monero_wallet)
-{
-    assert (monero_wallet != NULL);
-
-    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    cJSON *height = cJSON_GetObjectItem(result, "height");
-
-    return cJSON_Print(height);
 }
 
 
@@ -501,4 +527,3 @@ static void printmnp(void)
                 "      | \\        \n"
                 "      m  m \033[0m Monero Named Pipes Daemon. Version: %s\n\n", VERSION);
 }
-

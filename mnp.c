@@ -560,6 +560,7 @@ static char *amount(const struct rpc_wallet *monero_wallet)
     return cJSON_Print(amount);
 }
 
+
 /**
  * Extracts the transaction ID from the Monero wallet RPC response.
  *
