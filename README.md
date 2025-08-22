@@ -43,6 +43,26 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 ## How to Run mnp?
 
+Monero Named Pipes (mnp) is utilised by `monero-wallet-rpc`, which is part of the Monero Command-line Tools. You can download it from [getmonero.org](https://getmonero.org/).
+
+To create a work directory for your wallet run:
+
+```bash
+mnp --init
+```
+[OPTIONAL] Start the Monero Named Pipe **Daemon** to monitor the blockchain height and total balance:
+
+```bash
+mnpd
+```
+
+[OPTIONAL] Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir:
+
+```bash
+# remove the workdir /tmp/mywallet
+$ mnp --cleanup
+```
+
 Monero Named Pipes (mnp) utilizes `monero-wallet-rpc`, which is part of the Monero Command-line Tools. You can download it from [getmonero.org](https://getmonero.org/).
 
 ### Prerequisites
