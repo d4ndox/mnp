@@ -45,16 +45,14 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 For details see the wiki [Getting Started](https://github.com/d4ndox/mnp/wiki/Getting-started).
 
-To create a work directory for your wallet run:
+Create a work directory for your wallet (`/tmp/mywallet/` is default):
 ```bash
 mnp --init
 ```
-
 Start `monerod`
 ```bash
 monerod --detach
 ```
-
 Start `monero-wallet-rpc`
 ```bash
 monero-wallet-rpc --config-file notify-mnp.cfg
