@@ -38,11 +38,7 @@ make
 sudo make install
 ```
 
-#### Verify
-
 gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
-
-*Please also help audit the source code.*
 
 
 ## How to Run mnp?
@@ -65,7 +61,6 @@ monero-wallet-rpc --config-file notify-mnp.cfg
 ```
 
 notify-mnp.cfg example:
-_notify-mnp.cfg_
 ```cfg
 rpc-bind-ip=127.0.0.1
 rpc-bind-port=18083
@@ -79,7 +74,6 @@ tx-notify=/usr/local/bin/mnp --confirmation 1 %s
 ```bash
 mnpd --verbose
 ```
-
 
 
 ## How to Set Up a Payment?
@@ -137,4 +131,3 @@ w  c(..)o     (
 
 
 mnp is a hobby project. Fun has the highest priority.
-
