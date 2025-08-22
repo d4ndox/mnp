@@ -3,6 +3,8 @@
 Monero named pipes (mnp) is a lightweight wallet designed to monitor incoming payments within a Unix shell environment. It uses named pipes for interaction, creating a set of files and directories within a specified working directory. Default: */tmp/mywallet/*.
 
 
+## Directory Structure
+
 ```bash
 $ tree /tmp/mywallet/
 /tmp/mywallet/
@@ -19,19 +21,21 @@ $ tree /tmp/mywallet/
 4 directories, 5 files
 ```
 
-It enables users to control and track incoming payments through command-line tools.
-
 
 ## How to build mnp?
 
-'libcurl' is required to build mnp. `apt-get install libcurl4`
-
+libcurl is required. Install it with:
 ```bash
-$ cd mnp
-$ mkdir build
-$ cmake -DCMAKE_BUILD_TYPE=Release ../
-$ make
-$ sudo make install
+`apt-get install libcurl4
+```
+
+Build and install mnp:
+```bash
+cd mnp
+mkdir build
+cmake -DCMAKE_BUILD_TYPE=Release ../
+make
+sudo make install
 ```
 
 #### Verify
@@ -45,16 +49,22 @@ gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
 
 For details see the wiki [Getting Started](https://github.com/d4ndox/mnp/wiki/Getting-started).
 
-(`/tmp/mywallet/` is default):
+1. Initialise mnp:
 ```bash
 mnp --init
 ```
+
+2. Start monerod:
 ```bash
 monerod --detach
 ```
+
+3. Start monero-wallet-rpc with configuration:
 ```bash
 monero-wallet-rpc --config-file notify-mnp.cfg
 ```
+
+notify-mnp.cfg example:
 _notify-mnp.cfg_
 ```cfg
 rpc-bind-ip=127.0.0.1
@@ -64,27 +74,29 @@ wallet-file=mywallet
 password=mywalletpassword
 tx-notify=/usr/local/bin/mnp --confirmation 1 %s
 ```
-[OPTIONAL] 
 
-Start the Monero Named Pipe **Daemon** to monitor the _bcheight_ and total _balance_: `mnpd`
+4. [Optional] Start the Monero Named Pipe Daemon to monitor blockchain height and total balance:
+```bash
+mnpd --verbose
+```
 
 
-## How to set up a payment?
+
+## How to Set Up a Payment?
 
 For details see the wiki [Setup a Payment](https://github.com/d4ndox/mnp/wiki/Setup-a-payment).
 
-Create a New Subaddress:
+Create a new subaddress:
 ```bash
 mnp-payment --newaddr --amount 650000
 ```
-`monero:Bdxcxb5WkE84HuNyzoZvTPincGgPkZFXKfeQkpwSHew1cWwNcBXN4bY9YXY9dAHfibRBCrX92JwzmASMXsfrRnQqMo3ubLB?tx_amount=0.000000650000`
 
 
-## How to Monitor /tmp/wallet/transactions ?
+## How to Monitor /tmp/wallet/transactions?
 
 For details see the wiki [Monitor a Payment](https://github.com/d4ndox/mnp/wiki/Monitor-a-payment).
 
-Using cat to read the pipe:
+Read the pipes:
 ```bash
 find /tmp/mywallet/transactions -type p -exec cat {} \;
 ```
@@ -92,26 +104,24 @@ find /tmp/mywallet/transactions -type p -exec cat {} \;
 The pipe is closed as soon, it has been read.
 
 
-## Close mnp [OPTIONAL]
+## Close mnp [Optional]
 
-Close the working directory /tmp/myallet/. If you stopped all monitoring you might want to close the workdir. (optional)
-
+Remove thw work directory:
 ```bash
-# remove the workdir /tmp/mywallet
 mnp --cleanup
 ```
 
-## Information
 
-You might consider to change the default color for 'ls' by adding this to your bashrc:
+## Additional Information
+
+- Consider changing the default color for ls in your ~/.bashrc:
 ```bash
  echo 'LS_COLORS=$LS_COLORS:"pi=00;35"' >> ~/.bashrc
 ```
-The default color of named pipes set by Ubuntu is a pain:
 
-Licence: »MIT«
+- Licence: MIT
 
-Author: »Unknown« (d4ndo)
+- Author: d4ndo
 
 ```bash
 
