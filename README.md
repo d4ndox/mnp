@@ -116,7 +116,7 @@ mnp --cleanup
 - Author: d4ndo
 
 ```bash
-
+<span style="color: #00FF00;">Dieser Text ist Neon Green.</span>
      __
 w  c(..)o     (
  \__(-)     __)
