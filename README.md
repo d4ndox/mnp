@@ -38,7 +38,7 @@ make
 sudo make install
 ```
 
-gpg_key : https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub
+gpg_key : [d4ndo@proton.me]([https://github.com/d4ndox/mnp/wiki/Getting-started](https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub))
 
 
 ## How to Run mnp?
