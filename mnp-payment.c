@@ -509,7 +509,7 @@ static void usage(int status)
  */
 static void printmnp(void)
 {
-                printf("\033[0;32m"
+                printf(ANSI_RESET_ALL
                 "       __        \n"
                 "  w  c(..)o    ( \n"
                 "   \\__(-)    __) \n"
@@ -517,5 +517,9 @@ static void printmnp(void)
                 "      /(_)___)   \n"
                 "     w /|        \n"
                 "      | \\        \n"
-                "      m  m \033[0m Monero Named Pipes. mnp-payment Version: %s\n\n", VERSION);
+                "      m  m " 
+                MONERO_GREY "| "
+                MONERO_ORANGE "Monero " 
+                MONERO_GREY "Named Pipes Payment | "
+                ANSI_RESET_ALL "mnp-payment Version %s\n\n", VERSION);
 }

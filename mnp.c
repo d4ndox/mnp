@@ -682,7 +682,7 @@ static void usage(int status)
     "      --notify-at [0,1,2,3] default = confirmed\n"
     "               0, none\n"
     "               1, txpool\n"
-    "               2, confirmed\n\n"
+    "               2, confirmed\n"
     "               3, unlocked\n\n"
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
@@ -826,7 +826,7 @@ static int remove_directory(const char *path) {
  */
 static void printmnp(void)
 {
-                printf("\033[0;32m"
+                printf(ANSI_RESET_ALL
                 "       __        \n"
                 "  w  c(..)o    ( \n"
                 "   \\__(-)    __) \n"
@@ -834,5 +834,9 @@ static void printmnp(void)
                 "      /(_)___)   \n"
                 "     w /|        \n"
                 "      | \\        \n"
-                "      m  m \033[0m Monero Named Pipes. Version: %s\n\n", VERSION);
+                "      m  m " 
+                MONERO_GREY "| "
+                MONERO_ORANGE "Monero " 
+                MONERO_GREY "Named Pipes | "
+                ANSI_RESET_ALL "mnp Version %s\n\n", VERSION);
 }

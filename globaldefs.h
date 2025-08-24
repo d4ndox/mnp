@@ -11,6 +11,12 @@
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
 #define TMP_TXID_FILE   "/tmp/mnp.txid"
+
+#define MONERO_ORANGE   "\033[38;2;255;102;0m"
+#define MONERO_GREEN    "\033[38;2;50;205;50m"
+#define MONERO_GREY     "\033[38;2;76;76;76m"
+#define ANSI_RESET_ALL  "\033[0m"
+
 extern int verbose;
 
 struct MemoryStruct {

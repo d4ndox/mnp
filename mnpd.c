@@ -518,7 +518,7 @@ static void initshutdown(int sig)
  */
 static void printmnp(void)
 {
-                printf("\033[0;32m"
+                printf(ANSI_RESET_ALL
                 "       __        \n"
                 "  w  c(..)o    ( \n"
                 "   \\__(-)    __) \n"
@@ -526,5 +526,9 @@ static void printmnp(void)
                 "      /(_)___)   \n"
                 "     w /|        \n"
                 "      | \\        \n"
-                "      m  m \033[0m Monero Named Pipes Daemon. Version: %s\n\n", VERSION);
+                "      m  m " 
+                MONERO_GREY "| "
+                MONERO_ORANGE "Monero " 
+                MONERO_GREY "Named Pipes Daemon | "
+                ANSI_RESET_ALL "mnpd Version %s\n\n", VERSION);
 }
