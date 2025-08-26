@@ -38,8 +38,7 @@ $ make install
 ## General Info
 
 Monero Named Pipes uses the »**monero-wallet-rpc**« API to communicate with the Monero wallet. A list of all rpc calls can be found here:
-
-https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
+https://docs.getmonero.org/rpc-library/wallet-rpc/
 
 ```
 +---------+             +-------------------+              +-----+
