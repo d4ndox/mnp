@@ -56,8 +56,10 @@ enum notify {
 #define MK_URI_CMD      "make_uri"
 
 #define GET_TXID_CMD    "get_transfer_by_txid"
-
 #define GET_PAYMENT_CMD "get_bulk_payments"
+
+#define SPEND_PROOF_CMD "check_spend_proof"
+#define TX_PROOF_CMD    "check_tx_proof"
 
 #define TRANSACTION_DIR "transactions"
 
