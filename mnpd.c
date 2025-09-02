@@ -101,7 +101,6 @@ int main(int argc, char **argv)
     char *rpc_host = NULL;
     char *rpc_port = NULL;
     char *account = NULL;
-    char *txid = NULL;
     char *workdir = NULL;
     int ret = 0;
 
