@@ -124,6 +124,18 @@ int rpc_call(struct rpc_wallet *monero_wallet)
               if (cJSON_AddStringToObject(rpc_params, "txid",
                           monero_wallet->txid) == NULL) ret = -1;
             break;
+        case CHECK_SPEND_PROOF:
+              if (cJSON_AddNumberToObject(rpc_params, "account_index",
+                          atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "txid",
+                          monero_wallet->txid) == NULL) ret = -1;
+              if (monero_wallet->message != NULL) {
+                    if (cJSON_AddStringToObject(rpc_params, "message",
+                        monero_wallet->message) == NULL) ret = -1;
+              }
+              if (cJSON_AddStringToObject(rpc_params, "signature",
+                          monero_wallet->signature) == NULL) ret = -1;
+            break;
         default:
             rpc_params = NULL;
             break;
@@ -223,6 +235,12 @@ char* get_method(enum monero_rpc_method method)
                 break;
         case GET_TXID:
             asprintf(&mtd, "%s", GET_TXID_CMD);
+                break;
+        case CHECK_SPEND_PROOF:
+            asprintf(&mtd, "%s", SPEND_PROOF_CMD);
+                break;
+        case CHECK_TX_PROOF:
+            asprintf(&mtd, "%s", TX_PROOF_CMD);
                 break;
         default:
                 break;
