@@ -13,6 +13,8 @@ enum monero_rpc_method {
     MK_IADDR,
     MK_URI,
     SPLIT_IADDR,
+    CHECK_SPEND_PROOF,
+    CHECK_TX_PROOF,
     END_RPC_SIZE
 };
 
@@ -38,6 +40,10 @@ struct rpc_wallet {
        char *locked;
        char *fifo;
        int   idx;
+       /* proof */
+       char *message;
+       char *signature;
+       char *proof;
        cJSON *reply;
 };
 
