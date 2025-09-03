@@ -76,3 +76,26 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 +-----------+
 ```
 
+#Test Checklist
+
+##mnp
+
+- [ ] mnp --help
+- [ ] mnp -h
+- [ ] mnp --?
+- [ ] mnp --version
+- [ ] mnp -v
+- [ ] mnp --workdir /tmp/x --init
+- [ ] mnp --workdir /tmp/x --cleanup
+- [ ] mnp -w /tmp/x --init
+- [ ] mnp -w /tmp/x --cleanup
+- [ ] mnp --rpc_user none
+- [ ] mnp --rpc_password none
+- [ ] mnp --rpc_host 10.0.0.1
+- [ ] mnp --rpc_port 20000
+- [ ] mnp --rpc_host 10.0.0.1 --rpc-port 20000
+- [ ] `echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof --message "Test Payment" --signature $(cat monero_spend_proof_message)`
+- [ ] `echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof -m "Test Payment" -s $(cat monero_spend_proof_message)`
+- [ ] echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof --signature $(cat monero_spend_proof)
+- [ ] echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof -s $(cat monero_spend_proof)
+
