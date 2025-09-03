@@ -111,3 +111,19 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
       echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof -s $(cat monero_spend_proof)
 ```
 
+## mnpd
+
+- [ ] mnpd --help
+- [ ] mnpd -h
+- [ ] mnpd --version
+- [ ] mnpd -v
+- [ ] mnpd --workdir /tmp/nonexisting
+- [ ] mnpd -w /tmp/nonexisting
+- [ ] mnpd --rpc_user notexisting
+- [ ] mnpd --rpc_password wrongpassword
+- [ ] mnpd --rpc_host 10.0.0.1
+- [ ] mnpd --rpc_host 127.0.0.1
+- [ ] mnpd --rpc_port 20000
+- [ ] mnpd --rpc_port 18083
+- [ ] mnpd --rpc_host 10.0.0.1 --rpc-port 20000
+- [ ] mnpd --rpc_host 127.0.0.1 --rpc-port 18083
