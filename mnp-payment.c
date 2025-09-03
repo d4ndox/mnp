@@ -135,6 +135,7 @@ int main(int argc, char **argv)
                 break;
             case 'i':
                 rpc_host = strndup(optarg, MAX_DATA_SIZE);
+                break;
 	    case 'p':
                 rpc_port = strndup(optarg, MAX_DATA_SIZE);
                 break;
