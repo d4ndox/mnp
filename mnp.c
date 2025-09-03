@@ -124,7 +124,6 @@ int main(int argc, char **argv)
     char *account = NULL;
 
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
-//    struct rpc_wallet *monero_wallet = calloc(END_RPC_SIZE, sizeof *monero_wallet);
     if (!monero_wallet) { perror("malloc"); exit(EXIT_FAILURE); }
 
     char *txid = NULL;
@@ -227,13 +226,13 @@ int main(int argc, char **argv)
                 break;
             case 0:
 	        break;
-            case ':':  // fehlendes Argument
+            case ':':  /* missing argument */
                 fprintf(stderr, "option -%c requires an argument\n", optopt);
                 usage(EXIT_FAILURE);
                 ret = EXIT_FAILURE;
                 goto cleanup;
                 break;
-            case '?':  // fehlendes Argument
+            case '?':  /* missing Argument */
                 usage(EXIT_SUCCESS);
                 ret = EXIT_SUCCESS;
                 goto cleanup;
@@ -297,13 +296,13 @@ int main(int argc, char **argv)
 
         /* If the current txid is not found in temp file, add it to the file */
         if (sp_proof == 0) {
-        if (!txid_found) {
-            fprintf(file, "%s\n", txid);
-            fclose(file);
-        } else {
-            ret = EXIT_SUCCESS;
-            goto cleanup;
-        }
+            if (!txid_found) {
+                fprintf(file, "%s\n", txid);
+                fclose(file);
+            } else {
+                ret = EXIT_SUCCESS;
+                goto cleanup;
+            }
         }
     }
 
@@ -639,7 +638,6 @@ int main(int argc, char **argv)
             syslog(LOG_USER | LOG_ERR, "error: write %s", strerror(errno));
             fprintf(stderr, "mnp: error: %s", strerror(errno));
             ret = EXIT_FAILURE;
-            goto cleanup;
     }
 
     if (unlink(monero_wallet[GET_TXID].fifo) == -1) {
