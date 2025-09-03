@@ -104,7 +104,7 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 ```
 - [ ] test --spend-proof no message long option
 ```bash
-      echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof --signature $(cat monero_spend_proof)
+      mnp --spend-proof --signature $sp 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9
 ```
 - [ ] test --spend-proof no message short option
 ```bash
