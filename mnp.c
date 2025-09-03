@@ -642,7 +642,6 @@ int main(int argc, char **argv)
             goto cleanup;
     }
 
-cleanup:
     if (unlink(monero_wallet[GET_TXID].fifo) == -1) {
         syslog(LOG_USER | LOG_ERR, "error: unlink fifo %s: %s",
                monero_wallet[GET_TXID].fifo, strerror(errno));
@@ -650,6 +649,8 @@ cleanup:
                monero_wallet[GET_TXID].fifo, strerror(errno));
         ret = EXIT_FAILURE;
     }
+
+cleanup:
     if (fd >= 0) close(fd);
     free(monero_wallet);
     if (txid && txid_from_stdin) free(txid);
