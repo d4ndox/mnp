@@ -149,8 +149,11 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp-payment -n
 - [ ] mnp-payment --newaddr --amount 999999
 - [ ] echo 0000000000000001 | mnp-payment
+- [ ] mnp-payment 0000000000000001
 - [ ] echo 0000000000000002 | mnp-payment --amount 2222222
+- [ ] mnp-payment --amount 2222222 0000000000000002
 - [ ] echo 0000000000000003 | mnp-payment -x 3333333
+- [ ] mnp-payment -x 3333333 0000000000000003
 
 ## release
 
