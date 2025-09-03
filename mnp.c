@@ -771,10 +771,10 @@ static char *locked(const struct rpc_wallet *monero_wallet)
 
 
 /**
- * Extracts the good status from the Monero wallet RPC response.
+ * Extracts the signiture (good) status from the Monero wallet RPC response.
  *
  * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
- * @return A dynamically allocated string containing the amount, or NULL if the extraction fails.
+ * @return A dynamically allocated string containing the siginture status, or NULL if the extraction fails.
  */
 static char *proof(const struct rpc_wallet *monero_wallet)
 {
