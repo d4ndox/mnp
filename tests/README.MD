@@ -125,5 +125,35 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnpd --rpc_host 127.0.0.1
 - [ ] mnpd --rpc_port 20000
 - [ ] mnpd --rpc_port 18083
-- [ ] mnpd --rpc_host 10.0.0.1 --rpc-port 20000
-- [ ] mnpd --rpc_host 127.0.0.1 --rpc-port 18083
+- [ ] mnpd --rpc_host 10.0.0.1 --rpc_port 20000
+- [ ] mnpd --rpc_host 127.0.0.1 --rpc_port 18083
+
+## mnp-payment
+
+- [ ] mnp-payment --help
+- [ ] mnp-payment -h
+- [ ] mnp-payment --version
+- [ ] mnp-payment -v
+- [ ] mnp-payment --list
+- [ ] mnp-payment -l
+- [ ] mnp-payment --rpc_host 10.0.0.1 --list
+- [ ] mnp-payment --rpc_host 127.0.0.1 --list
+- [ ] mnp-payment --rpc_port 20000 --list
+- [ ] mnp-payment --rpc_port 18083 --list
+- [ ] mnp-payment --rpc_host 127.0.0.1 --rpc_port 18083 --list
+- [ ] mnp-payment --subaddr 0
+- [ ] mnp-payment -s 0
+- [ ] mnp-payment -s 1 --amount 999999
+- [ ] mnp-payment -subaddr 2 -x 999999
+- [ ] mnp-payment --newaddr
+- [ ] mnp-payment -n
+- [ ] mnp-payment --newaddr --amount 999999
+- [ ] echo 0000000000000001 | mnp-payment
+- [ ] echo 0000000000000002 | mnp-payment --amount 2222222
+- [ ] echo 0000000000000003 | mnp-payment -x 3333333
+
+## release
+
+- [ ] increase VERSION in globaldefs.h
+
+
