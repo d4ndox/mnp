@@ -94,9 +94,10 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp --rpc_host 10.0.0.1
 - [ ] mnp --rpc_port 20000
 - [ ] mnp --rpc_host 10.0.0.1 --rpc-port 20000
-- [ ] ```bash
+- [ ] test --spend-proof
+```bash
       echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof --message "Test Payment" --signature $(cat monero_spend_proof_message)
-      ```
+```
 - [ ] `echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof -m "Test Payment" -s $(cat monero_spend_proof_message)`
 - [ ] echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof --signature $(cat monero_spend_proof)
 - [ ] echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof -s $(cat monero_spend_proof)
