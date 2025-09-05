@@ -96,19 +96,23 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp --rpc_host 10.0.0.1 --rpc-port 20000
 - [ ] test --spend-proof long option
 ```bash
-      echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof --message "Test Payment" --signature $(cat monero_spend_proof_message)
+      mnp --spend-proof --signature $(cat spend-proof-message) --message "test" d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31
+      echo d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31 | mnp --spend-proof --signature $(cat monero_spend_proof_message) -message "test"
 ```
 - [ ] test --spend-proof short option
 ```bash
-      echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof -m "Test Payment" -s $(cat monero_spend_proof_message)
+      mnp --spend-proof -s $(cat spend-proof-message) -m "test" d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31
+      echo d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31 | mnp --spend-proof -s $(cat monero_spend_proof_message) -m "test" 
 ```
 - [ ] test --spend-proof no message long option
 ```bash
-      echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof --signature $(cat monero_spend_proof)
+      mnp --spend-proof --signature $(cat spend_proof) 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9
+      echo 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9 | mnp --spend-proof --signature $(cat spend_proof)
 ```
 - [ ] test --spend-proof no message short option
 ```bash
-      echo ff302c0df12b76118531cce1a95920c707ef7795893911f0e07fe78b61473967 | mnp --spend-proof -s $(cat monero_spend_proof)
+      mnp --spend-proof -s $(cat spend_proof) 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9
+      echo 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9 | mnp --spend-proof -s $(cat spend_proof)
 ```
 
 ## mnpd
@@ -149,8 +153,11 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp-payment -n
 - [ ] mnp-payment --newaddr --amount 999999
 - [ ] echo 0000000000000001 | mnp-payment
+- [ ] mnp-payment 0000000000000001
 - [ ] echo 0000000000000002 | mnp-payment --amount 2222222
+- [ ] mnp-payment --amount 2222222 0000000000000002
 - [ ] echo 0000000000000003 | mnp-payment -x 3333333
+- [ ] mnp-payment -x 3333333 0000000000000003
 
 ## release
 
