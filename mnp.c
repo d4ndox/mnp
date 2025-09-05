@@ -25,6 +25,7 @@
 
 /* std. c libraries */
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ftw.h>
@@ -93,6 +94,7 @@ static char *payid(const struct rpc_wallet *monero_wallet);
 static char *confirm(const struct rpc_wallet *monero_wallet);
 static char *locked(const struct rpc_wallet *monero_wallet);
 static char *proof(const struct rpc_wallet *monero_wallet);
+static int isValidTxid(const char *s); 
 
 
 /**
@@ -259,43 +261,42 @@ int main(int argc, char **argv)
         verbose = atoi(config.mnp_verbose);
     }
 
+
     if (init == 0 && cleanup == 0) {
-        if (optind < argc) {
-            txid = (char *)argv[optind];
+        if (optind < argc && isValidTxid(argv[optind])) {
+            txid = strndup(argv[optind], MAX_TXID_SIZE);
         }
         if (txid == NULL) {
+            txid_from_stdin = 1;
             txid = readStdin();
-            if (txid != NULL) {
-                txid_from_stdin = 1;
-            } else {
+            if (!isValidTxid(txid)) {
                 syslog(LOG_USER | LOG_ERR, "No input data or invalid txid. fread: %s", strerror(errno));
                 fprintf(stderr, "mnp:readStdin: No input data or invalid txid. fread: %s\n", strerror(errno));
                 ret = EXIT_FAILURE;
-                usage(EXIT_FAILURE);
                 goto cleanup;
             }
         }
 
-        FILE *file = fopen(TMP_TXID_FILE, "a+");
-        if (file == NULL) {
-            perror("Error opening tmp file");
-            ret = EXIT_FAILURE;
-            goto cleanup;
-        }
-
-        /* Test, if the current txid is already existing in temp file */
-        char line[MAX_TXID_SIZE + 1];
-        int txid_found = 0;
-        while (fgets(line, sizeof(line), file)) {
-            line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
-            if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
-                txid_found = 1;
-                break;
+        if (sp_proof == 0 && tx_proof == 0) {
+            FILE *file = fopen(TMP_TXID_FILE, "a+");
+            if (file == NULL) {
+                fprintf(stderr, "Error opening tmp file.\n");
+                ret = EXIT_FAILURE;
+                goto cleanup;
             }
-        }
 
-        /* If the current txid is not found in temp file, add it to the file */
-        if (sp_proof == 0) {
+            /* Test, if the current txid is already existing in temp file */
+            char line[MAX_TXID_SIZE + 1];
+            int txid_found = 0;
+            while (fgets(line, sizeof(line), file)) {
+                line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
+                if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
+                    txid_found = 1;
+                    break;
+                }
+            }
+
+            /* If the current txid is not found in temp file, add it to the file */
             if (!txid_found) {
                 fprintf(file, "%s\n", txid);
                 fclose(file);
@@ -346,7 +347,6 @@ int main(int argc, char **argv)
         monero_wallet[i].reply = NULL;
     }
 
-
     for (int i = 0; i < END_RPC_SIZE; i++) {
 
         if (account != NULL) {
@@ -354,6 +354,7 @@ int main(int argc, char **argv)
         } else {
             monero_wallet[i].account = strndup("0", MAX_DATA_SIZE);
         }
+
         if (rpc_host != NULL) {
             monero_wallet[i].host = strndup(rpc_host, MAX_DATA_SIZE);
         } else {
@@ -362,6 +363,7 @@ int main(int argc, char **argv)
             ret = EXIT_FAILURE;
             goto cleanup;
         }
+
         if (rpc_port != NULL) {
             monero_wallet[i].port = strndup(rpc_port, MAX_DATA_SIZE);
         } else {
@@ -370,6 +372,7 @@ int main(int argc, char **argv)
             ret = EXIT_FAILURE;
             goto cleanup;
         }
+
         if (rpc_user != NULL) {
             monero_wallet[i].user = strndup(rpc_user, MAX_DATA_SIZE);
         } else {
@@ -378,6 +381,7 @@ int main(int argc, char **argv)
             ret = EXIT_FAILURE;
             goto cleanup;
         }
+
         if (rpc_password != NULL) {
             monero_wallet[i].pwd = strndup(rpc_password, MAX_DATA_SIZE);
         } else {
@@ -386,18 +390,15 @@ int main(int argc, char **argv)
             ret = EXIT_FAILURE;
             goto cleanup;
         }
+
         if (txid != NULL) {
             monero_wallet[i].txid = strndup(txid, MAX_TXID_SIZE);
-            if (txid_from_stdin) {
-                free(txid);
-                txid = NULL;
-        }
         } else if (cleanup == 1 || init == 1) {
             monero_wallet[i].txid = strndup("no_tx", MAX_TXID_SIZE);
             if (txid_from_stdin) {
                 free(txid);
                 txid = NULL;
-        }
+            }
         } else {
             syslog(LOG_USER | LOG_ERR, "txid is missing\n");
             fprintf(stderr, "mnp: txid is missing\n");
@@ -409,20 +410,21 @@ int main(int argc, char **argv)
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");
 
+
     /*****
      * TEST for --spend-proof OR --tx-proof
      *
      *
      * ****
      */
-    if ((sp_proof == 1) || (tx_proof == 1))
-    {
+    if (sp_proof == 1) {
         if (message != NULL) {
             monero_wallet[CHECK_SPEND_PROOF].message = strndup(message, MAX_DATA_SIZE);
             fprintf(stdout, "message = %s\n", monero_wallet[CHECK_SPEND_PROOF].message);
 
         }
         if (signature == NULL) {
+            fprintf(stdout, "signature = NULL\n");
             ret = EXIT_FAILURE;
             goto cleanup;
         }
@@ -438,11 +440,49 @@ int main(int argc, char **argv)
             goto cleanup;
         }
         monero_wallet[CHECK_SPEND_PROOF].proof = proof(&monero_wallet[CHECK_SPEND_PROOF]);
+
         if (strcmp(monero_wallet[CHECK_SPEND_PROOF].proof, "true")) {
-                ret = EXIT_SUCCESS;
+                fprintf(stdout, "false\n");
+                ret = EXIT_FAILURE;
                 goto cleanup;
         } else {
+                fprintf(stdout, "true\n");
+                ret = EXIT_SUCCESS;
+                goto cleanup;
+        }
+    }
+
+    if (tx_proof == 1) {
+        if (message != NULL) {
+            monero_wallet[CHECK_TX_PROOF].message = strndup(message, MAX_DATA_SIZE);
+            fprintf(stdout, "message = %s\n", monero_wallet[CHECK_TX_PROOF].message);
+
+        }
+        if (signature == NULL) {
+            fprintf(stdout, "signature = NULL\n");
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+        monero_wallet[CHECK_TX_PROOF].signature = strndup(signature, MAX_DATA_SIZE);
+
+        int ret2 = 0;
+        if (0 > (ret2 = rpc_call(&monero_wallet[CHECK_TX_PROOF]))) {
+            syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[CHECK_TX_PROOF].host,
+                                                                           monero_wallet[CHECK_TX_PROOF].port);
+            fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[CHECK_TX_PROOF].host,
+                                                                       monero_wallet[CHECK_TX_PROOF].port);
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+//        monero_wallet[CHECK_TX_PROOF].proof = txproof(&monero_wallet[CHECK_TX_PROOF]);
+
+        if (strcmp(monero_wallet[CHECK_TX_PROOF].proof, "true")) {
+                fprintf(stdout, "false\n");
                 ret = EXIT_FAILURE;
+                goto cleanup;
+        } else {
+                fprintf(stdout, "true\n");
+                ret = EXIT_SUCCESS;
                 goto cleanup;
         }
     }
@@ -656,6 +696,29 @@ cleanup:
     if (ini) free(ini);
     closelog();
     exit(ret);
+}
+
+
+/**
+ * @brief Checks whether a string is a valid Monero TXID.
+ *
+ * A valid TXID must consist of exactly 64 characters,
+ * all of which must be hexadecimal digits (0–9, a–f, A–F).
+ *
+ * @param s Pointer to the string to check.
+ *          May be NULL, in which case the check fails.
+ *
+ * @return 1 if the string is a valid TXID.
+ * @return 0 if the string is NULL, not 64 characters long,
+ *         or contains non-hexadecimal characters.
+ */
+static int isValidTxid(const char *s) {
+    if (!s) return 0;
+    if (strlen(s) != MAX_TXID_SIZE) return 0;
+    for (int i = 0; i < MAX_TXID_SIZE; i++) {
+        if (!isxdigit((unsigned char)s[i])) return 0;
+    }
+    return 1;
 }
 
 
