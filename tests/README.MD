@@ -94,25 +94,15 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp --rpc_host 10.0.0.1
 - [ ] mnp --rpc_port 20000
 - [ ] mnp --rpc_host 10.0.0.1 --rpc-port 20000
-- [ ] test --spend-proof long option
+- [ ] test --spend-proof
 ```bash
       mnp --spend-proof --signature $(cat monero_spend_proof_message) --message "test" 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
       echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof --signature $(cat monero_spend_proof_message) --message "test"
 ```
-- [ ] test --spend-proof short option
-```bash
-      mnp --spend-proof -s $(cat monero_spend_proof_message) -m "test" 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
-      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof -s $(cat monero_spend_proof_message) -m "test" 
-```
-- [ ] test --spend-proof no message long option
+- [ ] test --spend-proof no message
 ```bash
       mnp --spend-proof --signature $(cat monero_spend_proof) 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
       echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof --signature $(cat monero_spend_proof)
-```
-- [ ] test --spend-proof no message short option
-```bash
-      mnp --spend-proof -s $(cat monero_spend_proof) 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
-      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof -s $(cat monero_spend_proof)
 ```
 - [ ] test --tx-proof no message long option
 ```bash
