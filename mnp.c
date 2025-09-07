@@ -70,6 +70,7 @@ static const struct option options[] = {
     {"confirmation" , required_argument, NULL, 'n'},
     {"message"      , required_argument, NULL, 'm'},
     {"signature"    , required_argument, NULL, 'g'},
+    {"address"      , required_argument, NULL, 'd'},
     {"spend-proof"  , no_argument      , NULL, 's'},
     {"tx-proof"     , no_argument      , NULL, 'x'},
     {"init"         , no_argument      , NULL, 't'},
@@ -79,7 +80,7 @@ static const struct option options[] = {
     {NULL, 0, NULL, 0}
 };
 
-static const char *optstring = ":hu:r:i:p:a:w:o:n:m:g:sxtcv";
+static const char *optstring = ":hu:r:i:p:a:w:o:n:m:g:d:sxtcv";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
@@ -94,6 +95,8 @@ static char *payid(const struct rpc_wallet *monero_wallet);
 static char *confirm(const struct rpc_wallet *monero_wallet);
 static char *locked(const struct rpc_wallet *monero_wallet);
 static char *proof(const struct rpc_wallet *monero_wallet);
+static char *proof_confirm(const struct rpc_wallet *monero_wallet);
+static char *proof_received(const struct rpc_wallet *monero_wallet);
 static int isValidTxid(const char *s); 
 
 
@@ -135,6 +138,7 @@ int main(int argc, char **argv)
     char *txId = NULL;
     char *message = NULL;
     char *signature = NULL;
+    char *adr = NULL;
     int sp_proof = 0;
     int tx_proof = 0;
     int init = 0;
@@ -205,6 +209,9 @@ int main(int argc, char **argv)
                 break;
             case 'g':
                 signature = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'd':
+                adr = strndup(optarg, MAX_DATA_SIZE);
                 break;
             case 'm':
                 message = strndup(optarg, MAX_DATA_SIZE);
@@ -413,18 +420,15 @@ int main(int argc, char **argv)
 
     /*****
      * TEST for --spend-proof OR --tx-proof
-     *
-     *
      * ****
      */
     if (sp_proof == 1) {
         if (message != NULL) {
             monero_wallet[CHECK_SPEND_PROOF].message = strndup(message, MAX_DATA_SIZE);
-            fprintf(stdout, "message = %s\n", monero_wallet[CHECK_SPEND_PROOF].message);
-
         }
         if (signature == NULL) {
-            fprintf(stdout, "signature = NULL\n");
+            fprintf(stdout, "signature = NULL. --signature option is required using --spend-proof OR --tx-proof\n");
+            usage(EXIT_FAILURE);
             ret = EXIT_FAILURE;
             goto cleanup;
         }
@@ -455,15 +459,26 @@ int main(int argc, char **argv)
     if (tx_proof == 1) {
         if (message != NULL) {
             monero_wallet[CHECK_TX_PROOF].message = strndup(message, MAX_DATA_SIZE);
-            fprintf(stdout, "message = %s\n", monero_wallet[CHECK_TX_PROOF].message);
-
         }
         if (signature == NULL) {
-            fprintf(stdout, "signature = NULL\n");
+            fprintf(stdout, "signature = NULL. --signature option is required using --spend-proof OR --tx-proof\n");
+            usage(EXIT_FAILURE);
             ret = EXIT_FAILURE;
             goto cleanup;
         }
+        if (adr == NULL) {
+            fprintf(stdout, "address = NULL. --address option is required using --tx-proof\n");
+            usage(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+
         monero_wallet[CHECK_TX_PROOF].signature = strndup(signature, MAX_DATA_SIZE);
+//      monero_wallet[CHECK_TX_PROOF].saddr = strndup(adr, MAX_ADDR_SIZE);
+        monero_wallet[CHECK_TX_PROOF].saddr = strndup(adr, MAX_DATA_SIZE);
+        if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].txid = %s\n", monero_wallet[CHECK_TX_PROOF].txid);
+        if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].saddr = %s\n", monero_wallet[CHECK_TX_PROOF].saddr);
+        if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].signature = %s\n", monero_wallet[CHECK_TX_PROOF].signature);
 
         int ret2 = 0;
         if (0 > (ret2 = rpc_call(&monero_wallet[CHECK_TX_PROOF]))) {
@@ -474,14 +489,15 @@ int main(int argc, char **argv)
             ret = EXIT_FAILURE;
             goto cleanup;
         }
-//        monero_wallet[CHECK_TX_PROOF].proof = txproof(&monero_wallet[CHECK_TX_PROOF]);
+        monero_wallet[CHECK_TX_PROOF].proof = proof(&monero_wallet[CHECK_TX_PROOF]);
+        monero_wallet[CHECK_TX_PROOF].conf = proof_confirm(&monero_wallet[CHECK_TX_PROOF]);
+        monero_wallet[CHECK_TX_PROOF].amount = proof_received(&monero_wallet[CHECK_TX_PROOF]);
+        fprintf(stdout,"%s\t%s\n", monero_wallet[CHECK_TX_PROOF].conf, monero_wallet[CHECK_TX_PROOF].amount);
 
         if (strcmp(monero_wallet[CHECK_TX_PROOF].proof, "true")) {
-                fprintf(stdout, "false\n");
                 ret = EXIT_FAILURE;
                 goto cleanup;
         } else {
-                fprintf(stdout, "true\n");
                 ret = EXIT_SUCCESS;
                 goto cleanup;
         }
@@ -852,6 +868,42 @@ static char *proof(const struct rpc_wallet *monero_wallet)
 
 
 /**
+ * Extracts the confirmations from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the amount of  confirmation, or NULL if the extraction fails.
+ */
+static char *proof_confirm(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    /* TODO: TEST for != NULL */ 
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *confirmations = cJSON_GetObjectItem(result, "confirmations");
+
+    return cJSON_Print(confirmations);
+}
+
+
+/**
+ * Extracts the received amount of piconerp from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the amount of piconero received, or NULL if the extraction fails.
+ */
+static char *proof_received(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    /* TODO: TEST for != NULL */ 
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *amount = cJSON_GetObjectItem(result, "received");
+
+    return cJSON_Print(amount);
+}
+
+
+/**
  * Prints user help information.
  *
  * @param status The status code to determine the output stream (0 for success, non-zero for error).
@@ -887,13 +939,15 @@ static void usage(int status)
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
     "      --spend-proof\n"
-    "               check spend proof.\n\n"
+    "               check spend proof. --signature required.\n\n"
     "      --tx-proof\n"
-    "               check transaction proof.\n\n"
-    "  -s, --signature [SIGNATURE]\n"
+    "               check transaction proof. --signature and --address required.\n\n"
+    "      --signature [SIGNATURE]\n"
     "               signature used by tx-proof or spend-proof.\n\n"
-    "  -m, --message [MESSAGE]\n"
+    "      --message [MESSAGE]\n"
     "               message used by tx-proof or spend-proof.\n\n"
+    "      --address [RECEIVEING ADDRESS]\n"
+    "               receiving address used by --tx-proof.\n\n"
     "      --init\n"
     "               create workdir for usage.\n\n"
     "      --cleanup\n"
