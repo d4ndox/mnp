@@ -136,6 +136,20 @@ int rpc_call(struct rpc_wallet *monero_wallet)
               if (cJSON_AddStringToObject(rpc_params, "signature",
                           monero_wallet->signature) == NULL) ret = -1;
             break;
+        case CHECK_TX_PROOF:
+              if (cJSON_AddNumberToObject(rpc_params, "account_index",
+                          atoi(monero_wallet->account)) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "txid",
+                          monero_wallet->txid) == NULL) ret = -1;
+              if (cJSON_AddStringToObject(rpc_params, "address",
+                          monero_wallet->saddr) == NULL) ret = -1;
+              if (monero_wallet->message != NULL) {
+                    if (cJSON_AddStringToObject(rpc_params, "message",
+                        monero_wallet->message) == NULL) ret = -1;
+              }
+              if (cJSON_AddStringToObject(rpc_params, "signature",
+                          monero_wallet->signature) == NULL) ret = -1;
+            break;
         default:
             rpc_params = NULL;
             break;
