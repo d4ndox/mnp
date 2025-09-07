@@ -94,30 +94,7 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp --rpc_host 10.0.0.1
 - [ ] mnp --rpc_port 20000
 - [ ] mnp --rpc_host 10.0.0.1 --rpc-port 20000
-- [ ] test --spend-proof
-```bash
-      mnp --spend-proof --signature $(cat monero_spend_proof_message) --message "test" 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
-      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof --signature $(cat monero_spend_proof_message) --message "test"
-```
-- [ ] test --spend-proof no message
-```bash
-      mnp --spend-proof --signature $(cat monero_spend_proof) 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
-      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof --signature $(cat monero_spend_proof)
-```
-- [ ] test --tx-proof no message long option
-```bash
-      mnp --tx-proof --address Bcwr43fNrww2WqcbB58juxbJCra47TyMaEsteVXTsYWCZLgzPTx4nVqgvj9PznzETxZ7TNxNyRbuVh3wowv58gz4BM3CCEg --signature $(cat monero_tx_proof) c6b256333295de891ac9768e637706f4c345775d543cff2e7ccc900b3929f214
-      echo 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9 | mnp --spend-proof -s $(cat spend_proof)
-
-echo c6b256333295de891ac9768e637706f4c345775d543cff2e7ccc900b3929f214 | mnp --tx-proof --address Bcwr43fNrww2WqcbB58juxbJCra47TyMaEsteVXTsYWCZLgzPTx4nVqgvj9PznzETxZ7TNxNyRbuVh3wowv58gz4BM3CCEg --signature $(cat monero_tx_proof)
-```
-- [ ] test --tx-proof + message long option
-```bash
-      mnp --tx-proof --address Bcwr43fNrww2WqcbB58juxbJCra47TyMaEsteVXTsYWCZLgzPTx4nVqgvj9PznzETxZ7TNxNyRbuVh3wowv58gz4BM3CCEg --signature $(cat monero_tx_proof) c6b256333295de891ac9768e637706f4c345775d543cff2e7ccc900b3929f214
-      echo 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9 | mnp --spend-proof -s $(cat spend_proof)
-
-echo c6b256333295de891ac9768e637706f4c345775d543cff2e7ccc900b3929f214 | mnp --tx-proof --address Bcwr43fNrww2WqcbB58juxbJCra47TyMaEsteVXTsYWCZLgzPTx4nVqgvj9PznzETxZ7TNxNyRbuVh3wowv58gz4BM3CCEg --signature $(cat monero_tx_proof)
-```
+- [ ] test --spend-proof AND --tx-proof see [link](https://github.com/d4ndox/mnp/wiki/Check-Spend-Proof-(in-development)).
 
 ## mnpd
 
