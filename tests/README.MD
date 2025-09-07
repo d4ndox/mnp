@@ -96,23 +96,23 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp --rpc_host 10.0.0.1 --rpc-port 20000
 - [ ] test --spend-proof long option
 ```bash
-      mnp --spend-proof --signature $(cat spend-proof-message) --message "test" d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31
-      echo d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31 | mnp --spend-proof --signature $(cat monero_spend_proof_message) -message "test"
+      mnp --spend-proof --signature $(cat monero_spend_proof_message) --message "test" 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
+      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof --signature $(cat monero_spend_proof_message) -message "test"
 ```
 - [ ] test --spend-proof short option
 ```bash
-      mnp --spend-proof -s $(cat spend-proof-message) -m "test" d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31
-      echo d92f0f04e275df7137cad55cd984ecd64733aae77e58dd5099a8fce0c83e3c31 | mnp --spend-proof -s $(cat monero_spend_proof_message) -m "test" 
+      mnp --spend-proof -s $(cat monero_spend_proof_message) -m "test" 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
+      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof -s $(cat monero_spend_proof_message) -m "test" 
 ```
 - [ ] test --spend-proof no message long option
 ```bash
-      mnp --spend-proof --signature $(cat spend_proof) 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9
-      echo 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9 | mnp --spend-proof --signature $(cat spend_proof)
+      mnp --spend-proof --signature $(cat monero_spend_proof) 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
+      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof --signature $(cat monero_spend_proof)
 ```
 - [ ] test --spend-proof no message short option
 ```bash
-      mnp --spend-proof -s $(cat spend_proof) 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9
-      echo 11ed34037e69d7f3b17803c836b467f439f02463d47612a8685d3bfd0efbc6e9 | mnp --spend-proof -s $(cat spend_proof)
+      mnp --spend-proof -s $(cat monero_spend_proof) 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3
+      echo 563bd8ddd9a03adec948673aee6d8ed87b400662d8dab81d19404c6f59da4fa3 | mnp --spend-proof -s $(cat monero_spend_proof)
 ```
 - [ ] test --tx-proof no message long option
 ```bash
