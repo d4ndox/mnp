@@ -51,6 +51,7 @@
 #include "delquotes.h"
 #include "globaldefs.h"
 #include "rpc_call.h"
+#include "validate.h"
 #include "wallet.h"
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
@@ -270,18 +271,20 @@ int main(int argc, char **argv)
 
 
     if (init == 0 && cleanup == 0) {
-        if (optind < argc && isValidTxid(argv[optind])) {
+        if (optind < argc) {
             txid = strndup(argv[optind], MAX_TXID_SIZE);
         }
         if (txid == NULL) {
             txid_from_stdin = 1;
             txid = readStdin();
-            if (!isValidTxid(txid)) {
+        }
+  
+        int valid =  val_hex_input(txid, MAX_TXID_SIZE);
+        if(valid < 0) {
                 syslog(LOG_USER | LOG_ERR, "No input data or invalid txid. fread: %s", strerror(errno));
-                fprintf(stderr, "mnp:readStdin: No input data or invalid txid. fread: %s\n", strerror(errno));
+                fprintf(stderr, "No input data or invalid txid. fread: %s\n", strerror(errno));
                 ret = EXIT_FAILURE;
                 goto cleanup;
-            }
         }
 
         if (sp_proof == 0 && tx_proof == 0) {
@@ -474,8 +477,8 @@ int main(int argc, char **argv)
         }
 
         monero_wallet[CHECK_TX_PROOF].signature = strndup(signature, MAX_DATA_SIZE);
-//      monero_wallet[CHECK_TX_PROOF].saddr = strndup(adr, MAX_ADDR_SIZE);
-        monero_wallet[CHECK_TX_PROOF].saddr = strndup(adr, MAX_DATA_SIZE);
+        monero_wallet[CHECK_TX_PROOF].saddr = strndup(adr, MAX_ADDR_SIZE);
+
         if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].txid = %s\n", monero_wallet[CHECK_TX_PROOF].txid);
         if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].saddr = %s\n", monero_wallet[CHECK_TX_PROOF].saddr);
         if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].signature = %s\n", monero_wallet[CHECK_TX_PROOF].signature);
@@ -716,29 +719,6 @@ cleanup:
 
 
 /**
- * @brief Checks whether a string is a valid Monero TXID.
- *
- * A valid TXID must consist of exactly 64 characters,
- * all of which must be hexadecimal digits (0–9, a–f, A–F).
- *
- * @param s Pointer to the string to check.
- *          May be NULL, in which case the check fails.
- *
- * @return 1 if the string is a valid TXID.
- * @return 0 if the string is NULL, not 64 characters long,
- *         or contains non-hexadecimal characters.
- */
-static int isValidTxid(const char *s) {
-    if (!s) return 0;
-    if (strlen(s) != MAX_TXID_SIZE) return 0;
-    for (int i = 0; i < MAX_TXID_SIZE; i++) {
-        if (!isxdigit((unsigned char)s[i])) return 0;
-    }
-    return 1;
-}
-
-
-/**
  * Extracts the amount from the Monero wallet RPC response.
  *
  * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
@@ -938,16 +918,19 @@ static void usage(int status)
     "               3, unlocked\n\n"
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
+    "      ########################################################\n\n"
     "      --spend-proof\n"
-    "               check spend proof. --signature required.\n\n"
+    "               check spend proof. SIGNATURE is required.\n\n"
     "      --tx-proof\n"
-    "               check transaction proof. --signature and --address required.\n\n"
+    "               check transaction proof.\n"
+    "               SIGNATURE and ADDRESS is required.\n\n"
     "      --signature [SIGNATURE]\n"
-    "               signature used by tx-proof or spend-proof.\n\n"
+    "               required by --tx-proof or --spend-proof.\n\n"
+    "      --address [ADDRESS]\n"
+    "               required by --tx-proof.\n\n"
     "      --message [MESSAGE]\n"
-    "               message used by tx-proof or spend-proof.\n\n"
-    "      --address [RECEIVEING ADDRESS]\n"
-    "               receiving address used by --tx-proof.\n\n"
+    "               optinal used by --tx-proof or --spend-proof.\n\n"
+    "      ########################################################\n\n"
     "      --init\n"
     "               create workdir for usage.\n\n"
     "      --cleanup\n"
