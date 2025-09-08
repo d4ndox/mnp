@@ -25,7 +25,6 @@
 
 /* std. c libraries */
 #include <assert.h>
-#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ftw.h>
@@ -951,7 +950,8 @@ static void usage(int status)
 /**
  * Reads the transaction ID from standard input.
  *
- * @return A dynamically allocated string containing the payment ID read from stdin, or NULL if an error occurs.
+ * @return A dynamically allocated string containing the 
+ * transsaction ID read from stdin, or NULL if an error occurs.
  */
 static char *readStdin(void)
 {
