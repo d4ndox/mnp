@@ -25,6 +25,7 @@
 
 /* std. c libraries */
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ftw.h>
@@ -355,7 +356,7 @@ int main(int argc, char **argv)
      * returns uri with new integrated adddress + paymentid + amount
      */
     if (paymentId != NULL) {
-        if (strlen(paymentId) != 16) {
+        if (val_hex_input(paymentId, MAX_PAYID_SIZE) < 0) {
             fprintf(stderr, "Invalid payment Id. (16 characters hex)\n");
             exit(EXIT_FAILURE);
         }
