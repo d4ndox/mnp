@@ -25,6 +25,7 @@
 
 /* std. c libraries */
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ftw.h>
@@ -135,6 +136,7 @@ int main(int argc, char **argv)
                 break;
             case 'i':
                 rpc_host = strndup(optarg, MAX_DATA_SIZE);
+                break;
 	    case 'p':
                 rpc_port = strndup(optarg, MAX_DATA_SIZE);
                 break;
@@ -182,7 +184,7 @@ int main(int argc, char **argv)
         rpc_port = strndup(config.rpc_port, MAX_DATA_SIZE);
     }
 
-    if (!(list == 1 || (subaddr > 0) || (new == 1))) {
+    if (!(list == 1 || (subaddr >= 0) || (new == 1))) {
         if (optind < argc) {
             paymentId = (char *)argv[optind];
         }
@@ -354,7 +356,7 @@ int main(int argc, char **argv)
      * returns uri with new integrated adddress + paymentid + amount
      */
     if (paymentId != NULL) {
-        if (strlen(paymentId) != 16) {
+        if (val_hex_input(paymentId, MAX_PAYID_SIZE) < 0) {
             fprintf(stderr, "Invalid payment Id. (16 characters hex)\n");
             exit(EXIT_FAILURE);
         }

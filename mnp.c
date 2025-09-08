@@ -50,6 +50,7 @@
 #include "delquotes.h"
 #include "globaldefs.h"
 #include "rpc_call.h"
+#include "validate.h"
 #include "wallet.h"
 
 /* verbose is extern @ globaldefs.h. Be noisy.*/
@@ -67,6 +68,11 @@ static const struct option options[] = {
     {"workdir"      , required_argument, NULL, 'w'},
     {"notify-at"    , required_argument, NULL, 'o'},
     {"confirmation" , required_argument, NULL, 'n'},
+    {"message"      , required_argument, NULL, 'm'},
+    {"signature"    , required_argument, NULL, 'g'},
+    {"address"      , required_argument, NULL, 'd'},
+    {"spend-proof"  , no_argument      , NULL, 's'},
+    {"tx-proof"     , no_argument      , NULL, 'x'},
     {"init"         , no_argument      , NULL, 't'},
     {"cleanup"      , no_argument      , NULL, 'c'},
     {"version"      , no_argument      , NULL, 'v'},
@@ -74,7 +80,7 @@ static const struct option options[] = {
     {NULL, 0, NULL, 0}
 };
 
-static char *optstring = "hu:r:i:p:a:w:o:n:tcvl";
+static const char *optstring = ":hu:r:i:p:a:w:o:n:m:g:d:sxtcv";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
@@ -88,6 +94,9 @@ static char *address(const struct rpc_wallet *monero_wallet);
 static char *payid(const struct rpc_wallet *monero_wallet);
 static char *confirm(const struct rpc_wallet *monero_wallet);
 static char *locked(const struct rpc_wallet *monero_wallet);
+static char *proof(const struct rpc_wallet *monero_wallet);
+static char *proof_confirm(const struct rpc_wallet *monero_wallet);
+static char *proof_received(const struct rpc_wallet *monero_wallet);
 
 
 /**
@@ -110,6 +119,7 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
 
     /* variables are set by getopt and/or config parser handler()*/
+    char *locked0 = "true";
     int opt, lindex = -1;
     char *rpc_user = NULL;
     char *rpc_password = NULL;
@@ -117,44 +127,54 @@ int main(int argc, char **argv)
     char *rpc_port = NULL;
     char *account = NULL;
 
+    struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
+    if (!monero_wallet) { perror("malloc"); exit(EXIT_FAILURE); }
+
     char *txid = NULL;
+    int txid_from_stdin = 0;
     char *workdir = NULL;
     char *txdir = NULL;
     char *txId = NULL;
-    char *locked0 = "true";
+    char *message = NULL;
+    char *signature = NULL;
+    char *adr = NULL;
+    int sp_proof = 0;
+    int tx_proof = 0;
     int init = 0;
     int cleanup = 0;
     int confirmation = 0;
     int notify = CONFIRMED;
+    int ret = EXIT_FAILURE;
+    int fd = -1;
 
     /* prepare for reading the config ini file */
     const char *homedir;
 
-    if ((homedir = getenv("home")) == NULL) {
+    if ((homedir = getenv("HOME")) == NULL) {
         homedir = getpwuid(getuid())->pw_dir;
     }
 
     char *ini = NULL;
     char *home = strndup(homedir, MAX_DATA_SIZE);
     asprintf(&ini, "%s/%s", home, CONFIG_FILE);
-    free(home);
 
     /* parse config ini file */
     struct Config config;
+    memset(&config, 0, sizeof config);
 
     if (ini_parse(ini, handler, &config) < 0) {
         fprintf(stderr, "Can't load %s. try make install\n", ini);
         syslog(LOG_USER | LOG_ERR, "Can't load %s. Try: make install\n", ini);
-        exit(EXIT_FAILURE);
+        goto cleanup;
     }
-    free(ini);
 
    /* get command line options */
     while((opt = getopt_long(argc, argv, optstring, options, &lindex)) != -1) {
         switch(opt) {
             case 'h':
 	        usage(EXIT_SUCCESS);
-		exit(EXIT_SUCCESS);
+                ret = EXIT_SUCCESS;
+                goto cleanup;
                 break;
 	    case 'u':
                 rpc_user = strndup(optarg, MAX_DATA_SIZE);
@@ -164,6 +184,7 @@ int main(int argc, char **argv)
                 break;
             case 'i':
                 rpc_host = strndup(optarg, MAX_DATA_SIZE);
+                break;
 	    case 'p':
                 rpc_port = strndup(optarg, MAX_DATA_SIZE);
                 break;
@@ -178,12 +199,27 @@ int main(int argc, char **argv)
                 if (notify > UNLOCKED) {
                     syslog(LOG_USER | LOG_ERR, "--notify-at out of range [0,1,2,3]");
                     fprintf(stderr, "mnp: --notify-at out of range [0,1,2,3]\n");
-                    closelog();
-                    exit(EXIT_FAILURE);
+                    ret = EXIT_FAILURE;
+                    goto cleanup;
                 }
                 break;
             case 'n':
                 confirmation = atoi(optarg);
+                break;
+            case 'g':
+                signature = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'd':
+                adr = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 'm':
+                message = strndup(optarg, MAX_DATA_SIZE);
+                break;
+            case 's':
+                sp_proof = 1;
+                break;
+            case 'x':
+                tx_proof = 1;
                 break;
             case 't':
                 init = 1;
@@ -193,10 +229,22 @@ int main(int argc, char **argv)
                 break;
             case 'v':
                 printmnp();
-                exit(EXIT_SUCCESS);
+                ret = EXIT_SUCCESS;
+                goto cleanup;
                 break;
             case 0:
 	        break;
+            case ':':  /* missing argument */
+                fprintf(stderr, "option -%c requires an argument\n", optopt);
+                usage(EXIT_FAILURE);
+                ret = EXIT_FAILURE;
+                goto cleanup;
+                break;
+            case '?':  /* missing Argument */
+                usage(EXIT_SUCCESS);
+                ret = EXIT_SUCCESS;
+                goto cleanup;
+                break;
             default:
 	        break;
         }
@@ -219,37 +267,51 @@ int main(int argc, char **argv)
         verbose = atoi(config.mnp_verbose);
     }
 
+
     if (init == 0 && cleanup == 0) {
         if (optind < argc) {
-            txid = (char *)argv[optind];
+            txid = strndup(argv[optind], MAX_TXID_SIZE);
         }
         if (txid == NULL) {
+            txid_from_stdin = 1;
             txid = readStdin();
         }
-
-        FILE *file = fopen(TMP_TXID_FILE, "a+");
-        if (file == NULL) {
-            perror("Error opening tmp file");
-            exit(EXIT_FAILURE);
+  
+        int valid =  val_hex_input(txid, MAX_TXID_SIZE);
+        if(valid < 0) {
+                syslog(LOG_USER | LOG_ERR, "No input data or invalid txid. fread: %s", strerror(errno));
+                fprintf(stderr, "No input data or invalid txid. fread: %s\n", strerror(errno));
+                ret = EXIT_FAILURE;
+                goto cleanup;
         }
 
-        /* Test, if the current txid is already existing in temp file */
-        char line[MAX_TXID_SIZE + 1];
-        int txid_found = 0;
-        while (fgets(line, sizeof(line), file)) {
-            line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
-            if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
-                txid_found = 1;
-                break;
+        if (sp_proof == 0 && tx_proof == 0) {
+            FILE *file = fopen(TMP_TXID_FILE, "a+");
+            if (file == NULL) {
+                fprintf(stderr, "Error opening tmp file.\n");
+                ret = EXIT_FAILURE;
+                goto cleanup;
             }
-        }
 
-        /* If the current txid is not found in temp file, add it to the file */
-        if (!txid_found) {
-            fprintf(file, "%s\n", txid);
-            fclose(file);
-        } else {
-            exit(EXIT_SUCCESS);
+            /* Test, if the current txid is already existing in temp file */
+            char line[MAX_TXID_SIZE + 1];
+            int txid_found = 0;
+            while (fgets(line, sizeof(line), file)) {
+                line[strcspn(line, "\n")] = '\0'; // Entferne das Zeilenumbruchzeichen
+                if (strncmp(line, txid, MAX_TXID_SIZE) == 0) {
+                    txid_found = 1;
+                    break;
+                }
+            }
+
+            /* If the current txid is not found in temp file, add it to the file */
+            if (!txid_found) {
+                fprintf(file, "%s\n", txid);
+                fclose(file);
+            } else {
+                ret = EXIT_SUCCESS;
+                goto cleanup;
+            }
         }
     }
 
@@ -258,17 +320,15 @@ int main(int argc, char **argv)
                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
 
-    perm = strndup(config.cfg_pipe, MAX_DATA_SIZE);
-    mode_t pmode = (((perm[0] == 'r') * 4 | (perm[1] == 'w') * 2 | (perm[2] == 'x')) << 6) |
-                   (((perm[3] == 'r') * 4 | (perm[4] == 'w') * 2 | (perm[5] == 'x')) << 3) |
-                   (((perm[6] == 'r') * 4 | (perm[7] == 'w') * 2 | (perm[8] == 'x')));
+    char *pipe_perm = strndup(config.cfg_pipe, MAX_DATA_SIZE);
+    mode_t pmode = (((pipe_perm[0] == 'r') * 4 | (pipe_perm[1] == 'w') * 2 | (pipe_perm[2] == 'x')) << 6) |
+                   (((pipe_perm[3] == 'r') * 4 | (pipe_perm[4] == 'w') * 2 | (pipe_perm[5] == 'x')) << 3) |
+                   (((pipe_perm[6] == 'r') * 4 | (pipe_perm[7] == 'w') * 2 | (pipe_perm[8] == 'x')));
 
     if (DEBUG) {
         syslog(LOG_USER | LOG_DEBUG, "mode_t = %03o and mode = %s\n", mode, config.cfg_mode);
         syslog(LOG_USER | LOG_DEBUG, "pipe mode_t = %03o and mode = %s\n", pmode, config.cfg_pipe);
     }
-
-    struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
 
     /* initialise monero_wallet with NULL */
     for (int i = 0; i < END_RPC_SIZE; i++) {
@@ -289,9 +349,11 @@ int main(int argc, char **argv)
         monero_wallet[i].locked = NULL;
         monero_wallet[i].fifo = NULL;
         monero_wallet[i].idx = 0;
+        monero_wallet[i].message = NULL;
+        monero_wallet[i].signature = NULL;
+        monero_wallet[i].proof = NULL;
         monero_wallet[i].reply = NULL;
     }
-
 
     for (int i = 0; i < END_RPC_SIZE; i++) {
 
@@ -300,52 +362,148 @@ int main(int argc, char **argv)
         } else {
             monero_wallet[i].account = strndup("0", MAX_DATA_SIZE);
         }
+
         if (rpc_host != NULL) {
             monero_wallet[i].host = strndup(rpc_host, MAX_DATA_SIZE);
         } else {
             syslog(LOG_USER | LOG_ERR, "rpc_host is missing");
             fprintf(stderr, "mnp: rpc_host is missing\n");
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
+
         if (rpc_port != NULL) {
             monero_wallet[i].port = strndup(rpc_port, MAX_DATA_SIZE);
         } else {
             syslog(LOG_USER | LOG_ERR, "rpc_port is missing");
             fprintf(stderr, "mnp: rpc_port is missing\n");
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
+
         if (rpc_user != NULL) {
             monero_wallet[i].user = strndup(rpc_user, MAX_DATA_SIZE);
         } else {
             syslog(LOG_USER | LOG_ERR, "rpc_user is missing");
             fprintf(stderr, "mnp: rpc_user is missing\n");
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
+
         if (rpc_password != NULL) {
             monero_wallet[i].pwd = strndup(rpc_password, MAX_DATA_SIZE);
         } else {
             syslog(LOG_USER | LOG_ERR, "rpc_password is missing");
             fprintf(stderr, "mnp: rpc_password is missing\n");
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
+
         if (txid != NULL) {
             monero_wallet[i].txid = strndup(txid, MAX_TXID_SIZE);
         } else if (cleanup == 1 || init == 1) {
             monero_wallet[i].txid = strndup("no_tx", MAX_TXID_SIZE);
+            if (txid_from_stdin) {
+                free(txid);
+                txid = NULL;
+            }
         } else {
             syslog(LOG_USER | LOG_ERR, "txid is missing\n");
             fprintf(stderr, "mnp: txid is missing\n");
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
     }
 
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");
+
+
+    /*****
+     * TEST for --spend-proof OR --tx-proof
+     * ****
+     */
+    if (sp_proof == 1) {
+        if (message != NULL) {
+            monero_wallet[CHECK_SPEND_PROOF].message = strndup(message, MAX_DATA_SIZE);
+        }
+        if (signature == NULL) {
+            fprintf(stdout, "signature = NULL. --signature option is required using --spend-proof OR --tx-proof\n");
+            usage(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+        monero_wallet[CHECK_SPEND_PROOF].signature = strndup(signature, MAX_DATA_SIZE);
+
+        int ret2 = 0;
+        if (0 > (ret2 = rpc_call(&monero_wallet[CHECK_SPEND_PROOF]))) {
+            syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[CHECK_SPEND_PROOF].host,
+                                                                           monero_wallet[CHECK_SPEND_PROOF].port);
+            fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[CHECK_SPEND_PROOF].host,
+                                                                       monero_wallet[CHECK_SPEND_PROOF].port);
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+        monero_wallet[CHECK_SPEND_PROOF].proof = proof(&monero_wallet[CHECK_SPEND_PROOF]);
+
+        if (strcmp(monero_wallet[CHECK_SPEND_PROOF].proof, "true")) {
+                fprintf(stdout, "false\n");
+                ret = EXIT_FAILURE;
+                goto cleanup;
+        } else {
+                fprintf(stdout, "true\n");
+                ret = EXIT_SUCCESS;
+                goto cleanup;
+        }
+    }
+
+    if (tx_proof == 1) {
+        if (message != NULL) {
+            monero_wallet[CHECK_TX_PROOF].message = strndup(message, MAX_DATA_SIZE);
+        }
+        if (signature == NULL) {
+            fprintf(stdout, "signature = NULL. --signature option is required using --spend-proof OR --tx-proof\n");
+            usage(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+        if (adr == NULL) {
+            fprintf(stdout, "address = NULL. --address option is required using --tx-proof\n");
+            usage(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+
+        monero_wallet[CHECK_TX_PROOF].signature = strndup(signature, MAX_DATA_SIZE);
+        monero_wallet[CHECK_TX_PROOF].saddr = strndup(adr, MAX_ADDR_SIZE);
+
+        if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].txid = %s\n", monero_wallet[CHECK_TX_PROOF].txid);
+        if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].saddr = %s\n", monero_wallet[CHECK_TX_PROOF].saddr);
+        if (DEBUG) fprintf(stdout, "monero_wallet[CHECK_TX_PROOF].signature = %s\n", monero_wallet[CHECK_TX_PROOF].signature);
+
+        int ret2 = 0;
+        if (0 > (ret2 = rpc_call(&monero_wallet[CHECK_TX_PROOF]))) {
+            syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[CHECK_TX_PROOF].host,
+                                                                           monero_wallet[CHECK_TX_PROOF].port);
+            fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[CHECK_TX_PROOF].host,
+                                                                       monero_wallet[CHECK_TX_PROOF].port);
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
+        monero_wallet[CHECK_TX_PROOF].proof = proof(&monero_wallet[CHECK_TX_PROOF]);
+        monero_wallet[CHECK_TX_PROOF].conf = proof_confirm(&monero_wallet[CHECK_TX_PROOF]);
+        monero_wallet[CHECK_TX_PROOF].amount = proof_received(&monero_wallet[CHECK_TX_PROOF]);
+        fprintf(stdout,"%s\t%s\n", monero_wallet[CHECK_TX_PROOF].conf, monero_wallet[CHECK_TX_PROOF].amount);
+
+        if (strcmp(monero_wallet[CHECK_TX_PROOF].proof, "true")) {
+                ret = EXIT_FAILURE;
+                goto cleanup;
+        } else {
+                ret = EXIT_SUCCESS;
+                goto cleanup;
+        }
+    }
+
     /* create workdir directory. TEST if directory does exist */
     struct stat sb;
 
@@ -356,8 +514,8 @@ int main(int argc, char **argv)
         if (status == -1) {
             syslog(LOG_USER | LOG_ERR, "could not create workdir %s error: %s", workdir, strerror(errno));
             fprintf(stderr, "mnp: could not create workdir %s error: %s \n", workdir, strerror(errno));
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
     } if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is up : %s", workdir);
 
@@ -372,43 +530,48 @@ int main(int argc, char **argv)
         if (status == -1) {
             syslog(LOG_USER | LOG_ERR, "could not create txdir %s error: %s", txdir, strerror(errno));
             fprintf(stderr, "mnp: could not create txdir %s error: %s\n", txdir, strerror(errno));
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
     } if (verbose) syslog(LOG_USER | LOG_INFO, "txdir is up : %s", txdir);
 
 
-    if (init) exit(EXIT_SUCCESS);
+    if (init) { ret = EXIT_SUCCESS; goto cleanup; }
 
     if (cleanup) {
-        int ret = remove_directory(txdir);
-        if (ret == -1) {
+        int retc = remove_directory(txdir);
+        if (retc == -1) {
             syslog(LOG_USER | LOG_ERR, "could not del txdir %s error: %s", txdir, strerror(errno));
         } else {
             if (verbose) syslog(LOG_USER | LOG_INFO, "txdir is down %s", txdir);
         }
 
-        ret = remove_directory(workdir);
-        if (ret == -1) {
+        retc = remove_directory(workdir);
+        if (retc == -1) {
             syslog(LOG_USER | LOG_ERR, "could not del workdir %s error: %s", workdir, strerror(errno));
         } else {
             if (verbose) syslog(LOG_USER | LOG_INFO, "workdir is down %s", workdir);
         }
-        exit(EXIT_SUCCESS);
+        ret = EXIT_SUCCESS;
+        goto cleanup;
     }
 
-    int ret = 0;
-    if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
+    int retcall = 0;
+    if (0 > (retcall = rpc_call(&monero_wallet[GET_TXID]))) {
         syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
                                                                        monero_wallet[GET_TXID].port);
         fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
                                                                    monero_wallet[GET_TXID].port);
-        closelog();
-        exit(EXIT_FAILURE);
+        ret = EXIT_FAILURE;
+        goto cleanup;
     }
 
     int txsize = 1;
     monero_wallet[GET_TXID].amount = amount(&monero_wallet[GET_TXID]);
+    if (monero_wallet[GET_TXID].amount == NULL) {
+        ret = EXIT_FAILURE;
+        goto cleanup;
+    }
     monero_wallet[GET_TXID].txid = delQuotes(transactionid(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
     monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
@@ -424,8 +587,8 @@ int main(int argc, char **argv)
         if (status == -1) {
             syslog(LOG_USER | LOG_ERR, "could not create txId %s error: %s", txId, strerror(errno));
             fprintf(stderr, "mnp: could not create txId %s error: %s\n", txId, strerror(errno));
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;
         }
     } if (verbose) syslog(LOG_USER | LOG_INFO, "txId is up : %s", txId);
 
@@ -447,14 +610,14 @@ int main(int argc, char **argv)
         /* file does exist. second call */
         if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
         exist = 1;
-        free(monero_wallet);
-        exit(EXIT_SUCCESS);
+        ret = EXIT_SUCCESS;
+        goto cleanup;
     }
     /* file does NOT exist. first call */
     if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo is created : %s", monero_wallet[GET_TXID].fifo);
     if (notify != NONE && exist == 0) {
-        int ret = mkfifo(monero_wallet[GET_TXID].fifo, pmode);
-        if (ret == -1) {
+        int retfifo = mkfifo(monero_wallet[GET_TXID].fifo, pmode);
+        if (retfifo == -1) {
             syslog(LOG_USER | LOG_ERR, "could not create named pipe fifo %s error: %s", monero_wallet[GET_TXID].fifo, strerror(errno));
         }
     }
@@ -464,8 +627,8 @@ int main(int argc, char **argv)
 
     switch(notify) {
         case NONE:
-            free(monero_wallet);
-            exit(EXIT_SUCCESS);
+            ret = EXIT_SUCCESS;
+            goto cleanup;
             break;
         case TXPOOL:
             jail = 0;
@@ -479,8 +642,8 @@ int main(int argc, char **argv)
         default:
             syslog(LOG_USER | LOG_ERR, "Error, check --notify-at x\n");
             fprintf(stderr, "mnp: error, check --notify-at x\n");
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup;            
 	    break;
     }
 
@@ -488,13 +651,13 @@ int main(int argc, char **argv)
 
     /* JAIL starts here */
     while (running) {
-        if (0 > (ret = rpc_call(&monero_wallet[GET_TXID]))) {
+        if (0 > (retcall = rpc_call(&monero_wallet[GET_TXID]))) {
             syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
                                                                            monero_wallet[GET_TXID].port);
             fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
                                                                        monero_wallet[GET_TXID].port);
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
+            goto cleanup; 
         }
 
         monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
@@ -514,32 +677,42 @@ int main(int argc, char **argv)
         running = jail;
     }
 
-    int fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY);
-    if (fd == -1) {
-            syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-            fprintf(stderr, "mnp: error: %s", strerror(errno));
-            closelog();
-            exit(EXIT_FAILURE);
+    if (monero_wallet[GET_TXID].fifo && strlen(monero_wallet[GET_TXID].fifo) > 0) {
+        fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY | O_CLOEXEC);
+        if (fd == -1) {
+            syslog(LOG_USER | LOG_ERR, "error: open fifo %s: %s",
+                   monero_wallet[GET_TXID].fifo, strerror(errno));
+            fprintf(stderr, "mnp: error: open fifo %s: %s\n",
+                    monero_wallet[GET_TXID].fifo, strerror(errno));
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        }
     }
+    //dprintf(fd, "%s\n", monero_wallet[GET_TXID].amount);
 
     ssize_t retw = write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
     if (retw == -1) {
             syslog(LOG_USER | LOG_ERR, "error: write %s", strerror(errno));
             fprintf(stderr, "mnp: error: %s", strerror(errno));
-            closelog();
-            exit(EXIT_FAILURE);
+            ret = EXIT_FAILURE;
     }
 
-    close(fd);
-    int retunlink = unlink(monero_wallet[GET_TXID].fifo);
-    if (retunlink == -1) {
-        syslog(LOG_USER | LOG_ERR, "error: %s", strerror(errno));
-        fprintf(stderr, "mnp: error: %s", strerror(errno));
-        closelog();
-        exit(EXIT_FAILURE);
+    if (unlink(monero_wallet[GET_TXID].fifo) == -1) {
+        syslog(LOG_USER | LOG_ERR, "error: unlink fifo %s: %s",
+               monero_wallet[GET_TXID].fifo, strerror(errno));
+        fprintf(stderr, "mnp: error: unlink fifo %s: %s\n",
+               monero_wallet[GET_TXID].fifo, strerror(errno));
+        ret = EXIT_FAILURE;
     }
+
+cleanup:
+    if (fd >= 0) close(fd);
     free(monero_wallet);
-    exit(EXIT_SUCCESS);
+    if (txid && txid_from_stdin) free(txid);
+    if (home) free(home);
+    if (ini) free(ini);
+    closelog();
+    exit(ret);
 }
 
 
@@ -554,8 +727,11 @@ static char *amount(const struct rpc_wallet *monero_wallet)
     assert (monero_wallet != NULL);
 
     cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    if (result == NULL) return NULL;
     cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
+    if (transfer == NULL) return NULL;
     cJSON *amount = cJSON_GetObjectItem(transfer, "amount");
+    if (amount == NULL) return NULL;
 
     return cJSON_Print(amount);
 }
@@ -652,6 +828,60 @@ static char *locked(const struct rpc_wallet *monero_wallet)
 
 
 /**
+ * Extracts the signiture (good) status from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the siginture status, or NULL if the extraction fails.
+ */
+static char *proof(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    /* TODO: TEST for != NULL */ 
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *good = cJSON_GetObjectItem(result, "good");
+
+    return cJSON_Print(good);
+}
+
+
+/**
+ * Extracts the confirmations from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the amount of  confirmation, or NULL if the extraction fails.
+ */
+static char *proof_confirm(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    /* TODO: TEST for != NULL */ 
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *confirmations = cJSON_GetObjectItem(result, "confirmations");
+
+    return cJSON_Print(confirmations);
+}
+
+
+/**
+ * Extracts the received amount of piconerp from the Monero wallet RPC response.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A dynamically allocated string containing the amount of piconero received, or NULL if the extraction fails.
+ */
+static char *proof_received(const struct rpc_wallet *monero_wallet)
+{
+    assert (monero_wallet != NULL);
+
+    /* TODO: TEST for != NULL */ 
+    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
+    cJSON *amount = cJSON_GetObjectItem(result, "received");
+
+    return cJSON_Print(amount);
+}
+
+
+/**
  * Prints user help information.
  *
  * @param status The status code to determine the output stream (0 for success, non-zero for error).
@@ -677,7 +907,7 @@ static void usage(int status)
     "               rpc host ip address or domain.\n\n"
     "      --rpc_port [RPC_PORT]\n"
     "               rpc port to cennect to.\n\n"
-    "  -w, --workdir  [WORKDIR]\n"
+    "  -w, --workdir [WORKDIR]\n"
     "               place to create the work directory.\n\n"
     "      --notify-at [0,1,2,3] default = confirmed\n"
     "               0, none\n"
@@ -686,6 +916,19 @@ static void usage(int status)
     "               3, unlocked\n\n"
     "      --confirmation [n] default = 1\n"
     "               amount of blocks needed to confirm transaction.\n\n"
+    "      ########################################################\n\n"
+    "      --spend-proof\n"
+    "               check spend proof. SIGNATURE is required.\n\n"
+    "      --tx-proof\n"
+    "               check transaction proof.\n"
+    "               SIGNATURE and ADDRESS is required.\n\n"
+    "      --signature [SIGNATURE]\n"
+    "               required by --tx-proof or --spend-proof.\n\n"
+    "      --address [ADDRESS]\n"
+    "               required by --tx-proof.\n\n"
+    "      --message [MESSAGE]\n"
+    "               optinal used by --tx-proof or --spend-proof.\n\n"
+    "      ########################################################\n\n"
     "      --init\n"
     "               create workdir for usage.\n\n"
     "      --cleanup\n"
@@ -707,7 +950,8 @@ static void usage(int status)
 /**
  * Reads the transaction ID from standard input.
  *
- * @return A dynamically allocated string containing the payment ID read from stdin, or NULL if an error occurs.
+ * @return A dynamically allocated string containing the 
+ * transsaction ID read from stdin, or NULL if an error occurs.
  */
 static char *readStdin(void)
 {
@@ -720,10 +964,7 @@ static char *readStdin(void)
     }
     size_t ret = fread(buffer, 1, MAX_TXID_SIZE, stdin);
     if(ret != MAX_TXID_SIZE) {
-        syslog(LOG_USER | LOG_ERR, "No input data or invalid txid. fread: %s", strerror(errno));
-        fprintf(stderr, "mnp:readStdin: No input data or invalid txid. fread: %s\n", strerror(errno));
-        closelog();
-        exit(EXIT_FAILURE);
+        return NULL; 
     }
 
     buffer[ret] = '\0';
