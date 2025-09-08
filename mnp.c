@@ -98,7 +98,6 @@ static char *locked(const struct rpc_wallet *monero_wallet);
 static char *proof(const struct rpc_wallet *monero_wallet);
 static char *proof_confirm(const struct rpc_wallet *monero_wallet);
 static char *proof_received(const struct rpc_wallet *monero_wallet);
-static int isValidTxid(const char *s); 
 
 
 /**
