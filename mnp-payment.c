@@ -184,7 +184,7 @@ int main(int argc, char **argv)
         rpc_port = strndup(config.rpc_port, MAX_DATA_SIZE);
     }
 
-    if (!(list == 1 || (subaddr > 0) || (new == 1))) {
+    if (!(list == 1 || (subaddr >= 0) || (new == 1))) {
         if (optind < argc) {
             paymentId = (char *)argv[optind];
         }
