@@ -927,7 +927,7 @@ static void usage(int status)
     "      --address [ADDRESS]\n"
     "               required by --tx-proof.\n\n"
     "      --message [MESSAGE]\n"
-    "               optinal used by --tx-proof or --spend-proof.\n\n"
+    "               optional used by --tx-proof or --spend-proof.\n\n"
     "      ########################################################\n\n"
     "      --init\n"
     "               create workdir for usage.\n\n"
