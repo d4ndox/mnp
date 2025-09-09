@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1024mm"
+   height="1024mm"
+   viewBox="0 0 1024 1024"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   sodipodi:docname="mnplogo.svg"
+   inkscape:export-filename="/home/daniel/Documents/mnplogo.png"
+   inkscape:export-xdpi="95"
+   inkscape:export-ydpi="95"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="px"
+     showgrid="false"
+     showguides="false"
+     inkscape:zoom="0.067874761"
+     inkscape:cx="4559.8687"
+     inkscape:cy="2755.0742"
+     inkscape:window-width="1884"
+     inkscape:window-height="1050"
+     inkscape:window-x="36"
+     inkscape:window-y="3"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g47893" />
+  <defs
+     id="defs2">
+    <rect
+       x="1229.1795"
+       y="2092.7349"
+       width="309.39335"
+       height="44.199051"
+       id="rect1630" />
+    <rect
+       x="-2404.9636"
+       y="-1681.5058"
+       width="8308.1931"
+       height="5925.1281"
+       id="rect33495" />
+    <rect
+       x="1995.4985"
+       y="3407.2449"
+       width="1380.725"
+       height="2536.0334"
+       id="rect22039" />
+  </defs>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g47893"
+       transform="matrix(1.0238482,0,0,1.0238482,-4.358816,-16.269765)"
+       style="stroke-width:0.976707">
+      <circle
+         style="fill:#4d4d4d;fill-opacity:1;stroke:#f26822;stroke-width:0.258825;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+         id="path25077"
+         cx="509.68332"
+         cy="518.76648"
+         r="490.36508" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-weight:normal;font-size:358.633px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#f26822;fill-opacity:1;stroke:#ffffff;stroke-width:0.258421;stroke-opacity:1"
+         x="78.806358"
+         y="624.82062"
+         id="text1915"
+         transform="scale(0.99903625,1.0009647)"><tspan
+           sodipodi:role="line"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:358.633px;font-family:'Liberation Mono';-inkscape-font-specification:'Liberation Mono, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#f26822;fill-opacity:1;stroke:#ffffff;stroke-width:0.258421;stroke-opacity:1"
+           x="78.806358"
+           y="624.82062"
+           id="tspan4549"><tspan
+             style="fill:#ff6600;fill-opacity:1;stroke-width:0.258421"
+             id="tspan40323">m</tspan><tspan
+             style="fill:#ffffff;fill-opacity:1"
+             id="tspan4516">|np</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         transform="matrix(0.25842046,0,0,0.25842046,4.2572874,15.890798)"
+         id="text1628"
+         style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect1630);fill:#000000;fill-opacity:1;stroke:none" />
+    </g>
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text22037"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect22039);fill:#000000;fill-opacity:1;stroke:none" />
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text33493"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect33495);fill:#000000;fill-opacity:1;stroke:none" />
+  </g>
+</svg>
