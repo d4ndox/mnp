@@ -88,15 +88,12 @@ static int remove_callback(const char *fpath, const struct stat *sb, int typefla
 static int remove_directory(const char *path);
 static void printmnp(void);
 static char *readStdin(void);
-static char *amount(const struct rpc_wallet *monero_wallet);
-static char *transactionid(const struct rpc_wallet *monero_wallet);
-static char *address(const struct rpc_wallet *monero_wallet);
-static char *payid(const struct rpc_wallet *monero_wallet);
-static char *confirm(const struct rpc_wallet *monero_wallet);
-static char *locked(const struct rpc_wallet *monero_wallet);
+static char *get_confirm(const cJSON *transfer);
+static char *get_locked(const cJSON *transfer);
 static char *proof(const struct rpc_wallet *monero_wallet);
 static char *proof_confirm(const struct rpc_wallet *monero_wallet);
 static char *proof_received(const struct rpc_wallet *monero_wallet);
+static cJSON *get_transfers(struct rpc_wallet *monero_wallet);
 
 
 /**
@@ -418,7 +415,6 @@ int main(int argc, char **argv)
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");
 
-
     /*****
      * TEST for --spend-proof OR --tx-proof
      * ****
@@ -556,30 +552,73 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    int retcall = 0;
-    if (0 > (retcall = rpc_call(&monero_wallet[GET_TXID]))) {
-        syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+    if (notify == NONE) {
+        ret = EXIT_SUCCESS;
+        goto cleanup;
+    }
+
+    int jail = 1;
+    running = jail;
+    cJSON *transfers = NULL;
+
+    /* JAIL starts here */
+    while (running) {
+        int retcall = -1;
+        if (0 > (retcall = rpc_call(&monero_wallet[GET_TXID]))) {
+            syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
+                                                                           monero_wallet[GET_TXID].port);
+            fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
                                                                        monero_wallet[GET_TXID].port);
-        fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                   monero_wallet[GET_TXID].port);
-        ret = EXIT_FAILURE;
-        goto cleanup;
+            ret = EXIT_FAILURE;
+            goto cleanup; 
+        }
+
+       transfers = get_transfers(&monero_wallet[GET_TXID]);
+       if (transfers == NULL) {
+            ret = EXIT_FAILURE;
+            fprintf(stderr, "ERROR RESPONSE\n");
+            syslog(LOG_USER | LOG_ERR, "mnp ERROR");
+            goto cleanup;
+        }
+        const cJSON *trans = cJSON_GetArrayItem(transfers, 0);
+
+        switch(notify) {
+            case TXPOOL:
+                if (verbose) fprintf(stderr, "Amount of Transfers: %d\n", cJSON_GetArraySize(transfers));
+                jail = 0;
+                break;
+            case CONFIRMED:
+                jail = 1;
+                char *conf = get_confirm(trans);
+                if (conf == NULL) asprintf(&conf, "0");
+                if (atoi(conf) >= confirmation) {
+                    jail = 0;
+                }
+                break;
+            case UNLOCKED:
+                jail = 1;
+                char *locked = get_locked(trans);
+                if (strncmp(locked, "false", MAX_DATA_SIZE) == 0) {
+                    jail = 0;
+                }
+                fprintf(stderr, "locked = %s\n", locked);
+                break;
+            default:
+                syslog(LOG_USER | LOG_ERR, "Error, check --notify-at x\n");
+                fprintf(stderr, "mnp: error, check --notify-at x\n");
+                ret = EXIT_FAILURE;
+                goto cleanup;
+    	    break;
+        }
+
+        sleep(SLEEPTIME);
+        running = jail;
     }
 
-    int txsize = 1;
-    monero_wallet[GET_TXID].amount = amount(&monero_wallet[GET_TXID]);
-    if (monero_wallet[GET_TXID].amount == NULL) {
-        ret = EXIT_FAILURE;
-        goto cleanup;
-    }
-    monero_wallet[GET_TXID].txid = delQuotes(transactionid(&monero_wallet[GET_TXID]));
-    monero_wallet[GET_TXID].saddr = delQuotes(address(&monero_wallet[GET_TXID]));
-    monero_wallet[GET_TXID].payid = delQuotes(payid(&monero_wallet[GET_TXID]));
-    monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
-    monero_wallet[GET_TXID].locked = locked(&monero_wallet[GET_TXID]);
-
+    /*
+     * create directory /tmp/mywallet/txid
+     */
     asprintf(&txId, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
-
     if (stat(txId, &transfer) == 0 && S_ISDIR(transfer.st_mode)) {
         if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "txId does exists : %s", txId);
     } else {
@@ -592,120 +631,101 @@ int main(int argc, char **argv)
         }
     } if (verbose) syslog(LOG_USER | LOG_INFO, "txId is up : %s", txId);
 
-    asprintf(&txId, "%s/%s/%s", workdir, TRANSACTION_DIR, monero_wallet[GET_TXID].txid);
+    const cJSON *trans = NULL;
 
-    if (strcmp(monero_wallet[GET_TXID].payid, PAYNULL)) {
-        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s",
-                txId, monero_wallet[GET_TXID].payid);
-    } else {
-        asprintf(&monero_wallet[GET_TXID].fifo, "%s/%s",
-                txId, monero_wallet[GET_TXID].saddr);
-    }
+    /* loop through every transfer in the list transfers */
+    cJSON_ArrayForEach(trans, transfers) {
+        char *fifo = NULL;
+        cJSON *address = cJSON_GetObjectItem(trans, "address");
+        if (address == NULL) exit(EXIT_FAILURE);
+        cJSON *payment_id = cJSON_GetObjectItem(trans, "payment_id");
+        if (payment_id == NULL) exit(EXIT_FAILURE);
+        cJSON *amount = cJSON_GetObjectItem(trans, "amount");
+        if (amount == NULL) exit(EXIT_FAILURE);
 
-    /*
-     * mkfifo named pipe
-     */
-    int exist = 0;
-    if (stat(monero_wallet[GET_TXID].fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
-        /* file does exist. second call */
-        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", monero_wallet[GET_TXID].fifo);
-        exist = 1;
-        ret = EXIT_SUCCESS;
-        goto cleanup;
-    }
-    /* file does NOT exist. first call */
-    if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo is created : %s", monero_wallet[GET_TXID].fifo);
-    if (notify != NONE && exist == 0) {
-        int retfifo = mkfifo(monero_wallet[GET_TXID].fifo, pmode);
-        if (retfifo == -1) {
-            syslog(LOG_USER | LOG_ERR, "could not create named pipe fifo %s error: %s", monero_wallet[GET_TXID].fifo, strerror(errno));
+        char *cur_address = delQuotes(cJSON_Print(address));
+        char *cur_payment_id = delQuotes(cJSON_Print(payment_id));
+        char *cur_amount = cJSON_Print(amount);
+
+        if (strcmp(cur_payment_id, PAYNULL)) {
+            asprintf(&fifo, "%s/%s",
+                    txId, cur_payment_id);
+        } else {
+            asprintf(&fifo, "%s/%s",
+                    txId, cur_address);
         }
-    }
-    if (verbose) syslog(LOG_USER | LOG_INFO, "named pipe fifo is up : %s", monero_wallet[GET_TXID].fifo);
 
-    int jail = 1;
+        /*
+         * mkfifo named pipe
+         */
+        int exist = 0;
+        if (stat(fifo, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
+            /* file does exist. second call */
+            if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo does exists : %s", fifo);
+            exist = 1;
+        }
+       /* file does NOT exist. first call */
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG, "named pipe fifo is created : %s", fifo);
+        if (notify != NONE && exist == 0) {
+            int retfifo = mkfifo(fifo, pmode);
+            if (retfifo == -1) {
+                syslog(LOG_USER | LOG_ERR, "could not create named pipe fifo %s error: %s", fifo, strerror(errno));
+            }
+        }
+        if (verbose) syslog(LOG_USER | LOG_INFO, "named pipe fifo is up : %s", fifo);
 
-    switch(notify) {
-        case NONE:
+        fprintf(stderr, "address: %s\n", cur_address);
+        fprintf(stderr, "payment id: %s\n", cur_payment_id);
+        fprintf(stderr, "amount: %s\n", cur_amount);
+
+        pid_t pid = fork();
+        if (pid < 0) {
+            syslog(LOG_USER | LOG_ERR, "error: fork: %s", strerror(errno));
+            fprintf(stderr, "mnp: error: fork: %s\n", strerror(errno));
+            ret = EXIT_FAILURE;
+            goto cleanup;
+        } else if (pid == 0) {
+            /* Child process: write to named pipe */
+
+            if (fifo && strlen(fifo) > 0) {
+                fd = open(fifo, O_WRONLY | O_CLOEXEC);
+                 if (fd == -1) {
+                    syslog(LOG_USER | LOG_ERR, "error: open fifo %s: %s", fifo, strerror(errno));
+                    fprintf(stderr, "mnp: error: open fifo %s: %s\n", fifo, strerror(errno));
+                    ret = EXIT_FAILURE;
+                    goto cleanup;
+                }
+            }
+
+
+            ssize_t retw = dprintf(fd, "%s\n", cur_amount);
+            if (retw == -1) {
+                syslog(LOG_USER | LOG_ERR, "error: write %s", strerror(errno));
+                fprintf(stderr, "mnp: error: %s", strerror(errno));
+                ret = EXIT_FAILURE;
+                goto cleanup;
+            }
+
+            if (unlink(fifo) == -1) {
+                syslog(LOG_USER | LOG_ERR, "error: unlink fifo %s: %s", fifo, strerror(errno));
+                fprintf(stderr, "mnp: error: unlink fifo %s: %s\n", fifo, strerror(errno));
+                ret = EXIT_FAILURE;
+                goto cleanup;
+            }
+
+            close(fd);
             ret = EXIT_SUCCESS;
             goto cleanup;
-            break;
-        case TXPOOL:
-            jail = 0;
-            break;
-        case CONFIRMED:
-            jail = 1;
-            break;
-        case UNLOCKED:
-            jail = 1;
-            break;
-        default:
-            syslog(LOG_USER | LOG_ERR, "Error, check --notify-at x\n");
-            fprintf(stderr, "mnp: error, check --notify-at x\n");
-            ret = EXIT_FAILURE;
-            goto cleanup;            
-	    break;
-    }
-
-    running = jail;
-
-    /* JAIL starts here */
-    while (running) {
-        if (0 > (retcall = rpc_call(&monero_wallet[GET_TXID]))) {
-            syslog(LOG_USER | LOG_ERR, "could not connect to host: %s:%s", monero_wallet[GET_TXID].host,
-                                                                           monero_wallet[GET_TXID].port);
-            fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
-                                                                       monero_wallet[GET_TXID].port);
-            ret = EXIT_FAILURE;
-            goto cleanup; 
+        } else {
+            /* Partent process continue the loop */
+            fprintf(stderr, "Parent process continues. Child PID: %d\n", pid);
+            /*Free the fifo variable to avoid potential memory leaks */
+            free(fifo);
         }
-
-        monero_wallet[GET_TXID].conf = confirm(&monero_wallet[GET_TXID]);
-        if (monero_wallet[GET_TXID].conf == NULL) asprintf(&monero_wallet[GET_TXID].conf, "0");
-        monero_wallet[GET_TXID].locked = locked(&monero_wallet[GET_TXID]);
-
-        /* release "amount" out of jail */
-        if (notify == UNLOCKED) {
-            if (strncmp(monero_wallet[GET_TXID].locked, "false", MAX_TXID_SIZE) == 0) {
-                jail = 0;
-            }
-        } else if (atoi(monero_wallet[GET_TXID].conf) >= confirmation) {
-            jail = 0;
-        }
-
-        sleep(SLEEPTIME);
-        running = jail;
-    }
-
-    if (monero_wallet[GET_TXID].fifo && strlen(monero_wallet[GET_TXID].fifo) > 0) {
-        fd = open(monero_wallet[GET_TXID].fifo, O_WRONLY | O_CLOEXEC);
-        if (fd == -1) {
-            syslog(LOG_USER | LOG_ERR, "error: open fifo %s: %s",
-                   monero_wallet[GET_TXID].fifo, strerror(errno));
-            fprintf(stderr, "mnp: error: open fifo %s: %s\n",
-                    monero_wallet[GET_TXID].fifo, strerror(errno));
-            ret = EXIT_FAILURE;
-            goto cleanup;
-        }
-    }
-    //dprintf(fd, "%s\n", monero_wallet[GET_TXID].amount);
-
-    ssize_t retw = write(fd, strcat(monero_wallet[GET_TXID].amount, "\n"), strlen(monero_wallet[GET_TXID].amount)+1);
-    if (retw == -1) {
-            syslog(LOG_USER | LOG_ERR, "error: write %s", strerror(errno));
-            fprintf(stderr, "mnp: error: %s", strerror(errno));
-            ret = EXIT_FAILURE;
-    }
-
-    if (unlink(monero_wallet[GET_TXID].fifo) == -1) {
-        syslog(LOG_USER | LOG_ERR, "error: unlink fifo %s: %s",
-               monero_wallet[GET_TXID].fifo, strerror(errno));
-        fprintf(stderr, "mnp: error: unlink fifo %s: %s\n",
-               monero_wallet[GET_TXID].fifo, strerror(errno));
-        ret = EXIT_FAILURE;
     }
 
 cleanup:
+    if (transfers != NULL) cJSON_Delete(transfers);
     if (fd >= 0) close(fd);
     free(monero_wallet);
     if (txid && txid_from_stdin) free(txid);
@@ -717,92 +737,47 @@ cleanup:
 
 
 /**
- * Extracts the amount from the Monero wallet RPC response.
+ * Retrieves the list of transfers from the Monero wallet RPC response.
+ *
+ * This function extracts the list of transfers, each representing a transaction or
+ * part of a transaction, including details such as address, payment ID, and amount.
+ * This information is essential for processing and analyzing transactions.
  *
  * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
- * @return A dynamically allocated string containing the amount, or NULL if the extraction fails.
+ * @return A pointer to a cJSON array containing the list of transfers, or NULL if the extraction fails.
  */
-static char *amount(const struct rpc_wallet *monero_wallet)
-{
+static cJSON *get_transfers(struct rpc_wallet *monero_wallet) {
     assert (monero_wallet != NULL);
 
     cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    if (result == NULL) return NULL;
-    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
-    if (transfer == NULL) return NULL;
-    cJSON *amount = cJSON_GetObjectItem(transfer, "amount");
-    if (amount == NULL) return NULL;
+    if (result == NULL) {
+        fprintf(stderr, "result\n");
+        return NULL;
+    }
 
-    return cJSON_Print(amount);
-}
-
-
-/**
- * Extracts the transaction ID from the Monero wallet RPC response.
- *
- * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
- * @return A dynamically allocated string containing the transaction ID, or NULL if the extraction fails.
- */
-static char *transactionid(const struct rpc_wallet *monero_wallet)
-{
-    assert (monero_wallet != NULL);
-
-    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
-    cJSON *transactionid = cJSON_GetObjectItem(transfer, "txid");
-
-    return cJSON_Print(transactionid);
-}
-
-
-/**
- * Extracts the address from the Monero wallet RPC response.
- *
- * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
- * @return A dynamically allocated string containing the address, or NULL if the extraction fails.
- */
-static char *address(const struct rpc_wallet *monero_wallet)
-{
-    assert (monero_wallet != NULL);
-
-    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
-    cJSON *address = cJSON_GetObjectItem(transfer, "address");
-
-    return cJSON_Print(address);
-}
-
-
-/**
- * Extracts the payment ID from the Monero wallet RPC response.
- *
- * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
- * @return A dynamically allocated string containing the payment ID, or NULL if the extraction fails.
- */
-static char *payid(const struct rpc_wallet *monero_wallet)
-{
-    assert (monero_wallet != NULL);
-
-    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
-    cJSON *payment_id = cJSON_GetObjectItem(transfer, "payment_id");
-
-    return cJSON_Print(payment_id);
+    cJSON *transfers = cJSON_GetObjectItem(result, "transfers");
+    if (transfers == NULL) {
+        fprintf(stderr, "transfers\n");
+        return NULL;
+    }
+    return transfers;
 }
 
 
 /**
  * Extracts the number of confirmations from the Monero wallet RPC response.
  *
- * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * This function retrieves the number of confirmations for a transaction, indicating
+ * the number of blocks added to the blockchain since the transaction was included.
+ * A higher number of confirmations generally indicates a more secure transaction.
+ *
+ * @param transfer A pointer to the cJSON object representing the transfer.
  * @return A dynamically allocated string containing the number of confirmations, or NULL if the extraction fails.
  */
-static char *confirm(const struct rpc_wallet *monero_wallet)
+static char *get_confirm(const cJSON *transfer)
 {
-    assert (monero_wallet != NULL);
+    assert (transfer != NULL);
 
-    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
     cJSON *confirmations = cJSON_GetObjectItem(transfer, "confirmations");
 
     return cJSON_Print(confirmations);
@@ -812,15 +787,17 @@ static char *confirm(const struct rpc_wallet *monero_wallet)
 /**
  * Extracts the locked status from the Monero wallet RPC response.
  *
- * @param monero_wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * This function retrieves the locked status of a transaction, indicating whether
+ * the transaction is currently locked or unlocked. This is crucial for determining
+ * the availability of funds for spending.
+ *
+ * @param transfer A pointer to the cJSON object representing the transfer.
  * @return A dynamically allocated string containing the locked status, or NULL if the extraction fails.
  */
-static char *locked(const struct rpc_wallet *monero_wallet)
+static char *get_locked(const cJSON *transfer)
 {
-    assert (monero_wallet != NULL);
+    assert (transfer != NULL);
 
-    cJSON *result = cJSON_GetObjectItem(monero_wallet->reply, "result");
-    cJSON *transfer = cJSON_GetObjectItem(result, "transfer");
     cJSON *locked = cJSON_GetObjectItem(transfer, "locked");
 
     return cJSON_Print(locked);

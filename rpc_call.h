@@ -30,7 +30,7 @@ struct rpc_wallet {
        char *balance;
        char *height;
        char *file;
-       /* mnp related */
+       /* mnp usage */
        char *txid;
        char *payid;
        char *saddr;
@@ -39,11 +39,12 @@ struct rpc_wallet {
        char *conf;
        char *locked;
        char *fifo;
-       int   idx;
-       /* proof */
+       /* mnp proof */
        char *message;
        char *signature;
        char *proof;
+       /* general */
+       int   idx;
        cJSON *reply;
 };
 
