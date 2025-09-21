@@ -834,7 +834,7 @@ int main(int argc, char **argv)
     }
 
 cleanup:
-    if (transfers != NULL) cJSON_Delete(transfers);
+    //if (transfers != NULL) cJSON_Delete(transfers);
     if (fd >= 0) close(fd);
     if (monero_wallet != NULL) free(monero_wallet);
     if (txid && txid_from_stdin) free(txid);
