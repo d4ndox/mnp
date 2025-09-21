@@ -275,6 +275,12 @@ int main(int argc, char **argv)
         if (txid == NULL) {
             txid_from_stdin = 1;
             txid = readStdin();
+            if (txid == NULL) {
+                syslog(LOG_USER | LOG_ERR, "No input data or invalid txid. readStdin");
+                fprintf(stderr, "No input data or invalid txid.\n");
+                ret = EXIT_FAILURE;
+                goto cleanup;
+            }
         }
 
         int valid =  val_hex_input(txid, MAX_TXID_SIZE);
