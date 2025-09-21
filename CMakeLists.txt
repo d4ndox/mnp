@@ -8,6 +8,9 @@ add_definitions(-std=c99)
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+
 #stndup warning
 set (CMAKE_C_FLAGS "-D_GNU_SOURCE")
 set(HEADER_FILES ../inih/ini.h ../cjson/cJSON.h ../wallet.h ../rpc_call.h ../delquotes.h ../validate.h ../globaldefs.h)
