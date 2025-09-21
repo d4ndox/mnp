@@ -10,7 +10,9 @@
 #define VERSION         "0.1.5"
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
-#define TMP_TXID_FILE   "/tmp/mnp.txid"
+#define TMP_TXID_FILE   ".mnp.txid"
+#define TXID_PIPE       "txid"
+#define DS_ALERT_PIPE   "double_spend_alert"
 
 #define MONERO_ORANGE   "\033[38;2;255;102;0m"
 #define MONERO_GREEN    "\033[38;2;50;205;50m"
