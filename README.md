@@ -6,19 +6,22 @@ Monero named pipes (mnp) is a lightweight wallet designed to monitor incoming pa
 ## Directory Structure
 
 ```bash
-$ tree /tmp/mywallet/
-/tmp/mywallet/
+$ tree
+.
 ├── balance
 ├── bc_height
-└── transactions
-    ├── 96fcb1d41d8b90af1dcae770a2ef4bf84b984412fc2a4a6ea9a169dce43f8ee4
-    │   └── BdQNo1EL1KVcnwQEiHWnDKJun4MshkC8s2RjbF1yoT9pKfc9zWtWwkf3NxuBDfKKhkAwBJK7UPeigKmVWVaXg5iPFqLqq6A
-    ├── 9da47eec38e70001e251761dabcc69780ab96ca4c2ab7b83b67f86ca00dfeb7b
-    │   └── 1be3bfb7413adda5
-    └── c503489e9e4edb4451288fc6548b0d765ccd0890634d6e7e523ef0cdaf86cd1e
-        └── BdQNo1EL1KVcnwQEiHWnDKJun4MshkC8s2RjbF1yoT9pKfc9zWtWwkf3NxuBDfKKhkAwBJK7UPeigKmVWVaXg5iPFqLqq6A
+├── double_spend_alert
+├── transactions
+│   ├── 64753821918b2f856815ae2894240301e41c3ae799b4e6f2af96604dda1cc50b
+│   │   └── 778we6Tb3c7c4VBEZ839sy98GFMQzGVtE5qMD8NzP1QvCxysFCYhv65NJ5Jiun8ssJ31hX8uSP3rMV6nJEXvcsx4JGNEb3U
+│   ├── b70d4b78beeea0e10f12b59c3f0bdedb004c7f7dc19c6461a553e8a272659eeb
+│   │   ├── 7AXroCmKa1nXRo3Rq371sqhdDQfm8uPNF8bDx3LGSMJHZzwiKxmu3PAR9pfX8b8KFC812JuH9ZHPK1fapwTA1QT4TanWEfy
+│   │   └── 7BD4hHAJKX91pPUzbiRKm5VMYXh8pCArAXfwGsUQ9gfaaMsTiwxuA6jaGzR9brDPvBQkHh6anvZfiRu4CHAyLuDtFuBrpzz
+│   └── d38b97997687a471c696ed72502a7cf2ee6e8b1d39b4c6a6609b364c8101b1d4
+│       └── 00000000c000001a
+└── txid
 
-4 directories, 5 files
+4 directories, 8 files
 ```
 
 
