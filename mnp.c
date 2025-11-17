@@ -74,13 +74,14 @@ static const struct option options[] = {
     {"spend-proof"  , no_argument      , NULL, 's'},
     {"tx-proof"     , no_argument      , NULL, 'x'},
     {"init"         , no_argument      , NULL, 't'},
+    {"retry"       , no_argument      , NULL, 'R'},
     {"cleanup"      , no_argument      , NULL, 'c'},
     {"version"      , no_argument      , NULL, 'v'},
     {"verbose"      , no_argument      , &verbose, 1},
     {NULL, 0, NULL, 0}
 };
 
-static const char *optstring = ":hu:r:i:p:a:w:o:n:m:g:d:sxtcv";
+static const char *optstring = ":hu:r:i:p:a:w:o:n:m:g:d:sxtcRv";
 static void usage(int status);
 static int handler(void *user, const char *section, const char *name, const char *value);
 static void initshutdown(int);
@@ -95,6 +96,7 @@ static char *proof_confirm(const struct rpc_wallet *monero_wallet);
 static char *proof_received(const struct rpc_wallet *monero_wallet);
 static cJSON *get_transfers(struct rpc_wallet *monero_wallet);
 static void write_to_pipe(const char *pipe, const char *content);
+static int get_env_int(const char *name, int fallback);
 
 
 /**
@@ -125,6 +127,8 @@ int main(int argc, char **argv)
     char *rpc_port = NULL;
     char *account = NULL;
 
+    int poll_interval = get_env_int("MNP_POLL_INTERVAL", POLL_INTERVAL);
+
     struct rpc_wallet *monero_wallet = (struct rpc_wallet*)malloc(END_RPC_SIZE * sizeof(struct rpc_wallet));
     if (!monero_wallet) { perror("malloc"); exit(EXIT_FAILURE); }
 
@@ -135,6 +139,7 @@ int main(int argc, char **argv)
     char *txId = NULL;
     char *txid_pipe = NULL;
     char *double_spend_pipe = NULL;
+    char *rpc_conn_alert_pipe = NULL;
     char *message = NULL;
     char *signature = NULL;
     char *adr = NULL;
@@ -144,6 +149,7 @@ int main(int argc, char **argv)
     int cleanup = 0;
     int confirmation = 0;
     int notify = CONFIRMED;
+    int retry = 0;
     int ret = EXIT_FAILURE;
     int fd = -1;
 
@@ -221,6 +227,9 @@ int main(int argc, char **argv)
             case 'x':
                 tx_proof = 1;
                 break;
+            case 'R':
+                retry = 1;
+                break;
             case 't':
                 init = 1;
                 break;
@@ -290,8 +299,8 @@ int main(int argc, char **argv)
                 ret = EXIT_FAILURE;
                 goto cleanup;
         }
-
-        if (sp_proof == 0 && tx_proof == 0) {
+        
+        if (sp_proof == 0 && tx_proof == 0 && !retry) {
             char *mnp_txid_file = NULL;
             asprintf(&mnp_txid_file, "%s/%s", workdir, TMP_TXID_FILE);
             FILE *file = fopen(mnp_txid_file, "a+");
@@ -448,6 +457,17 @@ int main(int argc, char **argv)
                                                                            monero_wallet[CHECK_SPEND_PROOF].port);
             fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[CHECK_SPEND_PROOF].host,
                                                                        monero_wallet[CHECK_SPEND_PROOF].port);
+
+            /* Write txid to rpc_connection_alert pipe on RPC connection error */
+            if (workdir && monero_wallet[CHECK_SPEND_PROOF].txid) {
+                char *rpc_conn_pipe = NULL;
+                char *rpc_conn_content = NULL;
+                asprintf(&rpc_conn_pipe, "%s/%s", workdir, RPC_CONN_ALERT);
+                asprintf(&rpc_conn_content, "%s", monero_wallet[CHECK_SPEND_PROOF].txid);
+                write_to_pipe(rpc_conn_pipe, rpc_conn_content);
+                free(rpc_conn_pipe);
+                free(rpc_conn_content);
+            }
             ret = EXIT_FAILURE;
             goto cleanup;
         }
@@ -494,13 +514,24 @@ int main(int argc, char **argv)
                                                                            monero_wallet[CHECK_TX_PROOF].port);
             fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[CHECK_TX_PROOF].host,
                                                                        monero_wallet[CHECK_TX_PROOF].port);
+
+            /* Write txid to rpc_connection_alert pipe on RPC connection error */
+            if (workdir && monero_wallet[CHECK_TX_PROOF].txid) {
+                char *rpc_conn_pipe = NULL;
+                char *rpc_conn_content = NULL;
+                asprintf(&rpc_conn_pipe, "%s/%s", workdir, RPC_CONN_ALERT);
+                asprintf(&rpc_conn_content, "%s", monero_wallet[CHECK_SPEND_PROOF].txid);
+                write_to_pipe(rpc_conn_pipe, rpc_conn_content);
+                free(rpc_conn_pipe);
+                free(rpc_conn_content);
+            }
             ret = EXIT_FAILURE;
             goto cleanup;
         }
         monero_wallet[CHECK_TX_PROOF].proof = proof(&monero_wallet[CHECK_TX_PROOF]);
         monero_wallet[CHECK_TX_PROOF].conf = proof_confirm(&monero_wallet[CHECK_TX_PROOF]);
         monero_wallet[CHECK_TX_PROOF].amount = proof_received(&monero_wallet[CHECK_TX_PROOF]);
-        fprintf(stdout,"%s\t%s\n", monero_wallet[CHECK_TX_PROOF].conf, monero_wallet[CHECK_TX_PROOF].amount);
+//      fprintf(stdout,"%s\t%s\n", monero_wallet[CHECK_TX_PROOF].conf, monero_wallet[CHECK_TX_PROOF].amount);
 
         if (strcmp(monero_wallet[CHECK_TX_PROOF].proof, "true")) {
                 ret = EXIT_FAILURE;
@@ -614,6 +645,35 @@ int main(int argc, char **argv)
         if (verbose) syslog(LOG_USER | LOG_INFO, "named pipe double_spend_alert is up : %s", double_spend_pipe);
         if (verbose) fprintf(stderr, "named pipe double_spend_alert is up : %s\n", double_spend_pipe);
 
+        /*
+         * create /tmp/mywallet/rpc_connection_alert
+         */
+        asprintf(&rpc_conn_alert_pipe, "%s/%s", workdir, RPC_CONN_ALERT);
+        exist = 0;
+        if (stat(rpc_conn_alert_pipe, &sb) == 0 && S_ISFIFO(sb.st_mode)) {
+            /* file does exist. */
+            if (DEBUG) syslog(LOG_USER | LOG_DEBUG,
+                    "named pipe rpc_connection_alert does exists : %s",
+                    rpc_conn_alert_pipe);
+            exist = 1;
+        }
+        /* File does NOT exist. */
+        if (DEBUG) syslog(LOG_USER | LOG_DEBUG,
+                "named pipe rpc_connection_alert is created : %s",
+                rpc_conn_alert_pipe);
+        if (notify != NONE && exist == 0) {
+            int retfifo = mkfifo(rpc_conn_alert_pipe, pmode);
+            if (retfifo == -1) {
+                syslog(LOG_USER | LOG_ERR,
+                        "could not create named pipe fifo %s error: %s",
+                        rpc_conn_alert_pipe, strerror(errno));
+            }
+        }
+        if (verbose) syslog(LOG_USER | LOG_INFO,
+                "named pipe rpc_connection_alert is up : %s", rpc_conn_alert_pipe);
+        if (verbose) fprintf(stderr,
+                "named pipe rpc_connection_alert is up : %s\n", rpc_conn_alert_pipe);
+
         exit(EXIT_SUCCESS);
     }
 
@@ -663,6 +723,17 @@ int main(int argc, char **argv)
                                                                            monero_wallet[GET_TXID].port);
             fprintf(stderr, "mnp: could not connect to host: %s:%s\n", monero_wallet[GET_TXID].host,
                                                                        monero_wallet[GET_TXID].port);
+
+            /* Write txid to rpc_connection_alert pipe on RPC connection error */
+            if (workdir && monero_wallet[GET_TXID].txid) {
+                char *rpc_conn_pipe = NULL;
+                char *rpc_conn_content = NULL;
+                asprintf(&rpc_conn_pipe, "%s/%s", workdir, RPC_CONN_ALERT);
+                asprintf(&rpc_conn_content, "%s", monero_wallet[GET_TXID].txid);
+                write_to_pipe(rpc_conn_pipe, rpc_conn_content);
+                free(rpc_conn_pipe);
+                free(rpc_conn_content);
+            }
             ret = EXIT_FAILURE;
             goto cleanup;
         }
@@ -692,11 +763,9 @@ int main(int argc, char **argv)
             case UNLOCKED:
                 jail = 1;
                 char *locked = get_locked(trans);
-                fprintf(stderr, "locked = %s\n", locked);
                 if (strncmp(locked, "false", MAX_DATA_SIZE) == 0) {
                     jail = 0;
                 }
-                fprintf(stderr, "locked = %s\n", locked);
                 break;
             default:
                 syslog(LOG_USER | LOG_ERR, "Error, check --notify-at x\n");
@@ -706,7 +775,7 @@ int main(int argc, char **argv)
     	    break;
         }
 
-        sleep(SLEEPTIME);
+        sleep(poll_interval);
         running = jail;
     }
 
@@ -1058,6 +1127,8 @@ static void usage(int status)
     "               create workdir for usage.\n\n"
     "      --cleanup\n"
     "               delete workdir.\n\n"
+    "      --retry\n"
+    "               if rpc_connection_alert is triggered - use retry.\n\n"
     "  -v, --version\n"
     "               Display the version number of mnp.\n\n"
     "      --verbose\n"
@@ -1135,6 +1206,19 @@ static int handler(void *user, const char *section, const char *name,
         return 0;  /* unknown section/name, error */
     }
     return 1;
+}
+
+
+int get_env_int(const char *name, int fallback) {
+    char *val = getenv(name);
+    if (val && *val) {
+        char *end;
+        long i = strtol(val, &end, 10);
+        if (*end == '\0') { // nur wenn es wirklich eine Zahl ist
+            return (int)i;
+        }
+    }
+    return fallback;
 }
 
 
