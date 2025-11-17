@@ -38,3 +38,4 @@ if [ -z "$PAYMENT_ID" ]; then
 fi
 
 echo $PAYMENT_ID $INTEGRATED_ADDRESS $AMOUNT
+
