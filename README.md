@@ -11,6 +11,7 @@ $ tree
 ├── balance
 ├── bc_height
 ├── double_spend_alert
+├── rpc_connection_alert
 ├── transactions
 │   ├── 64753821918b2f856815ae2894240301e41c3ae799b4e6f2af96604dda1cc50b
 │   │   └── 778we6Tb3c7c4VBEZ839sy98GFMQzGVtE5qMD8NzP1QvCxysFCYhv65NJ5Jiun8ssJ31hX8uSP3rMV6nJEXvcsx4JGNEb3U
