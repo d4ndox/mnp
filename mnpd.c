@@ -73,6 +73,8 @@ static void initshutdown(int);
 static void printmnp(void);
 static char *balance(const struct rpc_wallet *monero_wallet);
 static char *bcheight(const struct rpc_wallet *monero_wallet);
+static int get_env_int(const char *name, int fallback);
+static char *get_env_str(const char *name, const char *fallback);
 
 
 /**
@@ -102,6 +104,7 @@ int main(int argc, char **argv)
     char *rpc_port = NULL;
     char *account = NULL;
     char *workdir = NULL;
+    int poll_interval = get_env_int("MNP_POLL_INTERVAL", POLL_INTERVAL);
     int ret = 0;
 
     /* prepare for reading the config ini file */
@@ -380,7 +383,7 @@ int main(int argc, char **argv)
                     break;
             }
         } /* end for loop */
-        ret = sleep(SLEEPTIME);
+        ret = sleep(poll_interval);
     } /* end while loop */
 
     free(monero_wallet);
@@ -498,6 +501,24 @@ static int handler(void *user, const char *section, const char *name,
         return 0;  /* unknown section/name, error */
     }
     return 1;
+}
+
+
+static int get_env_int(const char *name, int fallback) {
+    char *val = getenv(name);
+    if (val != NULL && strlen(val) > 0) {
+        return atoi(val);
+    }
+    return fallback;
+}
+
+
+static char *get_env_str(const char *name, const char *fallback) {
+    char *val = getenv(name);
+    if (val != NULL && strlen(val) > 0) {
+        return val;
+    }
+    return (char *)fallback;
 }
 
 
