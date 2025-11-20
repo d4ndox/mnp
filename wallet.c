@@ -62,6 +62,8 @@ int wallet(const char *urlport, const char *cmd, const char *userpwd, char **ans
     curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, (long)CURLAUTH_DIGEST);
     curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(curl_handle, CURLOPT_USE_SSL, CURLUSESSL_TRY);
+    curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, RES_TIMEOUT);
+    curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECTTIMEOUT);
 
     struct MemoryStruct chunk;
     chunk.memory = malloc(1);

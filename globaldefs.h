@@ -7,13 +7,13 @@
 #define MAX_ADDR_SIZE   (96)
 #define MAX_PAYID_SIZE  (16)
 #define MAX_TXID_SIZE   (64)
-#define VERSION         "0.1.6"
+#define VERSION         "0.1.7"
 #define DEBUG           (0)
 #define CONFIG_FILE     ".mnp.ini"
 #define TMP_TXID_FILE   ".mnp.txid"
 #define TXID_PIPE       "txid"
 #define DS_ALERT_PIPE   "double_spend_alert"
-
+#define RPC_CONN_ALERT  "rpc_connection_alert"
 #define MONERO_ORANGE   "\033[38;2;255;102;0m"
 #define MONERO_GREEN    "\033[38;2;50;205;50m"
 #define MONERO_GREY     "\033[38;2;76;76;76m"
@@ -69,5 +69,7 @@ enum notify {
 #define NOPARAMS        NULL
 #define CONTENT_TYPE    "Content-Type: application/json"
 #define JSON_RPC        "2.0"
-#define SLEEPTIME       (5)
+#define POLL_INTERVAL   (5)
+#define RES_TIMEOUT     (10)
+#define CONNECTTIMEOUT  (5)
 #endif
