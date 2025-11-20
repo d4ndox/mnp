@@ -74,7 +74,7 @@ static const struct option options[] = {
     {"spend-proof"  , no_argument      , NULL, 's'},
     {"tx-proof"     , no_argument      , NULL, 'x'},
     {"init"         , no_argument      , NULL, 't'},
-    {"retry"       , no_argument      , NULL, 'R'},
+    {"retry"        , no_argument      , NULL, 'R'},
     {"cleanup"      , no_argument      , NULL, 'c'},
     {"version"      , no_argument      , NULL, 'v'},
     {"verbose"      , no_argument      , &verbose, 1},
@@ -738,8 +738,8 @@ int main(int argc, char **argv)
             goto cleanup;
         }
 
-       transfers = get_transfers(&monero_wallet[GET_TXID]);
-       if (transfers == NULL) {
+        transfers = get_transfers(&monero_wallet[GET_TXID]);
+        if (transfers == NULL) {
             ret = EXIT_FAILURE;
             fprintf(stderr, "ERROR RESPONSE\n");
             syslog(LOG_USER | LOG_ERR, "mnp ERROR");
