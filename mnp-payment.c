@@ -507,21 +507,11 @@ static void usage(int status)
 
 /**
  * Prints the version information of Monero Named Pipes.
- * ASCII art by ejm. Probs to ejm for this awesome art!
  */
 static void printmnp(void)
 {
                 printf(ANSI_RESET_ALL
-                "       __        \n"
-                "  w  c(..)o    ( \n"
-                "   \\__(-)    __) \n"
-                "       /\\   (    \n"
-                "      /(_)___)   \n"
-                "     w /|        \n"
-                "      | \\        \n"
-                "      m  m " 
-                MONERO_GREY "| "
                 MONERO_ORANGE "Monero " 
                 MONERO_GREY "Named Pipes Payment | "
-                ANSI_RESET_ALL "mnp-payment Version %s\n\n", VERSION);
+                ANSI_RESET_ALL "mnp-payment Version %s\n", VERSION);
 }

@@ -268,10 +268,8 @@ int main(int argc, char **argv)
     /* if no account is set - use the default account 0 */
     if (account == NULL) asprintf(&account, "0");
 
-    if (verbose) {
-        fprintf(stdout, "Starting ... \n");
-        printmnp();
-    }
+    fprintf(stdout, "Starting ... \n");
+    printmnp();
 
     /* TEST if work directory does exist */
     struct stat sb;
@@ -535,21 +533,11 @@ static void initshutdown(int sig)
 
 /**
  * Prints the version information of Monero Named Pipes.
- * ASCII art by ejm. Probs to ejm for this awesome art!
  */
 static void printmnp(void)
 {
                 printf(ANSI_RESET_ALL
-                "       __        \n"
-                "  w  c(..)o    ( \n"
-                "   \\__(-)    __) \n"
-                "       /\\   (    \n"
-                "      /(_)___)   \n"
-                "     w /|        \n"
-                "      | \\        \n"
-                "      m  m " 
-                MONERO_GREY "| "
                 MONERO_ORANGE "Monero " 
                 MONERO_GREY "Named Pipes Daemon | "
-                ANSI_RESET_ALL "mnpd Version %s\n\n", VERSION);
+                ANSI_RESET_ALL "mnpd Version %s\n", VERSION);
 }
