@@ -119,16 +119,4 @@ mnp --cleanup
 
 - Author: d4ndo
 
-```bash
-     __
-w  c(..)o     (
- \__(-)     __)
-     /\    (
-    /(_)___)
-   w /|
-    | \
-   m  m | Monero Named Pipes.
-```
-
-
 mnp is a hobby project. Fun has the highest priority.
