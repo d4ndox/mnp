@@ -86,6 +86,9 @@ static const struct command *find_command(const char *name)
     return NULL;
 }
 
+
+/* Ersetze in main.c nur print_global_help() durch diese Version. */
+
 static void print_global_help(FILE *stream, const char *program)
 {
     size_t i;
@@ -93,10 +96,25 @@ static void print_global_help(FILE *stream, const char *program)
     fprintf(
         stream,
         "Usage:\n"
-        "  %s TXID\n"
-        "  echo TXID | %s\n"
+        "  %s TXID [--notify-at N] [--confirmation N]\n"
+        "  echo TXID | %s [--notify-at N] [--confirmation N]\n"
         "  %s COMMAND [ARGUMENTS]\n"
         "  %s COMMAND help\n"
+        "\n"
+        "Transaction monitor:\n"
+        "  TXID\n"
+        "      Monitor a transaction. The TXID may be supplied as an\n"
+        "      argument or through stdin.\n"
+        "\n"
+        "  --notify-at N\n"
+        "      Select when the transaction should trigger notification:\n"
+        "        0  none\n"
+        "        1  txpool\n"
+        "        2  confirmed\n"
+        "        3  unlocked\n"
+        "\n"
+        "  --confirmation N\n"
+        "      Required confirmation count when --notify-at 2 is used.\n"
         "\n"
         "Commands:\n",
         program,
@@ -117,26 +135,50 @@ static void print_global_help(FILE *stream, const char *program)
     fprintf(
         stream,
         "\n"
+        "Help:\n"
+        "  %s help\n"
+        "  %s init help\n"
+        "  %s cleanup help\n"
+        "  %s payment help\n"
+        "  %s spend-proof help\n"
+        "  %s tx-proof help\n"
+        "  %s balance help\n"
+        "  %s bc-height help\n"
+        "\n"
         "Examples:\n"
-        "  %s init\n"
         "  %s TXID\n"
+        "  %s TXID --notify-at 1\n"
+        "  %s TXID --notify-at 2 --confirmation 3\n"
         "  echo TXID | %s\n"
+        "  echo TXID | %s --notify-at 2 --confirmation 3\n"
+        "\n"
+        "  %s init\n"
         "  %s payment new\n"
         "  %s payment new --amount 650000\n"
         "  %s payment list\n"
         "  %s payment subaddr 1\n"
         "  %s payment PAYMENT_ID\n"
         "  echo PAYMENT_ID | %s payment\n"
+        "\n"
         "  %s spend-proof TXID --signature SIGNATURE\n"
         "  echo TXID | %s spend-proof --signature SIGNATURE\n"
-        "  %s tx-proof TXID --address ADDRESS --signature SIGNATURE\n"
-        "  %s balance\n"
-        "  %s bc-height\n"
         "\n"
-        "Help:\n"
-        "  %s help\n"
-        "  %s payment help\n"
-        "  %s spend-proof help\n",
+        "  %s tx-proof TXID --address ADDRESS --signature SIGNATURE\n"
+        "  echo TXID | %s tx-proof --address ADDRESS "
+        "--signature SIGNATURE\n"
+        "\n"
+        "  %s balance\n"
+        "  %s bc-height\n",
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
         program,
         program,
         program,
@@ -164,24 +206,12 @@ static int dispatch_command(
     char **argv
 )
 {
-    /* Help is intentionally available only one level below mnp. */
     if (argc == 3 && strcmp(argv[2], "help") == 0) {
         command->help(stdout, program);
         return EXIT_SUCCESS;
     }
 
     return command->handler(argc - 1, argv + 1);
-}
-
-static int dispatch_monitor(int argc, char **argv)
-{
-    /*
-     * monitor_main() handles both:
-     *
-     *     mnp TXID
-     *     echo TXID | mnp
-     */
-    return monitor_main(argc, argv);
 }
 
 int main(int argc, char **argv)
@@ -196,14 +226,17 @@ int main(int argc, char **argv)
 
     program = argv[0];
 
+    /*
+     * Interactive "mnp" shows help.
+     * Piped "echo TXID | mnp" is handled by monitor_main().
+     */
     if (argc == 1) {
-        /* A bare interactive invocation must not block on stdin. */
         if (isatty(STDIN_FILENO)) {
             print_global_help(stdout, program);
             return EXIT_SUCCESS;
         }
 
-        return dispatch_monitor(argc, argv);
+        return monitor_main(argc, argv);
     }
 
     if (strcmp(argv[1], "help") == 0 ||
@@ -225,25 +258,25 @@ int main(int argc, char **argv)
     command = find_command(argv[1]);
 
     if (command != NULL) {
-        return dispatch_command(command, program, argc, argv);
+        return dispatch_command(
+            command,
+            program,
+            argc,
+            argv
+        );
     }
 
     /*
-     * A single non-command argument is treated as a TXID.
-     * monitor_main() performs the actual TXID validation.
+     * Everything that is not a known top-level command belongs to
+     * the default transaction monitor.
+     *
+     * This covers both:
+     *
+     *   mnp TXID --notify-at 2 --confirmation 3
+     *
+     * and:
+     *
+     *   echo TXID | mnp --notify-at 2 --confirmation 3
      */
-    if (argc == 2) {
-        return dispatch_monitor(argc, argv);
-    }
-
-    fprintf(
-        stderr,
-        "%s: unknown command '%s'\n"
-        "Try '%s help' for usage.\n",
-        program,
-        argv[1],
-        program
-    );
-
-    return EXIT_FAILURE;
+    return monitor_main(argc, argv);
 }
