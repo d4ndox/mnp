@@ -128,7 +128,7 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp --version foo
 - [ ] mnp --help foo
 
-### Stdou/Stderr Exitcode:
+### stdout/stderr Exitcode:
 - [ ] mnp balance
       echo $?
 - [ ] mnp bc-height
