@@ -1,13 +1,11 @@
-/* ============================================================
- * init.h
- * ============================================================ */
+/* cleanup.h */
 
-#ifndef MNP_INIT_H
-#define MNP_INIT_H
+#ifndef MNP_CLEANUP_H
+#define MNP_CLEANUP_H
 
 #include <stdio.h>
 
-int init_main(int argc, char **argv);
-void init_help(FILE *stream, const char *program);
+int cleanup_main(int argc, char **argv);
+void cleanup_help(FILE *stream, const char *program);
 
 #endif
