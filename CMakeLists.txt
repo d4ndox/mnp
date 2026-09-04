@@ -2,24 +2,77 @@
 #-DCMAKE_BUILD_TYPE=Release
 cmake_minimum_required(VERSION 3.0)
 
-project(mnp)
-add_definitions(-std=c99)
+project(mnp C)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+add_definitions(-D_GNU_SOURCE)
 
 find_package(CURL REQUIRED)
-include_directories(${CURL_INCLUDE_DIRS})
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -Wall -Wextra -Wformat=2")
-#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+include_directories(
+    ${CURL_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/inih
+    ${CMAKE_CURRENT_SOURCE_DIR}/cjson
+)
 
-#stndup warning
-set (CMAKE_C_FLAGS "-D_GNU_SOURCE")
-set(HEADER_FILES ../inih/ini.h ../cjson/cJSON.h ../wallet.h ../rpc_call.h ../delquotes.h ../validate.h ../globaldefs.h)
-add_executable(mnp ../mnp.c ../inih/ini.c ../cjson/cJSON.c ../rpc_call.c ../delquotes.c ../validate.c ../wallet.c ${HEADER_FILES})
-add_executable(mnpd ../mnpd.c ../inih/ini.c ../cjson/cJSON.c ../rpc_call.c ../delquotes.c ../wallet.c ${HEADER_FILES})
-add_executable(mnp-payment ../mnp-payment.c ../inih/ini.c ../cjson/cJSON.c ../rpc_call.c ../delquotes.c ../validate.c ../wallet.c ${HEADER_FILES})
+set(MNP_SOURCES
+    main.c
+    init.c
+    cleanup.c
+    monitor.c
+    spend_proof.c
+    tx_proof.c
+    payment.c
+    balance.c
+    bc_height.c
+    rpc_call.c
+    delquotes.c
+    validate.c
+    wallet.c
+    inih/ini.c
+    cjson/cJSON.c
+)
 
-target_link_libraries (mnp curl)
-target_link_libraries (mnpd curl)
-target_link_libraries (mnp-payment curl)
-install(FILES .mnp.ini DESTINATION ~ COMPONENT config)
-install(TARGETS mnp mnpd mnp-payment DESTINATION bin COMPONENT binaries)
+set(MNP_HEADERS
+    init.h
+    cleanup.h
+    monitor.h
+    spend_proof.h
+    tx_proof.h
+    payment.h
+    balance.h
+    bc_height.h
+    rpc_call.h
+    delquotes.h
+    validate.h
+    wallet.h
+    globaldefs.h
+    inih/ini.h
+    cjson/cJSON.h
+)
+
+add_executable(
+    mnp
+    ${MNP_SOURCES}
+    ${MNP_HEADERS}
+)
+
+target_link_libraries(
+    mnp
+    ${CURL_LIBRARIES}
+)
+
+install(
+    FILES .mnp.ini
+    DESTINATION ~
+    COMPONENT config
+)
+
+install(
+    TARGETS mnp
+    DESTINATION bin
+    COMPONENT binaries
+)
