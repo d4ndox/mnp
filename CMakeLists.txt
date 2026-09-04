@@ -29,7 +29,6 @@ set(MNP_SOURCES
     balance.c
     bc_height.c
     rpc_call.c
-    delquotes.c
     validate.c
     wallet.c
     inih/ini.c
@@ -46,7 +45,6 @@ set(MNP_HEADERS
     balance.h
     bc_height.h
     rpc_call.h
-    delquotes.h
     validate.h
     wallet.h
     globaldefs.h
