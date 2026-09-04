@@ -1,7 +1,27 @@
-
-/* ============================================================
- * spend_proof.c
- * ============================================================ */
+/*
+ * Copyright (c) 2026 d4ndo@proton.me
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 #include "spend_proof.h"
 
@@ -31,12 +51,191 @@ static const struct option spend_proof_options[] = {
     {NULL, 0, NULL, 0},
 };
 
-static int config_handler(
-    void *user,
-    const char *section,
-    const char *name,
-    const char *value
-)
+static int config_handler(void *user, const char *section, const char *name, const char *value);
+static char *config_path(void);
+static int parse_arguments(int argc, char **argv, struct spend_proof_args *args);
+static char *read_txid(const struct spend_proof_args *args);
+static int init_wallet(struct rpc_wallet *wallet, const struct Config *config, const char *txid,
+                       const struct spend_proof_args *args);
+static int proof_is_good(const struct rpc_wallet *wallet);
+static void free_wallet(struct rpc_wallet *wallet);
+static void free_config(struct Config *config);
+static void free_args(struct spend_proof_args *args);
+
+/**
+ * Verifies a Monero spend proof.
+ *
+ * The transaction ID may be supplied as a positional argument or through
+ * standard input. A spend-proof signature is required and an optional
+ * message may be supplied.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv The command-line argument vector.
+ * @return EXIT_SUCCESS if the spend proof is valid, or EXIT_FAILURE if the
+ *         proof is invalid or verification fails.
+ */
+int spend_proof_main(int argc, char **argv)
+{
+    struct spend_proof_args args;
+    struct Config config = {0};
+    struct rpc_wallet wallet = {0};
+    char *ini = NULL;
+    char *txid = NULL;
+    int good;
+    int result = EXIT_FAILURE;
+
+    if (parse_arguments(argc, argv, &args) == -1) {
+        fprintf(
+            stderr,
+            "Try '%s help' for usage.\n",
+            argv[0]
+        );
+        return EXIT_FAILURE;
+    }
+
+    txid = read_txid(&args);
+
+    if (txid == NULL) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: missing or invalid TXID input\n"
+        );
+        goto done;
+    }
+
+    if (val_hex_input(txid, MAX_TXID_SIZE) < 0) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: invalid TXID\n"
+        );
+        goto done;
+    }
+
+    ini = config_path();
+
+    if (ini == NULL) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: cannot determine config path\n"
+        );
+        goto done;
+    }
+
+    if (ini_parse(ini, config_handler, &config) < 0) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: cannot load configuration '%s'\n",
+            ini
+        );
+        goto done;
+    }
+
+    if (config.rpc_host == NULL ||
+        config.rpc_port == NULL ||
+        config.rpc_user == NULL ||
+        config.rpc_password == NULL) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: incomplete RPC configuration\n"
+        );
+        goto done;
+    }
+
+    if (init_wallet(&wallet, &config, txid, &args) == -1) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: cannot initialize RPC request\n"
+        );
+        goto done;
+    }
+
+    if (rpc_call(&wallet) < 0) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: could not connect to host: %s:%s\n",
+            wallet.host,
+            wallet.port
+        );
+        goto done;
+    }
+
+    good = proof_is_good(&wallet);
+
+    if (good < 0) {
+        fprintf(
+            stderr,
+            "mnp spend-proof: invalid wallet RPC response\n"
+        );
+        goto done;
+    }
+
+    if (good == 1) {
+        fprintf(stdout, "true\n");
+        result = EXIT_SUCCESS;
+    } else {
+        fprintf(stdout, "false\n");
+        result = EXIT_FAILURE;
+    }
+
+done:
+    free_wallet(&wallet);
+    free(txid);
+    free(ini);
+    free_config(&config);
+    free_args(&args);
+
+    return result;
+}
+
+/**
+ * Prints usage information for the spend-proof command.
+ *
+ * @param stream The output stream receiving the help text.
+ * @param program The program name used in the usage examples.
+ */
+void spend_proof_help(FILE *stream, const char *program)
+{
+    fprintf(
+        stream,
+        "Usage:\n"
+        "  %s spend-proof TXID --signature SIGNATURE "
+        "[--message MESSAGE]\n"
+        "  echo TXID | %s spend-proof --signature SIGNATURE "
+        "[--message MESSAGE]\n"
+        "\n"
+        "Verify a Monero spend proof.\n"
+        "\n"
+        "Arguments:\n"
+        "  TXID                  Transaction ID. May be read from stdin.\n"
+        "\n"
+        "Options:\n"
+        "  --signature SIGNATURE Spend-proof signature. Required.\n"
+        "  --message MESSAGE     Optional message used when creating the proof.\n"
+        "\n"
+        "Output:\n"
+        "  true                  Proof is valid.\n"
+        "  false                 Proof is invalid.\n"
+        "\n"
+        "Examples:\n"
+        "  %s spend-proof TXID --signature SIGNATURE\n"
+        "  echo TXID | %s spend-proof --signature SIGNATURE\n",
+        program,
+        program,
+        program,
+        program
+    );
+}
+
+/**
+ * Parses a configuration entry from the mnp configuration file.
+ *
+ * @param user A pointer to the Config structure receiving the parsed value.
+ * @param section The configuration section name.
+ * @param name The configuration option name.
+ * @param value The configuration option value.
+ * @return 1 if the configuration entry was handled, or 0 if it is unknown.
+ */
+static int config_handler(void *user, const char *section, const char *name, const char *value)
 {
     struct Config *config = user;
 
@@ -62,6 +261,12 @@ static int config_handler(
     return 1;
 }
 
+/**
+ * Builds the path to the mnp configuration file.
+ *
+ * @return A dynamically allocated string containing the configuration path,
+ *         or NULL if the path cannot be created.
+ */
 static char *config_path(void)
 {
     const char *home;
@@ -86,11 +291,16 @@ static char *config_path(void)
     return path;
 }
 
-static int parse_arguments(
-    int argc,
-    char **argv,
-    struct spend_proof_args *args
-)
+/**
+ * Parses command-line arguments for spend-proof verification.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv The command-line argument vector.
+ * @param args A pointer to the spend_proof_args structure receiving the
+ *             parsed values.
+ * @return 0 on success, or -1 if the arguments are invalid.
+ */
+static int parse_arguments(int argc, char **argv, struct spend_proof_args *args)
 {
     int option;
 
@@ -165,19 +375,20 @@ static int parse_arguments(
     return 0;
 }
 
-static char *read_txid(
-    const struct spend_proof_args *args
-)
+/**
+ * Reads a transaction ID from a positional argument or standard input.
+ *
+ * @param args A pointer to the parsed spend-proof arguments.
+ * @return A dynamically allocated transaction ID, or NULL if the input
+ *         cannot be read.
+ */
+static char *read_txid(const struct spend_proof_args *args)
 {
     char *txid;
+    size_t bytes;
 
     if (args->txid_argument != NULL) {
-        txid = strndup(
-            args->txid_argument,
-            MAX_TXID_SIZE
-        );
-
-        return txid;
+        return strndup(args->txid_argument, MAX_TXID_SIZE);
     }
 
     txid = malloc(MAX_TXID_SIZE + 1);
@@ -186,8 +397,7 @@ static char *read_txid(
         return NULL;
     }
 
-    const size_t bytes =
-        fread(txid, 1, MAX_TXID_SIZE, stdin);
+    bytes = fread(txid, 1, MAX_TXID_SIZE, stdin);
 
     if (bytes != MAX_TXID_SIZE) {
         free(txid);
@@ -199,12 +409,17 @@ static char *read_txid(
     return txid;
 }
 
-static int init_wallet(
-    struct rpc_wallet *wallet,
-    const struct Config *config,
-    const char *txid,
-    const struct spend_proof_args *args
-)
+/**
+ * Initializes a Monero wallet RPC request for spend-proof verification.
+ *
+ * @param wallet A pointer to the rpc_wallet structure to initialize.
+ * @param config A pointer to the loaded mnp configuration.
+ * @param txid The transaction ID associated with the spend proof.
+ * @param args A pointer to the parsed spend-proof arguments.
+ * @return 0 on success, or -1 if initialization fails.
+ */
+static int init_wallet(struct rpc_wallet *wallet, const struct Config *config, const char *txid,
+                       const struct spend_proof_args *args)
 {
     if (wallet == NULL ||
         config == NULL ||
@@ -217,36 +432,15 @@ static int init_wallet(
 
     wallet->monero_rpc_method = CHECK_SPEND_PROOF;
 
-    wallet->host = strndup(
-        config->rpc_host,
-        MAX_DATA_SIZE
-    );
-    wallet->port = strndup(
-        config->rpc_port,
-        MAX_DATA_SIZE
-    );
-    wallet->user = strndup(
-        config->rpc_user,
-        MAX_DATA_SIZE
-    );
-    wallet->pwd = strndup(
-        config->rpc_password,
-        MAX_DATA_SIZE
-    );
-    wallet->txid = strndup(
-        txid,
-        MAX_TXID_SIZE
-    );
-    wallet->signature = strndup(
-        args->signature,
-        MAX_DATA_SIZE
-    );
+    wallet->host = strndup(config->rpc_host, MAX_DATA_SIZE);
+    wallet->port = strndup(config->rpc_port, MAX_DATA_SIZE);
+    wallet->user = strndup(config->rpc_user, MAX_DATA_SIZE);
+    wallet->pwd = strndup(config->rpc_password, MAX_DATA_SIZE);
+    wallet->txid = strndup(txid, MAX_TXID_SIZE);
+    wallet->signature = strndup(args->signature, MAX_DATA_SIZE);
 
     if (args->message != NULL) {
-        wallet->message = strndup(
-            args->message,
-            MAX_DATA_SIZE
-        );
+        wallet->message = strndup(args->message, MAX_DATA_SIZE);
     }
 
     if (wallet->host == NULL ||
@@ -263,9 +457,14 @@ static int init_wallet(
     return 0;
 }
 
-static int proof_is_good(
-    const struct rpc_wallet *wallet
-)
+/**
+ * Extracts the signature verification status from the Monero wallet RPC response.
+ *
+ * @param wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return 1 if the proof is valid, 0 if the proof is invalid, or -1 if the
+ *         verification status cannot be extracted.
+ */
+static int proof_is_good(const struct rpc_wallet *wallet)
 {
     cJSON *result;
     cJSON *good;
@@ -297,9 +496,12 @@ static int proof_is_good(
     return cJSON_IsTrue(good) ? 1 : 0;
 }
 
-static void free_wallet(
-    struct rpc_wallet *wallet
-)
+/**
+ * Releases dynamically allocated fields in an rpc_wallet structure.
+ *
+ * @param wallet A pointer to the rpc_wallet structure to clean up.
+ */
+static void free_wallet(struct rpc_wallet *wallet)
 {
     if (wallet == NULL) {
         return;
@@ -318,9 +520,12 @@ static void free_wallet(
     }
 }
 
-static void free_config(
-    struct Config *config
-)
+/**
+ * Releases dynamically allocated fields in an mnp configuration structure.
+ *
+ * @param config A pointer to the Config structure to clean up.
+ */
+static void free_config(struct Config *config)
 {
     if (config == NULL) {
         return;
@@ -333,9 +538,12 @@ static void free_config(
     free((void *)config->cfg_workdir);
 }
 
-static void free_args(
-    struct spend_proof_args *args
-)
+/**
+ * Releases dynamically allocated spend-proof command-line arguments.
+ *
+ * @param args A pointer to the spend_proof_args structure to clean up.
+ */
+static void free_args(struct spend_proof_args *args)
 {
     if (args == NULL) {
         return;
@@ -343,174 +551,4 @@ static void free_args(
 
     free(args->signature);
     free(args->message);
-}
-
-void spend_proof_help(
-    FILE *stream,
-    const char *program
-)
-{
-    fprintf(
-        stream,
-        "Usage:\n"
-        "  %s spend-proof TXID --signature SIGNATURE "
-        "[--message MESSAGE]\n"
-        "  echo TXID | %s spend-proof --signature SIGNATURE "
-        "[--message MESSAGE]\n"
-        "\n"
-        "Verify a Monero spend proof.\n"
-        "\n"
-        "Arguments:\n"
-        "  TXID                  Transaction ID. May be read from stdin.\n"
-        "\n"
-        "Options:\n"
-        "  --signature SIGNATURE Spend-proof signature. Required.\n"
-        "  --message MESSAGE     Optional message used when creating the proof.\n"
-        "\n"
-        "Output:\n"
-        "  true                  Proof is valid.\n"
-        "  false                 Proof is invalid.\n"
-        "\n"
-        "Examples:\n"
-        "  %s spend-proof TXID --signature SIGNATURE\n"
-        "  echo TXID | %s spend-proof --signature SIGNATURE\n",
-        program,
-        program,
-        program,
-        program
-    );
-}
-
-int spend_proof_main(
-    int argc,
-    char **argv
-)
-{
-    struct spend_proof_args args;
-    struct Config config = {0};
-    struct rpc_wallet wallet = {0};
-
-    char *ini = NULL;
-    char *txid = NULL;
-
-    int good;
-    int result = EXIT_FAILURE;
-
-    if (parse_arguments(
-            argc,
-            argv,
-            &args
-        ) == -1) {
-        fprintf(
-            stderr,
-            "Try '%s help' for usage.\n",
-            argv[0]
-        );
-        return EXIT_FAILURE;
-    }
-
-    txid = read_txid(&args);
-
-    if (txid == NULL) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: missing or invalid TXID input\n"
-        );
-        goto done;
-    }
-
-    if (val_hex_input(
-            txid,
-            MAX_TXID_SIZE
-        ) < 0) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: invalid TXID\n"
-        );
-        goto done;
-    }
-
-    ini = config_path();
-
-    if (ini == NULL) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: cannot determine config path\n"
-        );
-        goto done;
-    }
-
-    if (ini_parse(
-            ini,
-            config_handler,
-            &config
-        ) < 0) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: cannot load configuration '%s'\n",
-            ini
-        );
-        goto done;
-    }
-
-    if (config.rpc_host == NULL ||
-        config.rpc_port == NULL ||
-        config.rpc_user == NULL ||
-        config.rpc_password == NULL) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: incomplete RPC configuration\n"
-        );
-        goto done;
-    }
-
-    if (init_wallet(
-            &wallet,
-            &config,
-            txid,
-            &args
-        ) == -1) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: cannot initialize RPC request\n"
-        );
-        goto done;
-    }
-
-    if (rpc_call(&wallet) < 0) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: could not connect to host: %s:%s\n",
-            wallet.host,
-            wallet.port
-        );
-        goto done;
-    }
-
-    good = proof_is_good(&wallet);
-
-    if (good < 0) {
-        fprintf(
-            stderr,
-            "mnp spend-proof: invalid wallet RPC response\n"
-        );
-        goto done;
-    }
-
-    if (good == 1) {
-        fprintf(stdout, "true\n");
-        result = EXIT_SUCCESS;
-    } else {
-        fprintf(stdout, "false\n");
-        result = EXIT_FAILURE;
-    }
-
-done:
-    free_wallet(&wallet);
-    free(txid);
-    free(ini);
-    free_config(&config);
-    free_args(&args);
-
-    return result;
 }
