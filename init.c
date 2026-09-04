@@ -78,7 +78,7 @@ static int parse_permissions(const char *permissions, mode_t *mode)
     }
 
     for (size_t i = 0; i < 9; ++i) {
-        const char expected;
+        char expected;
 
         switch (i % 3) {
         case 0:
