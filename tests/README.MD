@@ -121,8 +121,8 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 - [ ] mnp invalid-command
 - [ ] mnp balance foo
 - [ ] mnp bc-height foo
-- [ ] mmnp payment foo
-- [ ] mmnp payment subaddr -1
+- [ ] mnp payment foo
+- [ ] mnp payment subaddr -1
 - [ ] mnp spend-proof
 - [ ] mnp tx-proof
 - [ ] mnp --version foo
