@@ -252,7 +252,7 @@ static int init_wallet(
         txid,
         MAX_TXID_SIZE
     );
-    wallet->address = strndup(
+    wallet->saddr = strndup(
         args->address,
         MAX_DATA_SIZE
     );
@@ -273,7 +273,7 @@ static int init_wallet(
         wallet->user == NULL ||
         wallet->pwd == NULL ||
         wallet->txid == NULL ||
-        wallet->address == NULL ||
+        wallet->saddr == NULL ||
         wallet->signature == NULL ||
         (args->message != NULL &&
          wallet->message == NULL)) {
@@ -330,7 +330,7 @@ static void free_wallet(
     free(wallet->user);
     free(wallet->pwd);
     free(wallet->txid);
-    free(wallet->address);
+    free(wallet->saddr);
     free(wallet->signature);
     free(wallet->message);
 
