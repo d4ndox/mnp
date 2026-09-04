@@ -1,4 +1,27 @@
-/* main.c */
+/*
+ * Copyright (c) 2026 d4ndo@proton.me
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 #include <stddef.h>
 #include <stdio.h>
@@ -70,9 +93,76 @@ static const struct command commands[] = {
     },
 };
 
-static const size_t command_count =
-    sizeof(commands) / sizeof(commands[0]);
+static const size_t command_count = sizeof(commands) / sizeof(commands[0]);
 
+static const struct command *find_command(const char *name);
+static void print_global_help(FILE *stream, const char *program);
+static int dispatch_command(const struct command *command, const char *program, int argc, char **argv);
+
+/**
+ * Dispatches mnp commands and transaction-monitor invocations.
+ *
+ * Known top-level commands are forwarded to their command handlers. Any
+ * argument sequence that does not begin with a known command is handled by
+ * the transaction monitor, allowing both positional and piped transaction IDs.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv The command-line argument vector.
+ * @return EXIT_SUCCESS on success, or a command-specific failure status.
+ */
+int main(int argc, char **argv)
+{
+    const struct command *command;
+    const char *program;
+
+    if (argc < 1 || argv == NULL || argv[0] == NULL) {
+        fprintf(stderr, "mnp: invalid process arguments\n");
+        return EXIT_FAILURE;
+    }
+
+    program = argv[0];
+
+    if (argc == 1) {
+        if (isatty(STDIN_FILENO)) {
+            print_global_help(stdout, program);
+            return EXIT_SUCCESS;
+        }
+
+        return monitor_main(argc, argv);
+    }
+
+    if (strcmp(argv[1], "help") == 0 ||
+        strcmp(argv[1], "--help") == 0 ||
+        strcmp(argv[1], "-h") == 0) {
+        if (argc != 2) {
+            fprintf(
+                stderr,
+                "%s: help does not accept additional arguments\n",
+                program
+            );
+            return EXIT_FAILURE;
+        }
+
+        print_global_help(stdout, program);
+        return EXIT_SUCCESS;
+    }
+
+    command = find_command(argv[1]);
+
+    if (command != NULL) {
+        return dispatch_command(command, program, argc, argv);
+    }
+
+    return monitor_main(argc, argv);
+}
+
+/**
+ * Finds a registered top-level command by name.
+ *
+ * @param name The command name to search for.
+ * @return A pointer to the matching command structure, or NULL if no command
+ *         matches.
+ */
 static const struct command *find_command(const char *name)
 {
     size_t i;
@@ -86,9 +176,12 @@ static const struct command *find_command(const char *name)
     return NULL;
 }
 
-
-/* Ersetze in main.c nur print_global_help() durch diese Version. */
-
+/**
+ * Prints global usage information for the mnp command-line interface.
+ *
+ * @param stream The output stream receiving the help text.
+ * @param program The program name used in usage examples.
+ */
 static void print_global_help(FILE *stream, const char *program)
 {
     size_t i;
@@ -199,12 +292,21 @@ static void print_global_help(FILE *stream, const char *program)
     );
 }
 
-static int dispatch_command(
-    const struct command *command,
-    const char *program,
-    int argc,
-    char **argv
-)
+/**
+ * Dispatches a registered top-level command.
+ *
+ * A direct "help" argument is handled without invoking the command itself.
+ * All other arguments are forwarded to the command handler with the top-level
+ * command removed from the argument vector.
+ *
+ * @param command A pointer to the command structure to dispatch.
+ * @param program The program name used by the help handler.
+ * @param argc The original number of command-line arguments.
+ * @param argv The original command-line argument vector.
+ * @return EXIT_SUCCESS for help output, or the return value of the command
+ *         handler.
+ */
+static int dispatch_command(const struct command *command, const char *program, int argc, char **argv)
 {
     if (argc == 3 && strcmp(argv[2], "help") == 0) {
         command->help(stdout, program);
@@ -212,71 +314,4 @@ static int dispatch_command(
     }
 
     return command->handler(argc - 1, argv + 1);
-}
-
-int main(int argc, char **argv)
-{
-    const struct command *command;
-    const char *program;
-
-    if (argc < 1 || argv == NULL || argv[0] == NULL) {
-        fprintf(stderr, "mnp: invalid process arguments\n");
-        return EXIT_FAILURE;
-    }
-
-    program = argv[0];
-
-    /*
-     * Interactive "mnp" shows help.
-     * Piped "echo TXID | mnp" is handled by monitor_main().
-     */
-    if (argc == 1) {
-        if (isatty(STDIN_FILENO)) {
-            print_global_help(stdout, program);
-            return EXIT_SUCCESS;
-        }
-
-        return monitor_main(argc, argv);
-    }
-
-    if (strcmp(argv[1], "help") == 0 ||
-        strcmp(argv[1], "--help") == 0 ||
-        strcmp(argv[1], "-h") == 0) {
-        if (argc != 2) {
-            fprintf(
-                stderr,
-                "%s: help does not accept additional arguments\n",
-                program
-            );
-            return EXIT_FAILURE;
-        }
-
-        print_global_help(stdout, program);
-        return EXIT_SUCCESS;
-    }
-
-    command = find_command(argv[1]);
-
-    if (command != NULL) {
-        return dispatch_command(
-            command,
-            program,
-            argc,
-            argv
-        );
-    }
-
-    /*
-     * Everything that is not a known top-level command belongs to
-     * the default transaction monitor.
-     *
-     * This covers both:
-     *
-     *   mnp TXID --notify-at 2 --confirmation 3
-     *
-     * and:
-     *
-     *   echo TXID | mnp --notify-at 2 --confirmation 3
-     */
-    return monitor_main(argc, argv);
 }
