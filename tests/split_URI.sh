@@ -1,7 +1,7 @@
 #!/bin/bash
 
 IP=127.0.0.1
-PORT=18083
+PORT=18082
 read MONERO_URI
 
 # Check if Monero URI is provided as an argument
