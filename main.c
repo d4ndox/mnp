@@ -32,6 +32,7 @@
 #include "balance.h"
 #include "bc_height.h"
 #include "cleanup.h"
+#include "globaldefs.h"
 #include "init.h"
 #include "monitor.h"
 #include "payment.h"
@@ -97,19 +98,9 @@ static const size_t command_count = sizeof(commands) / sizeof(commands[0]);
 
 static const struct command *find_command(const char *name);
 static void print_global_help(FILE *stream, const char *program);
+static void print_version(FILE *stream, const char *program);
 static int dispatch_command(const struct command *command, const char *program, int argc, char **argv);
 
-/**
- * Dispatches mnp commands and transaction-monitor invocations.
- *
- * Known top-level commands are forwarded to their command handlers. Any
- * argument sequence that does not begin with a known command is handled by
- * the transaction monitor, allowing both positional and piped transaction IDs.
- *
- * @param argc The number of command-line arguments.
- * @param argv The command-line argument vector.
- * @return EXIT_SUCCESS on success, or a command-specific failure status.
- */
 int main(int argc, char **argv)
 {
     const struct command *command;
@@ -129,6 +120,21 @@ int main(int argc, char **argv)
         }
 
         return monitor_main(argc, argv);
+    }
+
+    if (strcmp(argv[1], "version") == 0 ||
+        strcmp(argv[1], "--version") == 0) {
+        if (argc != 2) {
+            fprintf(
+                stderr,
+                "%s: version does not accept additional arguments\n",
+                program
+            );
+            return EXIT_FAILURE;
+        }
+
+        print_version(stdout, program);
+        return EXIT_SUCCESS;
     }
 
     if (strcmp(argv[1], "help") == 0 ||
@@ -160,8 +166,7 @@ int main(int argc, char **argv)
  * Finds a registered top-level command by name.
  *
  * @param name The command name to search for.
- * @return A pointer to the matching command structure, or NULL if no command
- *         matches.
+ * @return A pointer to the matching command structure, or NULL if no command matches.
  */
 static const struct command *find_command(const char *name)
 {
@@ -174,6 +179,17 @@ static const struct command *find_command(const char *name)
     }
 
     return NULL;
+}
+
+/**
+ * Prints the current mnp version.
+ *
+ * @param stream The output stream receiving the version string.
+ * @param program The program name printed before the version number.
+ */
+static void print_version(FILE *stream, const char *program)
+{
+    fprintf(stream, "%s %s\n", program, VERSION);
 }
 
 /**
@@ -193,6 +209,8 @@ static void print_global_help(FILE *stream, const char *program)
         "  echo TXID | %s [--notify-at N] [--confirmation N]\n"
         "  %s COMMAND [ARGUMENTS]\n"
         "  %s COMMAND help\n"
+        "  %s version\n"
+        "  %s --version\n"
         "\n"
         "Transaction monitor:\n"
         "  TXID\n"
@@ -213,6 +231,8 @@ static void print_global_help(FILE *stream, const char *program)
         program,
         program,
         program,
+        program,
+        program,
         program
     );
 
@@ -227,6 +247,7 @@ static void print_global_help(FILE *stream, const char *program)
 
     fprintf(
         stream,
+        "  %-14s %s\n"
         "\n"
         "Help:\n"
         "  %s help\n"
@@ -239,41 +260,15 @@ static void print_global_help(FILE *stream, const char *program)
         "  %s bc-height help\n"
         "\n"
         "Examples:\n"
+        "  %s version\n"
+        "  %s --version\n"
         "  %s TXID\n"
         "  %s TXID --notify-at 1\n"
         "  %s TXID --notify-at 2 --confirmation 3\n"
         "  echo TXID | %s\n"
-        "  echo TXID | %s --notify-at 2 --confirmation 3\n"
-        "\n"
-        "  %s init\n"
-        "  %s payment new\n"
-        "  %s payment new --amount 650000\n"
-        "  %s payment list\n"
-        "  %s payment subaddr 1\n"
-        "  %s payment PAYMENT_ID\n"
-        "  echo PAYMENT_ID | %s payment\n"
-        "\n"
-        "  %s spend-proof TXID --signature SIGNATURE\n"
-        "  echo TXID | %s spend-proof --signature SIGNATURE\n"
-        "\n"
-        "  %s tx-proof TXID --address ADDRESS --signature SIGNATURE\n"
-        "  echo TXID | %s tx-proof --address ADDRESS "
-        "--signature SIGNATURE\n"
-        "\n"
-        "  %s balance\n"
-        "  %s bc-height\n",
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
+        "  echo TXID | %s --notify-at 2 --confirmation 3\n",
+        "version",
+        "Print the mnp version",
         program,
         program,
         program,
@@ -295,16 +290,11 @@ static void print_global_help(FILE *stream, const char *program)
 /**
  * Dispatches a registered top-level command.
  *
- * A direct "help" argument is handled without invoking the command itself.
- * All other arguments are forwarded to the command handler with the top-level
- * command removed from the argument vector.
- *
  * @param command A pointer to the command structure to dispatch.
  * @param program The program name used by the help handler.
  * @param argc The original number of command-line arguments.
  * @param argv The original command-line argument vector.
- * @return EXIT_SUCCESS for help output, or the return value of the command
- *         handler.
+ * @return EXIT_SUCCESS for help output, or the return value of the command handler.
  */
 static int dispatch_command(const struct command *command, const char *program, int argc, char **argv)
 {
