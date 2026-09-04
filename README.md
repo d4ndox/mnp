@@ -62,7 +62,7 @@ monero-wallet-rpc --config-file notify-mnp.cfg
 `notify-mnp.cfg` example:
 ```cfg
 rpc-bind-ip=127.0.0.1
-rpc-bind-port=18083
+rpc-bind-port=18082
 rpc-login=username:password
 wallet-file=mywallet
 password=mywalletpassword
