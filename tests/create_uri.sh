@@ -14,4 +14,4 @@ mysql --batch \
     VALUES ('$amount','REQUEST');SELECT LAST_INSERT_ID();" | 
     tail -n1 | 
     xargs printf "%016x\n" | 
-    mnp-payment --amount $amount
+    mnp payment --amount $amount
