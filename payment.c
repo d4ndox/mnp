@@ -1,6 +1,27 @@
-/* ============================================================
- * payment.c
- * ============================================================ */
+/*
+ * Copyright (c) 2026 d4ndo@proton.me
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 #include "payment.h"
 
@@ -32,6 +53,217 @@ struct payment_args {
     int subaddress_index;
 };
 
+static char *duplicate_string(const char *value, size_t maximum);
+static int config_handler(void *user, const char *section, const char *name, const char *value);
+static char *get_config_path(void);
+static void free_config(struct Config *config);
+static int parse_nonnegative_int(const char *value, int *result);
+static int parse_arguments(int argc, char **argv, struct payment_args *args);
+static char *read_payment_id_from_stdin(void);
+static char *get_payment_id(const struct payment_args *args);
+static int init_wallet(struct rpc_wallet *wallet, enum monero_rpc_method method, const struct Config *config);
+static void free_wallet(struct rpc_wallet *wallet);
+static int call_wallet(struct rpc_wallet *wallet, const char *command);
+static cJSON *get_result(const struct rpc_wallet *wallet);
+static char *get_json_string(cJSON *object, const char *name);
+static int print_uri(const struct Config *config, const char *address, const char *amount);
+static int run_new(const struct Config *config, const char *amount);
+static int run_list(const struct Config *config);
+static int run_subaddr(const struct Config *config, int index, const char *amount);
+static int run_integrated(const struct Config *config, const char *payment_id, const char *amount);
+
+/**
+ * Handles the payment subcommand.
+ *
+ * Parses the requested payment action, loads the RPC configuration, and dispatches
+ * the corresponding Monero wallet RPC operation.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv The command-line argument vector.
+ * @return EXIT_SUCCESS on success, or EXIT_FAILURE if the payment operation fails.
+ */
+int payment_main(int argc, char **argv)
+{
+    struct payment_args args;
+    struct Config config = {0};
+    char *config_path = NULL;
+    char *payment_id = NULL;
+    int status = EXIT_FAILURE;
+
+    if (parse_arguments(
+            argc,
+            argv,
+            &args
+        ) == -1) {
+        fprintf(
+            stderr,
+            "Try 'mnp payment help' for usage.\n"
+        );
+        return EXIT_FAILURE;
+    }
+
+    config_path = get_config_path();
+
+    if (config_path == NULL) {
+        fprintf(
+            stderr,
+            "mnp payment: cannot determine configuration path\n"
+        );
+        goto done;
+    }
+
+    if (ini_parse(
+            config_path,
+            config_handler,
+            &config
+        ) < 0) {
+        fprintf(
+            stderr,
+            "mnp payment: cannot load configuration '%s'\n",
+            config_path
+        );
+        goto done;
+    }
+
+    if (config.rpc_host == NULL ||
+        config.rpc_port == NULL ||
+        config.rpc_user == NULL ||
+        config.rpc_password == NULL) {
+        fprintf(
+            stderr,
+            "mnp payment: incomplete RPC configuration\n"
+        );
+        goto done;
+    }
+
+    switch (args.action) {
+    case PAYMENT_ACTION_NEW:
+        status = run_new(
+            &config,
+            args.amount
+        );
+        break;
+
+    case PAYMENT_ACTION_LIST:
+        status = run_list(&config);
+        break;
+
+    case PAYMENT_ACTION_SUBADDR:
+        status = run_subaddr(
+            &config,
+            args.subaddress_index,
+            args.amount
+        );
+        break;
+
+    case PAYMENT_ACTION_INTEGRATED:
+        payment_id = get_payment_id(&args);
+
+        if (payment_id == NULL) {
+            fprintf(
+                stderr,
+                "mnp payment: a valid 16-character "
+                "payment ID is required\n"
+            );
+            goto done;
+        }
+
+        status = run_integrated(
+            &config,
+            payment_id,
+            args.amount
+        );
+        break;
+
+    default:
+        fprintf(
+            stderr,
+            "mnp payment: invalid payment action\n"
+        );
+        break;
+    }
+
+done:
+    free(payment_id);
+    free(args.amount);
+    free(config_path);
+    free_config(&config);
+
+    return status;
+}
+
+/**
+ * Prints usage information for the payment subcommand.
+ *
+ * @param stream The output stream receiving the help text.
+ * @param program The program name used in usage examples.
+ */
+void payment_help(FILE *stream, const char *program)
+{
+    fprintf(
+        stream,
+        "Usage:\n"
+        "  %s payment new [--amount AMOUNT]\n"
+        "  %s payment list\n"
+        "  %s payment subaddr INDEX [--amount AMOUNT]\n"
+        "  %s payment PAYMENT_ID [--amount AMOUNT]\n"
+        "  echo PAYMENT_ID | %s payment [--amount AMOUNT]\n"
+        "\n"
+        "Create payment addresses and Monero payment URIs.\n"
+        "\n"
+        "Commands:\n"
+        "  new\n"
+        "      Create a new subaddress.\n"
+        "\n"
+        "  list\n"
+        "      List all subaddresses and their indices.\n"
+        "\n"
+        "  subaddr INDEX\n"
+        "      Print the subaddress at INDEX.\n"
+        "\n"
+        "Payment ID:\n"
+        "  PAYMENT_ID must be exactly 16 hexadecimal characters.\n"
+        "  It may be supplied as an argument or through stdin.\n"
+        "  An integrated address is returned.\n"
+        "\n"
+        "Options:\n"
+        "  --amount AMOUNT\n"
+        "      Return a Monero URI containing the requested amount.\n"
+        "\n"
+        "Examples:\n"
+        "  %s payment new\n"
+        "  %s payment new --amount 650000\n"
+        "  %s payment list\n"
+        "  %s payment subaddr 1\n"
+        "  %s payment subaddr 1 --amount 650000\n"
+        "  %s payment e02c381aa2227436\n"
+        "  echo e02c381aa2227436 | %s payment\n"
+        "  echo e02c381aa2227436 | "
+        "%s payment --amount 50000\n",
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program,
+        program
+    );
+}
+
+/**
+ * Duplicates a string while enforcing a maximum accepted length.
+ *
+ * @param value The string to duplicate.
+ * @param maximum The maximum accepted string length.
+ * @return A dynamically allocated copy of the string, or NULL if the input is invalid
+ *         or memory allocation fails.
+ */
 static char *duplicate_string(const char *value, size_t maximum)
 {
     size_t length;
@@ -59,12 +291,16 @@ static char *duplicate_string(const char *value, size_t maximum)
     return copy;
 }
 
-static int config_handler(
-    void *user,
-    const char *section,
-    const char *name,
-    const char *value
-)
+/**
+ * Parses a payment-related entry from the mnp configuration file.
+ *
+ * @param user A pointer to the Config structure receiving the parsed value.
+ * @param section The configuration section name.
+ * @param name The configuration option name.
+ * @param value The configuration option value.
+ * @return 1 if the configuration entry was handled, or 0 if it is unknown.
+ */
+static int config_handler(void *user, const char *section, const char *name, const char *value)
 {
     struct Config *config = user;
 
@@ -90,6 +326,12 @@ static int config_handler(
     return 1;
 }
 
+/**
+ * Builds the path to the mnp configuration file in the user's home directory.
+ *
+ * @return A dynamically allocated string containing the configuration path, or NULL if
+ *         the path cannot be created.
+ */
 static char *get_config_path(void)
 {
     const char *home;
@@ -130,6 +372,11 @@ static char *get_config_path(void)
     return path;
 }
 
+/**
+ * Releases all dynamically allocated payment configuration fields.
+ *
+ * @param config A pointer to the Config structure to clean up.
+ */
 static void free_config(struct Config *config)
 {
     if (config == NULL) {
@@ -143,10 +390,14 @@ static void free_config(struct Config *config)
     free((void *)config->mnp_account);
 }
 
-static int parse_nonnegative_int(
-    const char *value,
-    int *result
-)
+/**
+ * Parses a non-negative integer from a string.
+ *
+ * @param value The string containing the integer value.
+ * @param result A pointer receiving the parsed integer.
+ * @return 0 on success, or -1 if the value is invalid.
+ */
+static int parse_nonnegative_int(const char *value, int *result)
 {
     char *end = NULL;
     long parsed;
@@ -173,11 +424,15 @@ static int parse_nonnegative_int(
     return 0;
 }
 
-static int parse_arguments(
-    int argc,
-    char **argv,
-    struct payment_args *args
-)
+/**
+ * Parses command-line arguments for the payment subcommand.
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv The command-line argument vector.
+ * @param args A pointer to the payment_args structure receiving the parsed values.
+ * @return 0 on success, or -1 if the arguments are invalid.
+ */
+static int parse_arguments(int argc, char **argv, struct payment_args *args)
 {
     const char *positionals[2] = {NULL, NULL};
     size_t positional_count = 0;
@@ -337,6 +592,12 @@ static int parse_arguments(
     return 0;
 }
 
+/**
+ * Reads a payment ID from standard input.
+ *
+ * @return A dynamically allocated payment ID, or NULL if standard input does not
+ *         contain a valid-length payment ID.
+ */
 static char *read_payment_id_from_stdin(void)
 {
     char buffer[MAX_PAYID_SIZE + 3];
@@ -373,9 +634,14 @@ static char *read_payment_id_from_stdin(void)
     );
 }
 
-static char *get_payment_id(
-    const struct payment_args *args
-)
+/**
+ * Retrieves and validates a payment ID from an argument or standard input.
+ *
+ * @param args A pointer to the parsed payment arguments.
+ * @return A dynamically allocated payment ID, or NULL if the payment ID is missing
+ *         or invalid.
+ */
+static char *get_payment_id(const struct payment_args *args)
 {
     char *payment_id;
 
@@ -403,11 +669,15 @@ static char *get_payment_id(
     return payment_id;
 }
 
-static int init_wallet(
-    struct rpc_wallet *wallet,
-    enum monero_rpc_method method,
-    const struct Config *config
-)
+/**
+ * Initializes a Monero wallet RPC request for a payment operation.
+ *
+ * @param wallet A pointer to the rpc_wallet structure to initialize.
+ * @param method The Monero wallet RPC method to execute.
+ * @param config A pointer to the loaded mnp configuration.
+ * @return 0 on success, or -1 if initialization fails.
+ */
+static int init_wallet(struct rpc_wallet *wallet, enum monero_rpc_method method, const struct Config *config)
 {
     const char *account;
 
@@ -460,6 +730,11 @@ static int init_wallet(
     return 0;
 }
 
+/**
+ * Releases all dynamically allocated fields used by a payment RPC request.
+ *
+ * @param wallet A pointer to the rpc_wallet structure to clean up.
+ */
 static void free_wallet(struct rpc_wallet *wallet)
 {
     if (wallet == NULL) {
@@ -484,10 +759,14 @@ static void free_wallet(struct rpc_wallet *wallet)
     memset(wallet, 0, sizeof(*wallet));
 }
 
-static int call_wallet(
-    struct rpc_wallet *wallet,
-    const char *command
-)
+/**
+ * Executes a Monero wallet RPC request and reports connection failures.
+ *
+ * @param wallet A pointer to the configured rpc_wallet structure.
+ * @param command The payment command name used in error messages.
+ * @return 0 on success, or -1 if the RPC request fails.
+ */
+static int call_wallet(struct rpc_wallet *wallet, const char *command)
 {
     if (rpc_call(wallet) < 0) {
         fprintf(
@@ -503,9 +782,13 @@ static int call_wallet(
     return 0;
 }
 
-static cJSON *get_result(
-    const struct rpc_wallet *wallet
-)
+/**
+ * Extracts the result object from a Monero wallet RPC response.
+ *
+ * @param wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @return A pointer to the result JSON object, or NULL if the extraction fails.
+ */
+static cJSON *get_result(const struct rpc_wallet *wallet)
 {
     cJSON *result;
 
@@ -527,10 +810,14 @@ static cJSON *get_result(
     return result;
 }
 
-static char *get_json_string(
-    cJSON *object,
-    const char *name
-)
+/**
+ * Extracts a string value from a JSON object.
+ *
+ * @param object A pointer to the JSON object containing the value.
+ * @param name The name of the string property to extract.
+ * @return A dynamically allocated copy of the string value, or NULL if extraction fails.
+ */
+static char *get_json_string(cJSON *object, const char *name)
 {
     cJSON *item;
 
@@ -552,11 +839,15 @@ static char *get_json_string(
     );
 }
 
-static int print_uri(
-    const struct Config *config,
-    const char *address,
-    const char *amount
-)
+/**
+ * Creates and prints a Monero payment URI for an address and amount.
+ *
+ * @param config A pointer to the loaded mnp configuration.
+ * @param address The Monero address to include in the URI.
+ * @param amount The payment amount to include in the URI.
+ * @return 0 on success, or -1 if the URI cannot be created.
+ */
+static int print_uri(const struct Config *config, const char *address, const char *amount)
 {
     struct rpc_wallet wallet;
     cJSON *result;
@@ -617,10 +908,14 @@ done:
     return status;
 }
 
-static int run_new(
-    const struct Config *config,
-    const char *amount
-)
+/**
+ * Creates a new wallet subaddress and optionally prints a payment URI.
+ *
+ * @param config A pointer to the loaded mnp configuration.
+ * @param amount The optional payment amount, or NULL to print only the address.
+ * @return EXIT_SUCCESS on success, or EXIT_FAILURE if the operation fails.
+ */
+static int run_new(const struct Config *config, const char *amount)
 {
     struct rpc_wallet wallet;
     cJSON *result;
@@ -680,9 +975,13 @@ done:
     return status;
 }
 
-static int run_list(
-    const struct Config *config
-)
+/**
+ * Lists all subaddresses returned by the Monero wallet RPC.
+ *
+ * @param config A pointer to the loaded mnp configuration.
+ * @return EXIT_SUCCESS on success, or EXIT_FAILURE if the operation fails.
+ */
+static int run_list(const struct Config *config)
 {
     struct rpc_wallet wallet;
     cJSON *result;
@@ -787,11 +1086,15 @@ done:
     return status;
 }
 
-static int run_subaddr(
-    const struct Config *config,
-    int index,
-    const char *amount
-)
+/**
+ * Retrieves a subaddress by index and optionally prints a payment URI.
+ *
+ * @param config A pointer to the loaded mnp configuration.
+ * @param index The subaddress index to retrieve.
+ * @param amount The optional payment amount, or NULL to print only the address.
+ * @return EXIT_SUCCESS on success, or EXIT_FAILURE if the operation fails.
+ */
+static int run_subaddr(const struct Config *config, int index, const char *amount)
 {
     struct rpc_wallet wallet;
     cJSON *result;
@@ -887,11 +1190,15 @@ done:
     return status;
 }
 
-static int run_integrated(
-    const struct Config *config,
-    const char *payment_id,
-    const char *amount
-)
+/**
+ * Creates an integrated address for a payment ID and optionally prints a payment URI.
+ *
+ * @param config A pointer to the loaded mnp configuration.
+ * @param payment_id The 16-character payment ID.
+ * @param amount The optional payment amount, or NULL to print only the integrated address.
+ * @return EXIT_SUCCESS on success, or EXIT_FAILURE if the operation fails.
+ */
+static int run_integrated(const struct Config *config, const char *payment_id, const char *amount)
 {
     struct rpc_wallet wallet;
     cJSON *result;
@@ -964,180 +1271,6 @@ static int run_integrated(
 done:
     free(integrated_address);
     free_wallet(&wallet);
-
-    return status;
-}
-
-void payment_help(
-    FILE *stream,
-    const char *program
-)
-{
-    fprintf(
-        stream,
-        "Usage:\n"
-        "  %s payment new [--amount AMOUNT]\n"
-        "  %s payment list\n"
-        "  %s payment subaddr INDEX [--amount AMOUNT]\n"
-        "  %s payment PAYMENT_ID [--amount AMOUNT]\n"
-        "  echo PAYMENT_ID | %s payment [--amount AMOUNT]\n"
-        "\n"
-        "Create payment addresses and Monero payment URIs.\n"
-        "\n"
-        "Commands:\n"
-        "  new\n"
-        "      Create a new subaddress.\n"
-        "\n"
-        "  list\n"
-        "      List all subaddresses and their indices.\n"
-        "\n"
-        "  subaddr INDEX\n"
-        "      Print the subaddress at INDEX.\n"
-        "\n"
-        "Payment ID:\n"
-        "  PAYMENT_ID must be exactly 16 hexadecimal characters.\n"
-        "  It may be supplied as an argument or through stdin.\n"
-        "  An integrated address is returned.\n"
-        "\n"
-        "Options:\n"
-        "  --amount AMOUNT\n"
-        "      Return a Monero URI containing the requested amount.\n"
-        "\n"
-        "Examples:\n"
-        "  %s payment new\n"
-        "  %s payment new --amount 650000\n"
-        "  %s payment list\n"
-        "  %s payment subaddr 1\n"
-        "  %s payment subaddr 1 --amount 650000\n"
-        "  %s payment e02c381aa2227436\n"
-        "  echo e02c381aa2227436 | %s payment\n"
-        "  echo e02c381aa2227436 | "
-        "%s payment --amount 50000\n",
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program,
-        program
-    );
-}
-
-int payment_main(
-    int argc,
-    char **argv
-)
-{
-    struct payment_args args;
-    struct Config config = {0};
-    char *config_path = NULL;
-    char *payment_id = NULL;
-    int status = EXIT_FAILURE;
-
-    if (parse_arguments(
-            argc,
-            argv,
-            &args
-        ) == -1) {
-        fprintf(
-            stderr,
-            "Try 'mnp payment help' for usage.\n"
-        );
-        return EXIT_FAILURE;
-    }
-
-    config_path = get_config_path();
-
-    if (config_path == NULL) {
-        fprintf(
-            stderr,
-            "mnp payment: cannot determine configuration path\n"
-        );
-        goto done;
-    }
-
-    if (ini_parse(
-            config_path,
-            config_handler,
-            &config
-        ) < 0) {
-        fprintf(
-            stderr,
-            "mnp payment: cannot load configuration '%s'\n",
-            config_path
-        );
-        goto done;
-    }
-
-    if (config.rpc_host == NULL ||
-        config.rpc_port == NULL ||
-        config.rpc_user == NULL ||
-        config.rpc_password == NULL) {
-        fprintf(
-            stderr,
-            "mnp payment: incomplete RPC configuration\n"
-        );
-        goto done;
-    }
-
-    switch (args.action) {
-    case PAYMENT_ACTION_NEW:
-        status = run_new(
-            &config,
-            args.amount
-        );
-        break;
-
-    case PAYMENT_ACTION_LIST:
-        status = run_list(&config);
-        break;
-
-    case PAYMENT_ACTION_SUBADDR:
-        status = run_subaddr(
-            &config,
-            args.subaddress_index,
-            args.amount
-        );
-        break;
-
-    case PAYMENT_ACTION_INTEGRATED:
-        payment_id = get_payment_id(&args);
-
-        if (payment_id == NULL) {
-            fprintf(
-                stderr,
-                "mnp payment: a valid 16-character "
-                "payment ID is required\n"
-            );
-            goto done;
-        }
-
-        status = run_integrated(
-            &config,
-            payment_id,
-            args.amount
-        );
-        break;
-
-    default:
-        fprintf(
-            stderr,
-            "mnp payment: invalid payment action\n"
-        );
-        break;
-    }
-
-done:
-    free(payment_id);
-    free(args.amount);
-    free(config_path);
-    free_config(&config);
 
     return status;
 }
