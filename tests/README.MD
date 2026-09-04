@@ -80,31 +80,65 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 
 ## mnp
 
+### Basic:
 - [ ] mnp version
 - [ ] mnp --version
 - [ ] mnp help
 - [ ] mnp --help
-- [ ] mnp payment help
-- [ ] mnp bc-height help
+- [ ] mnp init
+- [ ] mnp cleanup help
+- [ ] mnp cleanup
 - [ ] mnp balance help
-- [ ] mnp spend_proof help
-- [ ] mnp tx_proof help
-
 - [ ] mnp balance
 - [ ] mnp bc-height
 
-- [ ] test --spend-proof AND --tx-proof see [link](https://github.com/d4ndox/mnp/wiki/Check-Spend-Proof).
-
-- [ ] mnp payment list
+### Payment:
+- [ ] mnp payment help
 - [ ] mnp payment new
-- [ ] mnp payment new --amount 8888888
+- [ ] mnp payment list
 - [ ] mnp payment subaddr 0
 - [ ] mnp payment subaddr 1 --amount 9999999
+- [ ] mnp payment e02c381aa2227436
+- [ ] echo e02c381aa2227436 | mnp payment
 
-- [ ] echo 0000000000000001 | mnp payment
-- [ ] mnp payment 0000000000000001
-- [ ] echo 0000000000000002 | mnp payment --amount 2222222
-- [ ] mnp payment --amount 2222222 0000000000000002
+### Monitor: 
+- [ ] mnp "$TXID"
+- [ ] mnp "$TXID" --notify-at 1
+- [ ] mnp "$TXID" --notify-at 2 --confirmation 1
+- [ ] mnp "$TXID" --notify-at 3
+- [ ] echo "$TXID" | ./mnp
+- [ ] echo "$TXID" | ./mnp --notify-at 2 --confirmation 1
+
+### Proofs:
+- [ ] mnp tx_proof help
+- [ ] mnp balance
+- [ ] mnp spend-proof "$TXID" --signature "$SIGNATURE"
+- [ ] echo "$TXID" | mnp spend-proof --signature "$SIGNATURE"
+- [ ] mnp tx-proof "$TXID" --address "$ADDRESS" --signature "$SIGNATURE"
+- [ ] echo "$TXID" | mnp tx-proof --address "$ADDRESS" --signature "$SIGNATURE"
+
+### Errors:
+- [ ] mnp invalid-command
+- [ ] mnp balance foo
+- [ ] mnp bc-height foo
+- [ ] mmnp payment foo
+- [ ] mmnp payment subaddr -1
+- [ ] mnp spend-proof
+- [ ] mnp tx-proof
+- [ ] mnp --version foo
+- [ ] mnp --help foo
+
+### Stdou/Stderr Exitcode:
+- [ ] mnp balance
+      echo $?
+- [ ] mnp bc-height
+      echo $?
+- [ ] mnp spend-proof "$TXID" --signature "$SIGNATURE"
+      echo $?
+- [ ] balance="$(./mnp balance)"
+      printf 'balance=%s\n' "$balance"
+- [ ] height="$(./mnp bc-height)"
+      printf 'height=%s\n' "$height"
 
 ## release
 
