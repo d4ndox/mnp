@@ -2,14 +2,11 @@
 
 Monero named pipes (mnp) is a lightweight wallet designed to monitor incoming payments within a Unix shell environment. It uses named pipes for interaction, creating a set of files and directories within a specified working directory. Default: */tmp/mywallet/*.
 
-
 ## Directory Structure
 
 ```bash
 $ tree
 .
-├── balance
-├── bc_height
 ├── double_spend_alert
 ├── rpc_connection_alert
 ├── transactions
@@ -24,7 +21,6 @@ $ tree
 
 4 directories, 8 files
 ```
-
 
 ## How to build mnp?
 
@@ -44,14 +40,13 @@ sudo make install
 
 gpg_key : [d4ndo@proton.me](https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub).
 
-
 ## How to Run mnp?
 
 For details see the wiki [Getting Started](https://github.com/d4ndox/mnp/wiki/Getting-started).
 
 1. Initialise mnp:
 ```bash
-mnp --init
+mnp init
 ```
 
 2. Start `monerod`:
@@ -67,18 +62,12 @@ monero-wallet-rpc --config-file notify-mnp.cfg
 `notify-mnp.cfg` example:
 ```cfg
 rpc-bind-ip=127.0.0.1
-rpc-bind-port=18083
+rpc-bind-port=18084
 rpc-login=username:password
 wallet-file=mywallet
 password=mywalletpassword
 tx-notify=/usr/local/bin/mnp --confirmation 1 %s
 ```
-
-4. [Optional] Start the Monero Named Pipe Daemon to monitor blockchain height and total balance:
-```bash
-mnpd --verbose
-```
-
 
 ## How to Set Up a Payment?
 
@@ -86,9 +75,8 @@ For details see the wiki [Setup a Payment](https://github.com/d4ndox/mnp/wiki/Se
 
 Create a new subaddress:
 ```bash
-mnp-payment --newaddr --amount 650000
+mnp payment new --amount 650000
 ```
-
 
 ## How to Monitor /tmp/wallet/transactions?
 
@@ -99,14 +87,12 @@ Read the pipes:
 find /tmp/mywallet/transactions -type p -exec cat {} \;
 ```
 
-
 ## Close mnp [Optional]
 
 Remove the work directory:
 ```bash
-mnp --cleanup
+mnp cleanup
 ```
-
 
 ## Additional Information
 

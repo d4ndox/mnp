@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 d4ndo@proton.me
+ * Copyright (c) 2026 d4ndo@proton.me
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,241 +23,576 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdlib.h>
+#include "rpc_call.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include "./cjson/cJSON.h"
-#include "wallet.h"
-#include "rpc_call.h"
-#include "globaldefs.h"
 
+#include "cjson/cJSON.h"
+#include "globaldefs.h"
+#include "wallet.h"
+
+static int add_rpc_parameters(cJSON *params, const struct rpc_wallet *monero_wallet);
+static int add_subaddress_index(cJSON *params, int index);
 
 /**
- * Function to call an RPC method for a Monero wallet.
+ * Calls the configured JSON-RPC method on monero-wallet-rpc.
  *
- * @param monero_wallet A pointer to a structure containing wallet information.
- * @return 0 on success, -1 on error.
+ * The generated JSON response is stored in monero_wallet->reply. Any previous
+ * response stored in the structure is released before the new request.
+ *
+ * @param monero_wallet A pointer to the rpc_wallet structure containing the request data.
+ * @return 0 on success, or -1 if the request, response parsing, or RPC operation fails.
  */
 int rpc_call(struct rpc_wallet *monero_wallet)
 {
-    int ret = 0;
     char *urlport = NULL;
+    char *userpwd = NULL;
+    char *method = NULL;
+    char *method_call = NULL;
+    char *reply = NULL;
+    cJSON *rpc_params = NULL;
+    cJSON *rpc_frame = NULL;
+    cJSON *error;
+    cJSON *message;
+    int response_size;
+    int result = -1;
+
+    if (monero_wallet == NULL) {
+        return -1;
+    }
 
     openlog("mnp:rpc_call:", LOG_PID, LOG_USER);
 
-    if (monero_wallet->host != NULL && monero_wallet->port != NULL) {
-        asprintf(&urlport,"http://%s:%s/json_rpc", monero_wallet->host, monero_wallet->port);
-    } else {
-        syslog(LOG_USER | LOG_ERR, "rpc_host and/or rpc_port is missing\n");
-        ret = -1;
+    if (monero_wallet->reply != NULL) {
+        cJSON_Delete(monero_wallet->reply);
+        monero_wallet->reply = NULL;
     }
 
-    /* prepare rpc_user and rpc_password to connect to the wallet */
-    char *userpwd = NULL;
-
-    if (monero_wallet->user != NULL && monero_wallet->pwd != NULL) {
-        asprintf(&userpwd,"%s:%s", monero_wallet->user, monero_wallet->pwd);
-    } else {
-        syslog(LOG_USER | LOG_ERR, "rpc_user and/or rpc_password is missing\n");
-        ret = -1;
+    if (monero_wallet->host == NULL ||
+        monero_wallet->port == NULL) {
+        syslog(
+            LOG_USER | LOG_ERR,
+            "rpc_host and/or rpc_port is missing"
+        );
+        goto done;
     }
 
-    /*
-     * Pack the method string into a JSON frame for rpc call.
-     */
-    char *method = get_method(monero_wallet->monero_rpc_method);
-
-    /*
-     * Pack the param string into a JSON frame for rpc call
-     * accoring method used
-     */
-    cJSON *rpc_params = cJSON_CreateObject();
-
-    switch (monero_wallet->monero_rpc_method) {
-        case GET_HEIGHT:
-            rpc_params = NULL;
-            break;
-        case GET_BALANCE:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                        atoi(monero_wallet->account)) == NULL) ret = -1;
-            break;
-        case GET_LIST:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                        atoi(monero_wallet->account)) == NULL) ret = -1;
-           break;
-        case GET_SUBADDR:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                        atoi(monero_wallet->account)) == NULL) ret = -1;
-            cJSON *subarray = cJSON_CreateArray();
-            cJSON *index = cJSON_CreateNumber(monero_wallet->idx);
-            cJSON_AddItemToArray(subarray, index);
-            cJSON_AddItemToObject(rpc_params, "address_index", subarray);
-            break;
-        case NEW_SUBADDR:
-            if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                        atoi(monero_wallet->account)) == NULL) ret = -1;
-            break;
-        case MK_IADDR:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                          atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "payment_id",
-                          monero_wallet->payid) == NULL) ret = -1;
-            break;
-        case MK_URI:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                          atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "address",
-                              monero_wallet->saddr) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "amount",
-                              monero_wallet->amount) == NULL) ret = -1;
-            break;
-        case SPLIT_IADDR:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                          atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "integrated_address",
-                          monero_wallet->iaddr) == NULL) ret = -1;
-            break;
-        case GET_TXID:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                          atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "txid",
-                          monero_wallet->txid) == NULL) ret = -1;
-            break;
-        case CHECK_SPEND_PROOF:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                          atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "txid",
-                          monero_wallet->txid) == NULL) ret = -1;
-              if (monero_wallet->message != NULL) {
-                    if (cJSON_AddStringToObject(rpc_params, "message",
-                        monero_wallet->message) == NULL) ret = -1;
-              }
-              if (cJSON_AddStringToObject(rpc_params, "signature",
-                          monero_wallet->signature) == NULL) ret = -1;
-            break;
-        case CHECK_TX_PROOF:
-              if (cJSON_AddNumberToObject(rpc_params, "account_index",
-                          atoi(monero_wallet->account)) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "txid",
-                          monero_wallet->txid) == NULL) ret = -1;
-              if (cJSON_AddStringToObject(rpc_params, "address",
-                          monero_wallet->saddr) == NULL) ret = -1;
-              if (monero_wallet->message != NULL) {
-                    if (cJSON_AddStringToObject(rpc_params, "message",
-                        monero_wallet->message) == NULL) ret = -1;
-              }
-              if (cJSON_AddStringToObject(rpc_params, "signature",
-                          monero_wallet->signature) == NULL) ret = -1;
-            break;
-        default:
-            rpc_params = NULL;
-            break;
+    if (monero_wallet->user == NULL ||
+        monero_wallet->pwd == NULL) {
+        syslog(
+            LOG_USER | LOG_ERR,
+            "rpc_user and/or rpc_password is missing"
+        );
+        goto done;
     }
 
-    cJSON *rpc_frame = cJSON_CreateObject();
-    if (cJSON_AddStringToObject(rpc_frame, "jsonrpc", JSON_RPC) == NULL) ret = -1;
-    if (cJSON_AddStringToObject(rpc_frame, "id", "0") == NULL) ret = -1;
-    if (cJSON_AddStringToObject(rpc_frame, "method", method) == NULL) ret = -1;
-    if (rpc_params != NULL) cJSON_AddItemToObject(rpc_frame, "params", rpc_params);
-
-    char *method_call = cJSON_Print(rpc_frame);
-    if (method_call == NULL) ret = -1;
-    // if (monero_wallet->monero_rpc_method == GET_BALANCE) fprintf(stderr, "method = %s", method_call);
-    /*
-     * rpc method call send to the wallet
-     */
-    char *reply = NULL;
-    if (0 > (ret = wallet(urlport, method_call, userpwd, &reply))) {
-        syslog(LOG_USER | LOG_ERR, "could not connect to host: %s", urlport);
-        ret = -1;
+    if (asprintf(
+            &urlport,
+            "http://%s:%s/json_rpc",
+            monero_wallet->host,
+            monero_wallet->port
+        ) == -1) {
+        urlport = NULL;
+        goto done;
     }
 
-    /*
-     * rpc_reply is the return value of this function
-     * testing for errors while parseing the JSON string.
-     */
-    monero_wallet->reply = cJSON_Parse(reply);
-    if (monero_wallet->reply == NULL) {
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr != NULL) {
-            syslog(LOG_USER | LOG_ERR, "error before: %s", error_ptr);
-            ret = -1;
+    if (asprintf(
+            &userpwd,
+            "%s:%s",
+            monero_wallet->user,
+            monero_wallet->pwd
+        ) == -1) {
+        userpwd = NULL;
+        goto done;
+    }
+
+    method = get_method(monero_wallet->monero_rpc_method);
+
+    if (method == NULL) {
+        syslog(
+            LOG_USER | LOG_ERR,
+            "invalid Monero RPC method: %d",
+            monero_wallet->monero_rpc_method
+        );
+        goto done;
+    }
+
+    if (monero_wallet->monero_rpc_method != GET_HEIGHT) {
+        rpc_params = cJSON_CreateObject();
+
+        if (rpc_params == NULL) {
+            goto done;
+        }
+
+        if (add_rpc_parameters(rpc_params, monero_wallet) == -1) {
+            goto done;
         }
     }
 
+    rpc_frame = cJSON_CreateObject();
+
+    if (rpc_frame == NULL) {
+        goto done;
+    }
+
+    if (cJSON_AddStringToObject(
+            rpc_frame,
+            "jsonrpc",
+            JSON_RPC
+        ) == NULL ||
+        cJSON_AddStringToObject(
+            rpc_frame,
+            "id",
+            "0"
+        ) == NULL ||
+        cJSON_AddStringToObject(
+            rpc_frame,
+            "method",
+            method
+        ) == NULL) {
+        goto done;
+    }
+
+    if (rpc_params != NULL) {
+        if (!cJSON_AddItemToObject(
+                rpc_frame,
+                "params",
+                rpc_params
+            )) {
+            goto done;
+        }
+
+        rpc_params = NULL;
+    }
+
+    method_call = cJSON_PrintUnformatted(rpc_frame);
+
+    if (method_call == NULL) {
+        goto done;
+    }
+
+    response_size = wallet(
+        urlport,
+        method_call,
+        userpwd,
+        &reply
+    );
+
+    if (response_size < 0) {
+        syslog(
+            LOG_USER | LOG_ERR,
+            "could not connect to host: %s",
+            urlport
+        );
+        goto done;
+    }
+
     if (DEBUG) {
-        syslog(LOG_USER | LOG_DEBUG, "%d bytes received", ret);
+        syslog(
+            LOG_USER | LOG_DEBUG,
+            "%d bytes received",
+            response_size
+        );
     }
 
-    /*
-     * Check for error code returned from wallet(rpc) call
-     * test rpc_reply for any error codes.
-     */
-    cJSON *error = cJSON_GetObjectItemCaseSensitive(monero_wallet->reply, "error");
-    const cJSON *mesg = cJSON_GetObjectItemCaseSensitive(error, "message");
-
-    if (error != NULL && mesg->valuestring != NULL) {
-        syslog(LOG_USER | LOG_ERR, "error message rpc: %s", mesg->valuestring);
-        ret = -1;
+    if (reply == NULL || reply[0] == '\0') {
+        syslog(
+            LOG_USER | LOG_ERR,
+            "empty wallet RPC response"
+        );
+        goto done;
     }
 
+    monero_wallet->reply = cJSON_Parse(reply);
+
+    if (monero_wallet->reply == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+
+        if (error_ptr != NULL) {
+            syslog(
+                LOG_USER | LOG_ERR,
+                "invalid wallet RPC JSON near: %.80s",
+                error_ptr
+            );
+        } else {
+            syslog(
+                LOG_USER | LOG_ERR,
+                "invalid wallet RPC JSON"
+            );
+        }
+
+        goto done;
+    }
+
+    error = cJSON_GetObjectItemCaseSensitive(
+        monero_wallet->reply,
+        "error"
+    );
+
+    if (error != NULL) {
+        message = cJSON_GetObjectItemCaseSensitive(
+            error,
+            "message"
+        );
+
+        if (message != NULL &&
+            cJSON_IsString(message) &&
+            message->valuestring != NULL) {
+            syslog(
+                LOG_USER | LOG_ERR,
+                "wallet RPC error: %s",
+                message->valuestring
+            );
+        } else {
+            syslog(
+                LOG_USER | LOG_ERR,
+                "wallet RPC returned an error"
+            );
+        }
+
+        goto done;
+    }
+
+    result = 0;
+
+done:
+    if (result != 0 &&
+        monero_wallet->reply != NULL) {
+        cJSON_Delete(monero_wallet->reply);
+        monero_wallet->reply = NULL;
+    }
+
+    cJSON_Delete(rpc_params);
     cJSON_Delete(rpc_frame);
-    cJSON_Delete(error);
-    free(method);
+
+    free(reply);
     free(method_call);
+    free(method);
+    free(userpwd);
+    free(urlport);
+
     closelog();
-    return ret;
+
+    return result;
 }
 
-
 /**
- * Function to retrieve the RPC method based on the specified method.
+ * Returns the JSON-RPC method name for a Monero RPC method.
  *
- * @param method An enumeration value indicating the RPC method to retrieve.
- * @return A pointer to a string containing the RPC method.
- * The caller is responsible for freeing the memory.
+ * @param method The internal Monero RPC method identifier.
+ * @return A dynamically allocated method name, or NULL if the method is unknown.
  */
-char* get_method(enum monero_rpc_method method)
+char *get_method(enum monero_rpc_method method)
 {
-    char *mtd = NULL;
+    const char *name;
 
     switch (method) {
-        case GET_HEIGHT:
-            asprintf(&mtd, "%s", GET_HEIGHT_CMD);
-                break;
-        case GET_BALANCE:
-            asprintf(&mtd, "%s", GET_BALANCE_CMD);
-                break;
-        case GET_LIST:
-            asprintf(&mtd, "%s", GET_SUBADDR_CMD);
-                break;
-        case GET_SUBADDR:
-            asprintf(&mtd, "%s", GET_SUBADDR_CMD);
-                break;
-        case NEW_SUBADDR:
-            asprintf(&mtd, "%s", NEW_SUBADDR_CMD);
-                break;
-        case MK_IADDR:
-            asprintf(&mtd, "%s", MK_IADDR_CMD);
-                break;
-        case MK_URI:
-            asprintf(&mtd, "%s", MK_URI_CMD);
-                break;
-        case SPLIT_IADDR:
-            asprintf(&mtd, "%s", SP_IADDR_CMD);
-                break;
-        case GET_TXID:
-            asprintf(&mtd, "%s", GET_TXID_CMD);
-                break;
-        case CHECK_SPEND_PROOF:
-            asprintf(&mtd, "%s", SPEND_PROOF_CMD);
-                break;
-        case CHECK_TX_PROOF:
-            asprintf(&mtd, "%s", TX_PROOF_CMD);
-                break;
-        default:
-                break;
+    case GET_HEIGHT:
+        name = GET_HEIGHT_CMD;
+        break;
+
+    case GET_BALANCE:
+        name = GET_BALANCE_CMD;
+        break;
+
+    case GET_TXID:
+        name = GET_TXID_CMD;
+        break;
+
+    case GET_LIST:
+    case GET_SUBADDR:
+        name = GET_SUBADDR_CMD;
+        break;
+
+    case NEW_SUBADDR:
+        name = NEW_SUBADDR_CMD;
+        break;
+
+    case MK_IADDR:
+        name = MK_IADDR_CMD;
+        break;
+
+    case MK_URI:
+        name = MK_URI_CMD;
+        break;
+
+    case SPLIT_IADDR:
+        name = SP_IADDR_CMD;
+        break;
+
+    case CHECK_SPEND_PROOF:
+        name = SPEND_PROOF_CMD;
+        break;
+
+    case CHECK_TX_PROOF:
+        name = TX_PROOF_CMD;
+        break;
+
+    default:
+        return NULL;
     }
-    return mtd;
+
+    return strdup(name);
+}
+
+/**
+ * Adds method-specific parameters to a Monero wallet RPC request.
+ *
+ * @param params A pointer to the JSON object receiving the RPC parameters.
+ * @param monero_wallet A pointer to the rpc_wallet structure containing request values.
+ * @return 0 on success, or -1 if a required value is missing or JSON construction fails.
+ */
+static int add_rpc_parameters(cJSON *params, const struct rpc_wallet *monero_wallet)
+{
+    int account_index;
+
+    if (params == NULL || monero_wallet == NULL) {
+        return -1;
+    }
+
+    account_index = monero_wallet->account != NULL
+        ? atoi(monero_wallet->account)
+        : 0;
+
+    switch (monero_wallet->monero_rpc_method) {
+    case GET_BALANCE:
+    case GET_LIST:
+    case NEW_SUBADDR:
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    case GET_SUBADDR:
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL) {
+            return -1;
+        }
+
+        if (add_subaddress_index(
+                params,
+                monero_wallet->idx
+            ) == -1) {
+            return -1;
+        }
+        break;
+
+    case MK_IADDR:
+        if (monero_wallet->payid == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "payment_id",
+                monero_wallet->payid
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    case MK_URI:
+        if (monero_wallet->saddr == NULL ||
+            monero_wallet->amount == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "address",
+                monero_wallet->saddr
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "amount",
+                monero_wallet->amount
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    case SPLIT_IADDR:
+        if (monero_wallet->iaddr == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "integrated_address",
+                monero_wallet->iaddr
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    case GET_TXID:
+        if (monero_wallet->txid == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "txid",
+                monero_wallet->txid
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    case CHECK_SPEND_PROOF:
+        if (monero_wallet->txid == NULL ||
+            monero_wallet->signature == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "txid",
+                monero_wallet->txid
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "signature",
+                monero_wallet->signature
+            ) == NULL) {
+            return -1;
+        }
+
+        if (monero_wallet->message != NULL &&
+            cJSON_AddStringToObject(
+                params,
+                "message",
+                monero_wallet->message
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    case CHECK_TX_PROOF:
+        if (monero_wallet->txid == NULL ||
+            monero_wallet->saddr == NULL ||
+            monero_wallet->signature == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                account_index
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "txid",
+                monero_wallet->txid
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "address",
+                monero_wallet->saddr
+            ) == NULL ||
+            cJSON_AddStringToObject(
+                params,
+                "signature",
+                monero_wallet->signature
+            ) == NULL) {
+            return -1;
+        }
+
+        if (monero_wallet->message != NULL &&
+            cJSON_AddStringToObject(
+                params,
+                "message",
+                monero_wallet->message
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    default:
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * Adds a single subaddress index to an RPC parameter object.
+ *
+ * @param params A pointer to the JSON object receiving the address_index array.
+ * @param index The subaddress index to add.
+ * @return 0 on success, or -1 if JSON allocation fails.
+ */
+static int add_subaddress_index(cJSON *params, int index)
+{
+    cJSON *indices;
+    cJSON *index_item;
+
+    if (params == NULL || index < 0) {
+        return -1;
+    }
+
+    indices = cJSON_CreateArray();
+
+    if (indices == NULL) {
+        return -1;
+    }
+
+    index_item = cJSON_CreateNumber(index);
+
+    if (index_item == NULL) {
+        cJSON_Delete(indices);
+        return -1;
+    }
+
+    if (!cJSON_AddItemToArray(indices, index_item)) {
+        cJSON_Delete(index_item);
+        cJSON_Delete(indices);
+        return -1;
+    }
+
+    if (!cJSON_AddItemToObject(
+            params,
+            "address_index",
+            indices
+        )) {
+        cJSON_Delete(indices);
+        return -1;
+    }
+
+    return 0;
 }

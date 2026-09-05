@@ -80,65 +80,65 @@ The payment status will be set by the ```txdetectdb.sh``` exception is REQUEST -
 
 ## mnp
 
-- [ ] mnp --help
-- [ ] mnp -h
-- [ ] mnp --?
+### Basic:
+- [ ] mnp version
 - [ ] mnp --version
-- [ ] mnp -v
-- [ ] mnp --workdir /tmp/x --init
-- [ ] mnp --workdir /tmp/x --cleanup
-- [ ] mnp -w /tmp/x --init
-- [ ] mnp -w /tmp/x --cleanup
-- [ ] mnp --rpc_user none
-- [ ] mnp --rpc_password none
-- [ ] mnp --rpc_host 10.0.0.1
-- [ ] mnp --rpc_port 20000
-- [ ] mnp --rpc_host 10.0.0.1 --rpc-port 20000
-- [ ] test --spend-proof AND --tx-proof see [link](https://github.com/d4ndox/mnp/wiki/Check-Spend-Proof).
+- [ ] mnp help
+- [ ] mnp --help
+- [ ] mnp init
+- [ ] mnp cleanup help
+- [ ] mnp cleanup
+- [ ] mnp balance help
+- [ ] mnp balance
+- [ ] mnp bc-height
 
-## mnpd
+### Payment:
+- [ ] mnp payment help
+- [ ] mnp payment new
+- [ ] mnp payment list
+- [ ] mnp payment subaddr 0
+- [ ] mnp payment subaddr 1 --amount 9999999
+- [ ] mnp payment e02c381aa2227436
+- [ ] echo e02c381aa2227436 | mnp payment
 
-- [ ] mnpd --help
-- [ ] mnpd -h
-- [ ] mnpd --version
-- [ ] mnpd -v
-- [ ] mnpd --workdir /tmp/nonexisting
-- [ ] mnpd -w /tmp/nonexisting
-- [ ] mnpd --rpc_user notexisting
-- [ ] mnpd --rpc_password wrongpassword
-- [ ] mnpd --rpc_host 10.0.0.1
-- [ ] mnpd --rpc_host 127.0.0.1
-- [ ] mnpd --rpc_port 20000
-- [ ] mnpd --rpc_port 18083
-- [ ] mnpd --rpc_host 10.0.0.1 --rpc_port 20000
-- [ ] mnpd --rpc_host 127.0.0.1 --rpc_port 18083
+### Monitor: 
+- [ ] mnp "$TXID"
+- [ ] mnp "$TXID" --notify-at 1
+- [ ] mnp "$TXID" --notify-at 2 --confirmation 1
+- [ ] mnp "$TXID" --notify-at 3
+- [ ] echo "$TXID" | ./mnp
+- [ ] echo "$TXID" | ./mnp --notify-at 2 --confirmation 1
 
-## mnp-payment
+### Proofs:
+- [ ] mnp tx_proof help
+- [ ] mnp balance
+- [ ] mnp spend-proof "$TXID" --signature "$SIGNATURE"
+- [ ] echo "$TXID" | mnp spend-proof --signature "$SIGNATURE"
+- [ ] mnp tx-proof "$TXID" --address "$ADDRESS" --signature "$SIGNATURE"
+- [ ] echo "$TXID" | mnp tx-proof --address "$ADDRESS" --signature "$SIGNATURE"
 
-- [ ] mnp-payment --help
-- [ ] mnp-payment -h
-- [ ] mnp-payment --version
-- [ ] mnp-payment -v
-- [ ] mnp-payment --list
-- [ ] mnp-payment -l
-- [ ] mnp-payment --rpc_host 10.0.0.1 --list
-- [ ] mnp-payment --rpc_host 127.0.0.1 --list
-- [ ] mnp-payment --rpc_port 20000 --list
-- [ ] mnp-payment --rpc_port 18083 --list
-- [ ] mnp-payment --rpc_host 127.0.0.1 --rpc_port 18083 --list
-- [ ] mnp-payment --subaddr 0
-- [ ] mnp-payment -s 0
-- [ ] mnp-payment -s 1 --amount 999999
-- [ ] mnp-payment -subaddr 2 -x 999999
-- [ ] mnp-payment --newaddr
-- [ ] mnp-payment -n
-- [ ] mnp-payment --newaddr --amount 999999
-- [ ] echo 0000000000000001 | mnp-payment
-- [ ] mnp-payment 0000000000000001
-- [ ] echo 0000000000000002 | mnp-payment --amount 2222222
-- [ ] mnp-payment --amount 2222222 0000000000000002
-- [ ] echo 0000000000000003 | mnp-payment -x 3333333
-- [ ] mnp-payment -x 3333333 0000000000000003
+### Errors:
+- [ ] mnp invalid-command
+- [ ] mnp balance foo
+- [ ] mnp bc-height foo
+- [ ] mnp payment foo
+- [ ] mnp payment subaddr -1
+- [ ] mnp spend-proof
+- [ ] mnp tx-proof
+- [ ] mnp --version foo
+- [ ] mnp --help foo
+
+### stdout/stderr Exitcode:
+- [ ] mnp balance
+      echo $?
+- [ ] mnp bc-height
+      echo $?
+- [ ] mnp spend-proof "$TXID" --signature "$SIGNATURE"
+      echo $?
+- [ ] balance="$(./mnp balance)"
+      printf 'balance=%s\n' "$balance"
+- [ ] height="$(./mnp bc-height)"
+      printf 'height=%s\n' "$height"
 
 ## release
 
