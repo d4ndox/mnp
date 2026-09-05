@@ -1,4 +1,6 @@
 /*
+ * balance.c
+ *
  * Copyright (c) 2026 d4ndo@proton.me
  *
  * Permission is hereby granted, free of charge, to any person
@@ -39,15 +41,16 @@
 static int config_handler(void *user, const char *section, const char *name, const char *value);
 static char *config_path(void);
 static int init_wallet(struct rpc_wallet *wallet, const struct Config *config);
-static int print_balance(const struct rpc_wallet *wallet);
+static int print_balance(const struct rpc_wallet *wallet, int unlocked);
 static void free_wallet(struct rpc_wallet *wallet);
 static void free_config(struct Config *config);
 
 /**
  * Retrieves and prints the current Monero wallet balance.
  *
- * The balance is written to standard output in atomic units without
- * additional labels or formatting.
+ * By default, the total wallet balance is written to standard output.
+ * When --unlocked is specified, only the unlocked balance is printed.
+ * Values are written in atomic units without additional formatting.
  *
  * @param argc The number of command-line arguments.
  * @param argv The command-line argument vector.
@@ -59,14 +62,27 @@ int balance_main(int argc, char **argv)
     struct Config config = {0};
     struct rpc_wallet wallet = {0};
     char *ini = NULL;
+    int unlocked = 0;
     int result = EXIT_FAILURE;
 
-    if (argc != 1) {
+    if (argc == 2) {
+        if (strcmp(argv[1], "--unlocked") != 0) {
+            fprintf(
+                stderr,
+                "mnp balance: unexpected argument '%s'\n"
+                "Try '%s help' for usage.\n",
+                argv[1],
+                argv[0]
+            );
+            return EXIT_FAILURE;
+        }
+
+        unlocked = 1;
+    } else if (argc != 1) {
         fprintf(
             stderr,
-            "mnp balance: unexpected argument '%s'\n"
+            "mnp balance: invalid arguments\n"
             "Try '%s help' for usage.\n",
-            argv[1],
             argv[0]
         );
         return EXIT_FAILURE;
@@ -109,7 +125,7 @@ int balance_main(int argc, char **argv)
         goto done;
     }
 
-    if (print_balance(&wallet) == -1) {
+    if (print_balance(&wallet, unlocked) == -1) {
         fprintf(
             stderr,
             "mnp balance: invalid wallet RPC response\n"
@@ -139,11 +155,16 @@ void balance_help(FILE *stream, const char *program)
         stream,
         "Usage:\n"
         "  %s balance\n"
+        "  %s balance --unlocked\n"
         "\n"
         "Print the wallet balance in atomic units.\n"
         "\n"
+        "Options:\n"
+        "  --unlocked    Print only the unlocked wallet balance.\n"
+        "\n"
         "Output:\n"
         "  The raw wallet balance is written to stdout.\n",
+        program,
         program
     );
 }
@@ -258,13 +279,15 @@ static int init_wallet(struct rpc_wallet *wallet, const struct Config *config)
 }
 
 /**
- * Extracts and prints the wallet balance from the Monero wallet RPC response.
+ * Extracts and prints the requested balance from the Monero wallet RPC response.
  *
  * @param wallet A pointer to the rpc_wallet structure containing the RPC response.
+ * @param unlocked Non-zero to print unlocked_balance, or zero to print balance.
  * @return 0 on success, or -1 if the balance cannot be extracted or printed.
  */
-static int print_balance(const struct rpc_wallet *wallet)
+static int print_balance(const struct rpc_wallet *wallet, int unlocked)
 {
+    const char *field;
     cJSON *result;
     cJSON *balance;
     char *value;
@@ -273,13 +296,23 @@ static int print_balance(const struct rpc_wallet *wallet)
         return -1;
     }
 
-    result = cJSON_GetObjectItem(wallet->reply, "result");
+    result = cJSON_GetObjectItemCaseSensitive(
+        wallet->reply,
+        "result"
+    );
 
     if (result == NULL || !cJSON_IsObject(result)) {
         return -1;
     }
 
-    balance = cJSON_GetObjectItem(result, "balance");
+    field = unlocked
+        ? "unlocked_balance"
+        : "balance";
+
+    balance = cJSON_GetObjectItemCaseSensitive(
+        result,
+        field
+    );
 
     if (balance == NULL || !cJSON_IsNumber(balance)) {
         return -1;
