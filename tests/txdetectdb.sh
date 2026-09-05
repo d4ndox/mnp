@@ -1,71 +1,100 @@
 #!/bin/bash
 
-# Function to handle reading from a pipe
-read_pipe() {
+set -u
+
+DB_CMD="mariadb"
+WATCHDIR="/tmp/mywallet/transactions"
+
+read_pipe()
+{
     local dir="$1"
     local file="$2"
     local amount
-    local payid=$(printf "%d" "0x$file")
+    local expected_amount
+    local payid
 
-    echo $payid
-    mysql --user=sysadmin \
-          --password=mypassword \
-          -e "UPDATE payDB.payments SET STATUS = 'WAITING' WHERE PAYID = $payid;"
+    payid=$(printf "%d" "0x$file")
 
-    # Set timeout for cat command
+    echo "$payid"
+
+    "$DB_CMD" \
+        -e "UPDATE payDB.payments SET STATUS = 'WAITING' WHERE PAYID = $payid;"
+
     if ! amount=$(timeout 90m cat "${dir}/${file}"); then
-        # Handle timeout - write to syslog and exit
         echo "Timeout occurred while reading from $file" >&2
         logger "Timeout occurred while reading from $file"
-        mysql --user=sysadmin \
-              --password=mypassword \
-              -e "UPDATE payDB.payments SET STATUS = 'TIMEOUT' WHERE PAYID = $payid;"
-        exit 1
+
+        "$DB_CMD" \
+            -e "UPDATE payDB.payments SET STATUS = 'TIMEOUT' WHERE PAYID = $payid;"
+
+        return 1
     fi
 
     echo "Received from $file: $amount"
-    a1=$(mysql --batch \
-               --user=sysadmin \
-               --password=mypassword \
-               -e "SELECT (amount) FROM payDB.payments WHERE PAYID = $payid;" | tail -n1)
-    if [ "$amount" = "$a1" ]; then
+
+    expected_amount=$(
+        "$DB_CMD" \
+            --batch \
+            --skip-column-names \
+            -e "SELECT AMOUNT FROM payDB.payments WHERE PAYID = $payid;"
+    )
+
+    if [ "$amount" = "$expected_amount" ]; then
         echo "amount is equal."
-        mysql --user=sysadmin \
-              --password=mypassword \
-              -e "UPDATE payDB.payments SET STATUS = 'COMPLETED' WHERE PAYID = $payid;"
+
+        "$DB_CMD" \
+            -e "UPDATE payDB.payments SET STATUS = 'COMPLETED' WHERE PAYID = $payid;"
     else
         echo "amount is not equal."
-        mysql --user=sysadmin \
-              --password=mypassword \
-              -e "UPDATE payDB.payments SET STATUS = 'FAILED' WHERE PAYID = $payid;"
+
+        "$DB_CMD" \
+            -e "UPDATE payDB.payments SET STATUS = 'FAILED' WHERE PAYID = $payid;"
     fi
 }
 
-# Trap SIGINT to clean up child processes
-trap 'kill $(jobs -p); exit' SIGINT
+cleanup()
+{
+    local jobs
 
-# 1. At start all existing pipes need to be read.
-find "$WATCHDIR" -type p 2>/dev/null | while read fifo; do
+    jobs=$(jobs -p)
+
+    if [ -n "$jobs" ]; then
+        kill $jobs 2>/dev/null
+    fi
+
+    exit
+}
+
+trap cleanup SIGINT SIGTERM
+
+find "$WATCHDIR" -type p 2>/dev/null |
+while read -r fifo; do
     dir=$(dirname "$fifo")
     file=$(basename "$fifo")
-    (
-        read_pipe "$dir" "$file"
-    ) &
+
+    read_pipe "$dir" "$file" &
 done
 
-# Watch for new directories using inotifywait
-inotifywait -m /tmp/mywallet/transactions -e create --format '%w%f' |
-while read new_path; do
-    if [ -d "$new_path" ]; then
-        echo "New txId detected: $new_path"
+inotifywait \
+    -m "$WATCHDIR" \
+    -e create \
+    --format '%w%f' |
+while read -r new_path; do
+    if [ ! -d "$new_path" ]; then
+        continue
+    fi
 
-        # Lesen der einzigen Datei im Verzeichnis
-        pipe_file=$(ls "$new_path")
-        if [ -p "$new_path/$pipe_file" ]; then
-            echo "New fifo pipe detected: $pipe_file in $new_path"
-            read_pipe "$new_path" "$pipe_file" &
-        else
-            echo "No pipe found in $new_path"
-        fi
+    echo "New txId detected: $new_path"
+
+    pipe_file=$(find "$new_path" -maxdepth 1 -type p -printf '%f\n' | head -n1)
+
+    if [ -n "$pipe_file" ] &&
+       [ -p "$new_path/$pipe_file" ]; then {
+        echo "New fifo pipe detected: $pipe_file in $new_path"
+        read_pipe "$new_path" "$pipe_file" &
+    } else {
+        echo "No pipe found in $new_path"
+    }
     fi
 done
+
