@@ -875,20 +875,17 @@ static int poll_transaction(struct rpc_wallet *wallet, int notify, int confirmat
             ready = 1;
             break;
 
-        case CONFIRMED: {
-            int confirmations;
+	case CONFIRMED: {
+    	    int confirmations;
 
-            if (get_confirmations(transfer, &confirmations) == -1) {
-                fprintf(
-                    stderr,
-                    "mnp: confirmations missing in RPC response\n"
-                );
+	    if (get_confirmations(transfer, &confirmations) == -1) {
+                fprintf(stderr, "mnp: confirmations missing in RPC response\n");
                 return -1;
             }
 
             ready = confirmations >= confirmation;
             break;
-        }
+        }	    
 
         case UNLOCKED: {
             int unlocked;
