@@ -52,12 +52,14 @@ static volatile sig_atomic_t running = 1;
 struct monitor_args {
     int notify;
     int confirmation;
+    int retry;
     const char *txid_argument;
 };
 
 static const struct option monitor_options[] = {
     {"notify-at", required_argument, NULL, 'o'},
     {"confirmation", required_argument, NULL, 'n'},
+    {"retry", no_argument, NULL, 'R'},
     {NULL, 0, NULL, 0},
 };
 
@@ -110,13 +112,12 @@ int monitor_main(int argc, char **argv)
     mode_t directory_mode;
     mode_t pipe_mode;
     int poll_interval;
-    int remembered;
     int result = EXIT_FAILURE;
 
     if (parse_monitor_args(argc, argv, &args) == -1) {
         fprintf(
             stderr,
-            "Usage: %s [TXID] [--notify-at 0|1|2|3] [--confirmation N]\n",
+            "Usage: %s [TXID] [--notify-at 0|1|2|3] [--confirmation N] [--retry]\n",
             argv[0]
         );
         return EXIT_FAILURE;
@@ -179,15 +180,19 @@ int monitor_main(int argc, char **argv)
         goto done;
     }
 
-    remembered = remember_txid(config.cfg_workdir, txid);
+    if (!args.retry) {
+        int remembered;
 
-    if (remembered < 0) {
-        goto done;
-    }
+        remembered = remember_txid(config.cfg_workdir, txid);
 
-    if (remembered == 1) {
-        result = EXIT_SUCCESS;
-        goto done;
+        if (remembered < 0) {
+            goto done;
+        }
+
+        if (remembered == 1) {
+            result = EXIT_SUCCESS;
+            goto done;
+        }
     }
 
     if (init_wallet(&wallet, &config, txid) == -1) {
@@ -366,6 +371,7 @@ static int parse_monitor_args(int argc, char **argv, struct monitor_args *args)
 
     args->notify = CONFIRMED;
     args->confirmation = 0;
+    args->retry = 0;
     args->txid_argument = NULL;
 
     optind = 1;
@@ -399,6 +405,10 @@ static int parse_monitor_args(int argc, char **argv, struct monitor_args *args)
                 );
                 return -1;
             }
+            break;
+
+        case 'R':
+            args->retry = 1;
             break;
 
         case '?':
