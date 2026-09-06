@@ -21,7 +21,14 @@ $ tree
 
 4 directories, 8 files
 ```
+`mnp` exposes transaction state and alert events through POSIX FIFOs using a small, line-oriented interface designed for direct consumption by standard Unix tools and shell scripts.
 
+| Entry | Content | Meaning |
+|---|---|---|
+| `txid` | `TXID (PAYMENT_ID \| ADDRESS)` | Processed transaction and identifier/address |
+| `rpc_connection_alert` | `TXID` | Wallet RPC communication failed @tx |
+| `double_spend_alert` | `TXID (PAYMENT_ID \| ADDRESS)` | A double-spend condition was reported |
+| `transactions/<TXID>/<PAYMENT_ID\|ADDRESS>` | `AMOUNT` | Received amount in Monero atomic units |
 ## How to build mnp?
 
 libcurl is required. Install it with:
