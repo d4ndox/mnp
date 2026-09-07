@@ -63,6 +63,18 @@ target_link_libraries(
     ${CURL_LIBRARIES}
 )
 
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(monitor_confirmations_test
+        tests/monitor_confirmations_test.c
+        cjson/cJSON.c
+        inih/ini.c
+        validate.c
+    )
+    target_compile_options(monitor_confirmations_test PRIVATE -UNDEBUG)
+    add_test(NAME monitor_confirmations COMMAND monitor_confirmations_test)
+endif()
+
 install(
     FILES .mnp.ini
     DESTINATION ~
