@@ -22,6 +22,8 @@ wallet_rpc_port=""
 rpc_password=""
 mnp_bin="mnp"
 missing_runtime=0
+confirmations=0
+tx_notify_args="--notify-at 1"
 
 usage()
 {
@@ -234,6 +236,36 @@ select_network()
     echo
 }
 
+read_confirmations()
+{
+    local input
+
+    echo "Transaction notification"
+    echo
+
+    while true; do
+        read -r -p "Confirmations [0]: " input
+        input="${input:-0}"
+
+        if [[ "$input" =~ ^[0-9]+$ ]]; then
+            confirmations="$input"
+            break
+        fi
+
+        warn "Confirmations must be a non-negative integer"
+    done
+
+    if ((confirmations == 0)); then
+        tx_notify_args="--notify-at 1"
+        ok "Transaction notification: txpool"
+    else
+        tx_notify_args="--notify-at 2 --confirmation ${confirmations}"
+        ok "Transaction notification: ${confirmations} confirmation(s)"
+    fi
+
+    echo
+}
+
 read_wallet_password()
 {
     local answer
@@ -345,7 +377,9 @@ write_wallet_rpc_config()
         printf 'rpc-login=mnp:%s\n' "$rpc_password"
         printf 'daemon-address=127.0.0.1:%s\n' "$daemon_port"
         echo "trusted-daemon=1"
-        printf 'tx-notify=%s %%s --confirmation 1\n' "$mnp_bin"
+        printf 'tx-notify=%s %s %%s\n' \
+            "$mnp_bin" \
+            "$tx_notify_args"
     } >"$WALLET_RPC_CONFIG"
 
     chmod 600 "$WALLET_RPC_CONFIG"
@@ -421,20 +455,27 @@ print_summary()
     echo
     echo "Configuration complete."
     echo
-    echo "  Wallet:     ${wallet_path}"
-    echo "  Network:    ${network}"
-    echo "  Daemon RPC: 127.0.0.1:${daemon_port}"
-    echo "  Wallet RPC: 127.0.0.1:${wallet_rpc_port}"
-    echo "  Config:     ${CONFIG_DIR}"
+    echo "  Wallet:        ${wallet_path}"
+    echo "  Network:       ${network}"
+    echo "  Daemon RPC:    127.0.0.1:${daemon_port}"
+    echo "  Wallet RPC:    127.0.0.1:${wallet_rpc_port}"
+
+    if ((confirmations == 0)); then
+        echo "  Notification:  txpool"
+    else
+        echo "  Confirmations: ${confirmations}"
+    fi
+
+    echo "  Config:        ${CONFIG_DIR}"
 
     if ((wallet_has_password)); then
-        echo "  Password:   ${WALLET_PASSWORD_FILE}"
+        echo "  Password:      ${WALLET_PASSWORD_FILE}"
     else
-        echo "  Password:   none"
+        echo "  Password:      none"
     fi
 
     echo
-    echo "  Legacy:     ${LEGACY_MNP_CONFIG} -> ${MNP_CONFIG}"
+    echo "  Legacy:        ${LEGACY_MNP_CONFIG} -> ${MNP_CONFIG}"
     echo
 
     if ((missing_runtime)); then
@@ -469,6 +510,7 @@ main()
     create_config_dir
     select_wallet
     select_network
+    read_confirmations
     read_wallet_password
     generate_rpc_password
     write_wallet_password
