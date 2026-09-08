@@ -706,7 +706,7 @@ static cJSON *get_transfers(struct rpc_wallet *wallet)
 }
 
 /**
- * Extracts the confirmation count from a transfer object.
+ * Extracts the confirmation count, defaulting an omitted RPC field to zero.
  *
  * @param transfer A pointer to the transfer JSON object.
  * @param confirmations A pointer receiving the confirmation count.
@@ -716,13 +716,19 @@ static int get_confirmations(const cJSON *transfer, int *confirmations)
 {
     cJSON *item;
 
-    if (transfer == NULL || confirmations == NULL) {
+    if (!cJSON_IsObject(transfer) || confirmations == NULL) {
         return -1;
     }
 
     item = cJSON_GetObjectItem(transfer, "confirmations");
 
-    if (item == NULL || !cJSON_IsNumber(item)) {
+    /* Monero serializes confirmations as an optional uint64 with default 0. */
+    if (item == NULL) {
+        *confirmations = 0;
+        return 0;
+    }
+
+    if (!cJSON_IsNumber(item)) {
         return -1;
     }
 

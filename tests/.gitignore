@@ -1,0 +1,10 @@
+.build/
+.tmp-*/
+__pycache__/
+
+# Local credentials and generated payment proofs.
+.my.cnf
+auth.sh
+priv.sh
+monero_spend_proof
+monero_tx_proof
