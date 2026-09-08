@@ -63,6 +63,9 @@ enum notify {
 #define SPEND_PROOF_CMD "check_spend_proof"
 #define TX_PROOF_CMD    "check_tx_proof"
 
+#define SIGN_CMD 	"sign"
+#define VERIFY_CMD 	"verify"
+
 #define TRANSACTION_DIR "transactions"
 
 #define PAYNULL         "0000000000000000"
