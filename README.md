@@ -47,36 +47,32 @@ sudo make install
 
 gpg_key : [d4ndo@proton.me](https://github.com/d4ndox/mnp/blob/master/doc/d4ndo%40proton.me.pub).
 
-## How to Run mnp?
+## How to Set UP mnp?
 
 For details see the wiki [Getting Started](https://github.com/d4ndox/mnp/wiki/Getting-started).
 
-1. Initialise mnp:
+1. Create the configuration:
+```bash
+./setup.sh
+```
+
+2. Start monerod and monero-wallet-rpc:
+```bash
+./start.sh
+````
+
+3. Initialise mnp:
 ```bash
 mnp init
 ```
+## Usage
 
-2. Start `monerod`:
+Show balance
 ```bash
-monerod --detach
+mnp balance
 ```
 
-3. Start `monero-wallet-rpc` with configuration:
-```bash
-monero-wallet-rpc --config-file notify-mnp.cfg
-```
-
-`notify-mnp.cfg` example:
-```cfg
-rpc-bind-ip=127.0.0.1
-rpc-bind-port=18084
-rpc-login=username:password
-wallet-file=mywallet
-password=mywalletpassword
-tx-notify=/usr/local/bin/mnp --confirmation 1 %s
-```
-
-## How to Set Up a Payment?
+### How to Set Up a Payment?
 
 For details see the wiki [Setup a Payment](https://github.com/d4ndox/mnp/wiki/Setup-a-payment).
 
@@ -85,7 +81,7 @@ Create a new subaddress:
 mnp payment new --amount 650000
 ```
 
-## How to Monitor /tmp/wallet/transactions?
+### How to Monitor /tmp/mywallet/transactions?
 
 For details see the wiki [Monitor a Payment](https://github.com/d4ndox/mnp/wiki/Monitor-a-payment).
 
@@ -95,6 +91,11 @@ find /tmp/mywallet/transactions -type p -exec cat {} \;
 ```
 
 ## Close mnp [Optional]
+
+Stop monero-wallet-rpc:
+```bash
+./stop.sh
+```
 
 Remove the work directory:
 ```bash

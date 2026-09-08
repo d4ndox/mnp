@@ -64,12 +64,6 @@ target_link_libraries(
 )
 
 install(
-    FILES .mnp.ini
-    DESTINATION ~
-    COMPONENT config
-)
-
-install(
     TARGETS mnp
     DESTINATION bin
     COMPONENT binaries
