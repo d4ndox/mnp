@@ -38,6 +38,8 @@
 #include "payment.h"
 #include "spend_proof.h"
 #include "tx_proof.h"
+#include "sign.h"
+#include "verify.h"
 
 typedef int (*command_handler_fn)(int argc, char **argv);
 typedef void (*command_help_fn)(FILE *stream, const char *program);
@@ -79,6 +81,18 @@ static const struct command commands[] = {
         "Verify a transaction proof",
         tx_proof_main,
         tx_proof_help,
+    },
+    {
+    "sign",
+    "Sign data with the wallet view key",
+    sign_main,
+    sign_help,
+    },
+    {
+    "verify",
+    "Verify a message signature",
+    verify_main,
+    verify_help,
     },
     {
         "balance",
