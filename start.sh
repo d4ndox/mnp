@@ -13,12 +13,17 @@ wallet_rpc_port=""
 wallet_rpc_pid=""
 wallet_password_file=""
 wallet_password_args=()
+prompt_password=0
 
 usage()
 {
     cat <<EOF
 Usage:
-  $0
+  $0 [-p]
+
+Options:
+  -p, --prompt-password  Interactive mode for password prompts and hardware wallets
+  -h, --help             Show this help
 
 Starts monerod and monero-wallet-rpc using:
 
@@ -122,6 +127,12 @@ check_dependencies()
 
 configure_wallet_password()
 {
+    if ((prompt_password)); then
+        wallet_password_args=(--prompt-for-password)
+        ok "Wallet password: prompt"
+        return
+    fi
+
     wallet_password_file="$(
         awk -F= '
             /^[[:space:]]*password-file[[:space:]]*=/ {
@@ -192,7 +203,7 @@ get_listener_pid()
 
     if [[ "$listener" =~ pid=([0-9]+) ]]; then
         printf '%s\n' "${BASH_REMATCH[1]}"
-        return
+        return 0
     fi
 
     return 2
@@ -220,7 +231,7 @@ wait_for_process()
 
     for ((i = 0; i < 50; i++)); do
         if ! kill -0 "$pid" 2>/dev/null; then
-            return
+            return 0
         fi
 
         sleep 0.1
@@ -235,7 +246,7 @@ wait_for_wallet_rpc()
 
     for ((i = 0; i < 100; i++)); do
         if get_listener_pid "$wallet_rpc_port" >/dev/null 2>&1; then
-            return
+            return 0
         fi
 
         sleep 0.1
@@ -331,7 +342,21 @@ start_monerod()
     ok "monerod started"
 }
 
-start_wallet_rpc()
+start_wallet_rpc_interactive()
+{
+    rm -f "$WALLET_RPC_PIDFILE"
+
+    echo
+    echo "Starting monero-wallet-rpc interactively on port ${wallet_rpc_port}..."
+    echo "Keep this terminal open while monero-wallet-rpc is running."
+    echo
+
+    exec monero-wallet-rpc \
+        --config-file "$WALLET_RPC_CONFIG" \
+        --prompt-for-password
+}
+
+start_wallet_rpc_detached()
 {
     rm -f "$WALLET_RPC_PIDFILE"
 
@@ -356,25 +381,35 @@ start_wallet_rpc()
     fi
 }
 
+start_wallet_rpc()
+{
+    if ((prompt_password)); then
+        start_wallet_rpc_interactive
+        return
+    fi
+
+    start_wallet_rpc_detached
+}
+
 main()
 {
-    case "${1:-}" in
-        "")
-            ;;
-        help|--help|-h)
-            usage
-            return
-            ;;
-        *)
-            usage >&2
-            return 1
-            ;;
-    esac
+    while (($# > 0)); do
+        case "$1" in
+            -p|--prompt-password)
+                prompt_password=1
+                ;;
+            help|--help|-h)
+                usage
+                return
+                ;;
+            *)
+                usage >&2
+                return 1
+                ;;
+        esac
 
-    if (($# > 1)); then
-        usage >&2
-        return 1
-    fi
+        shift
+    done
 
     check_dependencies
     check_configuration
