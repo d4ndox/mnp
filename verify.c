@@ -35,6 +35,7 @@
 #include "globaldefs.h"
 #include "inih/ini.h"
 #include "rpc_call.h"
+#include "validate.h"
 
 struct verify_args {
     const char *address;
@@ -78,6 +79,16 @@ int verify_main(int argc, char **argv)
             stderr,
             "Try 'mnp verify help' for usage.\n"
         );
+        return EXIT_FAILURE;
+    }
+
+    if (val_address(args.address) < 0) {
+        fprintf(stderr, "mnp verify: invalid address\n");
+        return EXIT_FAILURE;
+    }
+
+    if (val_signature(args.signature) < 0) {
+        fprintf(stderr, "mnp verify: invalid signature\n");
         return EXIT_FAILURE;
     }
 
