@@ -25,6 +25,8 @@ set(MNP_SOURCES
     monitor.c
     spend_proof.c
     tx_proof.c
+    sign.c
+    verify.c
     payment.c
     balance.c
     bc_height.c

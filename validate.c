@@ -24,35 +24,34 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <stdint.h>
-#include <errno.h>
+
 #include "globaldefs.h"
 
+static int val_base58(const char *value);
 
-/*
+/**
  * Validates hexadecimal input of specified size.
- * Checks for valid payment ID or transaction ID.
  *
- * Parameters:
- *   hex: Pointer to the hexadecimal input string
- *   size: Size of the input string to be validated
- *
- * Returns:
- *   -1 if input is invalid
- *    0 if input is valid
+ * @param hex Pointer to the hexadecimal input string.
+ * @param size Expected input size.
+ * @return 0 if valid, or -1 otherwise.
  */
-int val_hex_input(const char *hex, const unsigned int size) {
+int val_hex_input(const char *hex, const unsigned int size)
+{
+    unsigned int i;
 
-    if (strlen(hex) != size) {
+    if (hex == NULL || strlen(hex) != size) {
         return -1;
     }
 
-    for (int i = 0; i < size; i++) {
-        if (!isxdigit(hex[i])) {
+    for (i = 0; i < size; i++) {
+        if (!isxdigit((unsigned char)hex[i])) {
             return -1;
         }
     }
@@ -60,21 +59,107 @@ int val_hex_input(const char *hex, const unsigned int size) {
     return 0;
 }
 
-
-/*
- * Validates an input string to ensure it contains only digits.
+/**
+ * Validates an atomic amount.
  *
- * Parameters:
- *   amount: Pointer to the input string to be validated
- *
- * Returns:
- *   -1 if input contains non-digit characters
- *    0 if input contains only digits
+ * @param amount Pointer to the amount string.
+ * @return 0 if valid, or -1 otherwise.
  */
-int val_amount(const char *amount) {
+int val_amount(const char *amount)
+{
+    size_t i;
 
-    for (int i = 0; i < strlen(amount); i++) {
-        if (!isdigit(amount[i])) {
+    if (amount == NULL || *amount == '\0') {
+        return -1;
+    }
+
+    for (i = 0; i < strlen(amount); i++) {
+        if (!isdigit((unsigned char)amount[i])) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Performs a lightweight offline validation of a Monero address.
+ *
+ * This validates only length and Base58 syntax. It does not verify
+ * network type, checksum, or cryptographic validity.
+ *
+ * @param address Pointer to the address string.
+ * @return 0 if plausible, or -1 otherwise.
+ */
+int val_address(const char *address)
+{
+    size_t length;
+
+    if (address == NULL) {
+        return -1;
+    }
+
+    length = strlen(address);
+
+    if (length != 95 && length != 106) {
+        return -1;
+    }
+
+    return val_base58(address);
+}
+
+/**
+ * Performs a lightweight offline validation of a Monero message signature.
+ *
+ * Cryptographic validity is checked later by monero-wallet-rpc verify.
+ *
+ * @param signature Pointer to the signature string.
+ * @return 0 if plausible, or -1 otherwise.
+ */
+int val_signature(const char *signature)
+{
+    size_t length;
+
+    if (signature == NULL) {
+        return -1;
+    }
+
+    length = strlen(signature);
+
+    if (length < 6) {
+        return -1;
+    }
+
+    if (strncmp(signature, "SigV", 4) != 0) {
+        return -1;
+    }
+
+    if (!isdigit((unsigned char)signature[4])) {
+        return -1;
+    }
+
+    return val_base58(signature + 5);
+}
+
+/**
+ * Validates characters against the Monero Base58 alphabet.
+ *
+ * @param value Pointer to the string to validate.
+ * @return 0 if valid, or -1 otherwise.
+ */
+static int val_base58(const char *value)
+{
+    static const char alphabet[] =
+        "123456789ABCDEFGHJKLMNPQRSTUVWXYZ"
+        "abcdefghijkmnopqrstuvwxyz";
+    size_t i;
+
+    if (value == NULL || *value == '\0') {
+        return -1;
+    }
+
+    for (i = 0; value[i] != '\0'; i++) {
+        if (strchr(alphabet, value[i]) == NULL) {
             return -1;
         }
     }

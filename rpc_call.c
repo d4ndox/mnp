@@ -331,6 +331,14 @@ char *get_method(enum monero_rpc_method method)
         name = TX_PROOF_CMD;
         break;
 
+    case SIGN_MESSAGE:
+        name = SIGN_CMD;
+        break;
+
+    case VERIFY_MESSAGE:
+        name = VERIFY_CMD;
+        break;
+
     default:
         return NULL;
     }
@@ -543,6 +551,66 @@ static int add_rpc_parameters(cJSON *params, const struct rpc_wallet *monero_wal
         }
         break;
 
+    case SIGN_MESSAGE:
+	if (cJSON_AddStringToObject(
+            	params,
+            	"data",
+            	monero_wallet->data
+            ) == NULL) {
+            return -1;
+    	}
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                atoi(monero_wallet->account)
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "address_index",
+                monero_wallet->idx
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddStringToObject(
+                params,
+                "signature_type",
+                "view"
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
+    case VERIFY_MESSAGE:
+        if (cJSON_AddStringToObject(
+                params,
+                "data",
+                monero_wallet->data
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddStringToObject(
+                params,
+                "address",
+                monero_wallet->saddr
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddStringToObject(
+                params,
+                "signature",
+                monero_wallet->signature
+            ) == NULL) {
+            return -1;
+        }
+        break;
+
     default:
         return -1;
     }
@@ -550,7 +618,7 @@ static int add_rpc_parameters(cJSON *params, const struct rpc_wallet *monero_wal
     return 0;
 }
 
-/**
+/**
  * Adds a single subaddress index to an RPC parameter object.
  *
  * @param params A pointer to the JSON object receiving the address_index array.
