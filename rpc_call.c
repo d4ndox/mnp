@@ -343,6 +343,14 @@ char *get_method(enum monero_rpc_method method)
         name = GET_TX_CMD;
         break;
 
+    case PARSE_URI:
+        name = PARSE_URI_CMD;
+        break;
+
+    case TRANSFER:
+        name = TRANSFER_CMD;
+        break;
+
     default:
         return NULL;
     }
@@ -665,6 +673,59 @@ static int add_rpc_parameters(cJSON *params, const struct rpc_wallet *monero_wal
         }
 
         break;
+
+    case PARSE_URI:
+        if (monero_wallet->params == NULL) {
+            return -1;
+            break;
+        }
+
+        if (cJSON_AddStringToObject(
+                params,
+                "uri",
+                monero_wallet->params
+            ) == NULL) {
+            return -1;
+        }
+
+        break;
+
+    case TRANSFER:
+    {
+        cJSON *destinations;
+
+        if (monero_wallet->params == NULL) {
+            return -1;
+            break;
+        }
+
+        destinations = cJSON_Parse(
+            monero_wallet->params
+        );
+
+        if (destinations == NULL ||
+            !cJSON_IsArray(destinations)) {
+            cJSON_Delete(destinations);
+            return -1;
+            break;
+        }
+
+        cJSON_AddItemToObject(
+            params,
+            "destinations",
+            destinations
+        );
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                atoi(monero_wallet->account)
+             ) == NULL) {
+             return -1;
+        }
+
+        break;
+    }
 
     default:
         return -1;
