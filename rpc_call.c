@@ -339,6 +339,10 @@ char *get_method(enum monero_rpc_method method)
         name = VERIFY_CMD;
         break;
 
+    case GET_TRANSFERS:
+        name = GET_TX_CMD;
+        break;
+
     default:
         return NULL;
     }
@@ -609,6 +613,57 @@ static int add_rpc_parameters(cJSON *params, const struct rpc_wallet *monero_wal
             ) == NULL) {
             return -1;
         }
+        break;
+ 
+    case GET_TRANSFERS:
+        if (cJSON_AddBoolToObject(
+               params,
+               "in",
+               monero_wallet->transactions_in
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddBoolToObject(
+                params,
+                "out",
+                monero_wallet->transactions_out
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddBoolToObject(
+                params,
+                "pending",
+                monero_wallet->transactions_pending
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddBoolToObject(
+               params,
+               "failed",
+               monero_wallet->transactions_failed
+           ) == NULL) {
+           return -1;
+        }
+
+        if (cJSON_AddBoolToObject(
+                params,
+                "pool",
+                monero_wallet->transactions_pool
+            ) == NULL) {
+            return -1;
+        }
+
+        if (cJSON_AddNumberToObject(
+                params,
+                "account_index",
+                atoi(monero_wallet->account)
+            ) == NULL) {
+            return -1;
+        }
+
         break;
 
     default:
