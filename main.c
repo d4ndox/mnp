@@ -39,6 +39,7 @@
 #include "spend_proof.h"
 #include "tx_proof.h"
 #include "transactions.h"
+#include "transfer.h"
 #include "sign.h"
 #include "verify.h"
 
@@ -100,6 +101,12 @@ static const struct command commands[] = {
         "List wallet transactions",
         transactions_main,
         transactions_help,
+    },
+    {
+        "transfer",
+        "Send one or more Monero payment URIs",
+        transfer_main,
+        transfer_help,
     },
     {
         "balance",

@@ -26,6 +26,7 @@ set(MNP_SOURCES
     spend_proof.c
     tx_proof.c
     transactions.c
+    transfer.c
     sign.c
     verify.c
     payment.c
@@ -45,6 +46,7 @@ set(MNP_HEADERS
     spend_proof.h
     tx_proof.h
     transactions.h
+    transfer.h
     sign.h
     verify.h
     payment.h

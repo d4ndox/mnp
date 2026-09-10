@@ -18,6 +18,8 @@ enum monero_rpc_method {
     SIGN_MESSAGE,
     VERIFY_MESSAGE,
     GET_TRANSFERS,
+    PARSE_URI,
+    TRANSFER,
     END_RPC_SIZE
 };
 

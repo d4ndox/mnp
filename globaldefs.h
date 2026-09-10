@@ -67,6 +67,9 @@ enum notify {
 #define SIGN_CMD 	"sign"
 #define VERIFY_CMD 	"verify"
 
+#define PARSE_URI_CMD 	"parse_uri"
+#define TRANSFER_CMD	"transfer"
+
 #define TRANSACTION_DIR "transactions"
 
 #define PAYNULL         "0000000000000000"
