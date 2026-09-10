@@ -57,6 +57,7 @@ enum notify {
 #define SP_IADDR_CMD    "split_integrated_address"
 #define MK_URI_CMD      "make_uri"
 
+#define GET_TX_CMD	"get_transfers"
 #define GET_TXID_CMD    "get_transfer_by_txid"
 #define GET_PAYMENT_CMD "get_bulk_payments"
 

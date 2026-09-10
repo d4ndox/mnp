@@ -38,6 +38,7 @@
 #include "payment.h"
 #include "spend_proof.h"
 #include "tx_proof.h"
+#include "transactions.h"
 #include "sign.h"
 #include "verify.h"
 
@@ -83,16 +84,22 @@ static const struct command commands[] = {
         tx_proof_help,
     },
     {
-    "sign",
-    "Sign data with the wallet view key",
-    sign_main,
-    sign_help,
+        "sign",
+        "Sign data with the wallet view key",
+        sign_main,
+        sign_help,
     },
     {
-    "verify",
-    "Verify a message signature",
-    verify_main,
-    verify_help,
+        "verify",
+        "Verify a message signature",
+        verify_main,
+        verify_help,
+    },
+    {
+        "transactions",
+        "List wallet transactions",
+        transactions_main,
+        transactions_help,
     },
     {
         "balance",
