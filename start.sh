@@ -391,6 +391,45 @@ start_wallet_rpc()
     start_wallet_rpc_detached
 }
 
+check_mnp_config()
+{
+    local config="$HOME/.mnp.ini"
+    local resolved
+    local host
+    local port
+
+    [[ -e "$config" ]] ||
+        die "mnp config not found: $config"
+
+    resolved="$(readlink -f "$config")"
+
+    host="$(
+        awk -F '=' '
+            $1 ~ /^[[:space:]]*host[[:space:]]*$/ {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+                print $2
+            }
+        ' "$resolved"
+    )"
+
+    port="$(
+        awk -F '=' '
+            $1 ~ /^[[:space:]]*port[[:space:]]*$/ {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
+                print $2
+            }
+        ' "$resolved"
+    )"
+
+    [[ "$host" == "$MERCHANT_RPC_HOST" ]] ||
+        die "mnp config host is '$host', expected '$MERCHANT_RPC_HOST'"
+
+    [[ "$port" == "$MERCHANT_RPC_PORT" ]] ||
+        die "mnp config port is '$port', expected '$MERCHANT_RPC_PORT'"
+
+    printf 'mnp config:    %s:%s\n' "$host" "$port"
+}
+
 main()
 {
     while (($# > 0)); do
@@ -411,6 +450,7 @@ main()
         shift
     done
 
+    check_mnp_config
     check_dependencies
     check_configuration
     read_wallet_rpc_port
