@@ -266,11 +266,17 @@ static int config_handler(void *user, const char *section, const char *name, con
 static char *get_config_path(void)
 {
     const char *home;
+    const char *override;
     const struct passwd *entry;
     size_t length;
     char *path;
 
     home = getenv("HOME");
+    override = getenv("MNP_CONFIG");
+
+    if (override != NULL && override[0] != '\0') {
+        return strdup(override);
+    }
 
     if (home == NULL) {
         entry = getpwuid(getuid());
