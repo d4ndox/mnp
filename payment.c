@@ -771,7 +771,7 @@ static int call_wallet(struct rpc_wallet *wallet, const char *command)
     if (rpc_call(wallet) < 0) {
         fprintf(
             stderr,
-            "mnp payment %s: could not connect to host %s:%s\n",
+	    "mnp payment %s: wallet RPC request failed\n",
             command,
             wallet->host,
             wallet->port
