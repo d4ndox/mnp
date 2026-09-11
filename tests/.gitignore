@@ -8,3 +8,6 @@ auth.sh
 priv.sh
 monero_spend_proof
 monero_tx_proof
+.runtime/
+*.log
+*.pid
