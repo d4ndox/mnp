@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2026 d4ndo@proton.me
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include "transactions.h"
 
 #include <pwd.h>
@@ -20,6 +45,13 @@ struct transaction_args {
     int filtered;
 };
 
+struct transaction_entry {
+    const cJSON *transfer;
+    const char *type;
+    long long height;
+    size_t order;
+};
+
 static char *duplicate_string(const char *value, size_t maximum);
 static int config_handler(void *user, const char *section, const char *name, const char *value);
 static char *get_config_path(void);
@@ -32,10 +64,11 @@ static cJSON *get_result(const struct rpc_wallet *wallet);
 static void print_header(void);
 static int print_transactions(const struct rpc_wallet *wallet);
 static int print_transfer(const cJSON *transfer, const char *fallback_type);
-static int print_transfer_array(const cJSON *result, const char *name);
-static int print_destinations(const cJSON *transfer, const char *type,
-                              const char *txid, long long confirmations,
-                              long long height, int locked);
+static int count_transfer_array(const cJSON *result, const char *name, size_t *count);
+static int collect_transfer_array(const cJSON *result, const char *name,
+                                  struct transaction_entry *entries,
+                                  size_t capacity, size_t *count);
+static int compare_transaction_entries(const void *left, const void *right);
 static const char *get_json_string(const cJSON *object, const char *name, const char *fallback);
 static long long get_json_integer(const cJSON *object, const char *name, long long fallback);
 static int get_json_boolean(const cJSON *object, const char *name, int fallback);
@@ -45,7 +78,8 @@ static long long get_subaddress_index(const cJSON *transfer);
  * Handles the transactions subcommand.
  *
  * Loads the configured wallet RPC connection, requests selected transfer
- * categories, and prints transactions as tab-separated records.
+ * categories, sorts transactions by block height, and prints tab-separated
+ * records.
  *
  * @param argc The number of command-line arguments.
  * @param argv The command-line argument vector.
@@ -165,9 +199,11 @@ void transactions_help(FILE *stream, const char *program)
         "  -h, --help Show this help.\n"
         "\n"
         "Without filters all transaction types are included.\n"
+        "Transactions are sorted by height, newest first.\n"
         "\n"
         "Output:\n"
-        "  TYPE<TAB>TXID<TAB>AMOUNT<TAB>CONFIRMATIONS<TAB>HEIGHT<TAB>LOCKED\n",
+        "  TYPE<TAB>TXID<TAB>AMOUNT<TAB>CONFIRMATIONS<TAB>HEIGHT<TAB>LOCKED"
+        "<TAB>ADDRESS<TAB>SUBADDR_INDEX\n",
         program
     );
 }
@@ -468,14 +504,30 @@ static void print_header(void)
 }
 
 /**
- * Prints all transaction categories from a get_transfers response.
+ * Prints all transaction categories sorted by block height.
+ *
+ * Transfers from all requested categories are collected first and then sorted
+ * globally by height in descending order. Transfers with equal heights retain
+ * their original collection order.
  *
  * @param wallet The completed wallet RPC request.
  * @return 0 on success, or -1 for a malformed response.
  */
 static int print_transactions(const struct rpc_wallet *wallet)
 {
+    static const char *categories[] = {
+        "in",
+        "out",
+        "pending",
+        "failed",
+        "pool"
+    };
+
+    struct transaction_entry *entries = NULL;
     cJSON *result;
+    size_t count = 0;
+    size_t collected = 0;
+    size_t i;
 
     result = get_result(wallet);
 
@@ -483,15 +535,57 @@ static int print_transactions(const struct rpc_wallet *wallet)
         return -1;
     }
 
+    for (i = 0; i < sizeof(categories) / sizeof(categories[0]); i++) {
+        if (count_transfer_array(
+                result,
+                categories[i],
+                &count
+            ) == -1) {
+            return -1;
+        }
+    }
+
+    if (count > 0) {
+        entries = calloc(count, sizeof(*entries));
+
+        if (entries == NULL) {
+            return -1;
+        }
+
+        for (i = 0; i < sizeof(categories) / sizeof(categories[0]); i++) {
+            if (collect_transfer_array(
+                    result,
+                    categories[i],
+                    entries,
+                    count,
+                    &collected
+                ) == -1) {
+                free(entries);
+                return -1;
+            }
+        }
+
+        qsort(
+            entries,
+            collected,
+            sizeof(*entries),
+            compare_transaction_entries
+        );
+    }
+
     print_header();
 
-    if (print_transfer_array(result, "in") == -1 ||
-        print_transfer_array(result, "out") == -1 ||
-        print_transfer_array(result, "pending") == -1 ||
-        print_transfer_array(result, "failed") == -1 ||
-        print_transfer_array(result, "pool") == -1) {
-        return -1;
+    for (i = 0; i < collected; i++) {
+        if (print_transfer(
+                entries[i].transfer,
+                entries[i].type
+            ) == -1) {
+            free(entries);
+            return -1;
+        }
     }
+
+    free(entries);
 
     return 0;
 }
@@ -646,10 +740,72 @@ static int print_transfer(const cJSON *transfer, const char *fallback_type)
     return 0;
 }
 
-static int print_transfer_array(const cJSON *result, const char *name)
+/**
+ * Counts transfers in one get_transfers category.
+ *
+ * @param result The get_transfers result object.
+ * @param name The category name.
+ * @param count A pointer receiving the accumulated count.
+ * @return 0 on success, or -1 if the category is malformed.
+ */
+static int count_transfer_array(const cJSON *result, const char *name, size_t *count)
+{
+    const cJSON *array;
+    int array_size;
+
+    if (result == NULL ||
+        name == NULL ||
+        count == NULL) {
+        return -1;
+    }
+
+    array = cJSON_GetObjectItemCaseSensitive(
+        result,
+        name
+    );
+
+    if (array == NULL) {
+        return 0;
+    }
+
+    if (!cJSON_IsArray(array)) {
+        return -1;
+    }
+
+    array_size = cJSON_GetArraySize(array);
+
+    if (array_size < 0) {
+        return -1;
+    }
+
+    *count += (size_t)array_size;
+
+    return 0;
+}
+
+/**
+ * Collects transfers from one category for global sorting.
+ *
+ * @param result The get_transfers result object.
+ * @param name The category name.
+ * @param entries The destination entry array.
+ * @param capacity The allocated entry capacity.
+ * @param count A pointer receiving the accumulated entry count.
+ * @return 0 on success, or -1 if the response is malformed.
+ */
+static int collect_transfer_array(const cJSON *result, const char *name,
+                                  struct transaction_entry *entries,
+                                  size_t capacity, size_t *count)
 {
     const cJSON *array;
     const cJSON *transfer;
+
+    if (result == NULL ||
+        name == NULL ||
+        entries == NULL ||
+        count == NULL) {
+        return -1;
+    }
 
     array = cJSON_GetObjectItemCaseSensitive(
         result,
@@ -665,12 +821,55 @@ static int print_transfer_array(const cJSON *result, const char *name)
     }
 
     cJSON_ArrayForEach(transfer, array) {
-        if (print_transfer(
-                transfer,
-                name
-            ) == -1) {
+        if (!cJSON_IsObject(transfer) ||
+            *count >= capacity) {
             return -1;
         }
+
+        entries[*count].transfer = transfer;
+        entries[*count].type = name;
+        entries[*count].height = get_json_integer(
+            transfer,
+            "height",
+            0
+        );
+        entries[*count].order = *count;
+
+        (*count)++;
+    }
+
+    return 0;
+}
+
+/**
+ * Compares transaction entries by height in descending order.
+ *
+ * Original collection order is used as a tie-breaker so transfers with the
+ * same height remain deterministic.
+ *
+ * @param left The first transaction entry.
+ * @param right The second transaction entry.
+ * @return Negative, zero, or positive according to qsort requirements.
+ */
+static int compare_transaction_entries(const void *left, const void *right)
+{
+    const struct transaction_entry *a = left;
+    const struct transaction_entry *b = right;
+
+    if (a->height > b->height) {
+        return -1;
+    }
+
+    if (a->height < b->height) {
+        return 1;
+    }
+
+    if (a->order < b->order) {
+        return -1;
+    }
+
+    if (a->order > b->order) {
+        return 1;
     }
 
     return 0;
@@ -788,53 +987,4 @@ static long long get_subaddress_index(const cJSON *transfer)
     }
 
     return (long long)minor->valuedouble;
-}
-
-static int print_destinations(const cJSON *transfer, const char *type,
-                              const char *txid, long long confirmations,
-                              long long height, int locked)
-{
-    const cJSON *destinations;
-    const cJSON *destination;
-
-    destinations = cJSON_GetObjectItemCaseSensitive(
-        transfer,
-        "destinations"
-    );
-
-    if (destinations == NULL ||
-        !cJSON_IsArray(destinations)) {
-        return 0;
-    }
-
-    cJSON_ArrayForEach(destination, destinations) {
-        const char *address;
-        long long amount;
-
-        address = get_json_string(
-            destination,
-            "address",
-            "-"
-        );
-
-        amount = get_json_integer(
-            destination,
-            "amount",
-            0
-        );
-
-        fprintf(
-            stdout,
-            "%s\t%s\t%lld\t%lld\t%lld\t%s\t%s\t-\n",
-            type,
-            txid,
-            amount,
-            confirmations,
-            height,
-            locked ? "true" : "false",
-            address
-        );
-    }
-
-    return 1;
 }
