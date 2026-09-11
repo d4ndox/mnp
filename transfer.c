@@ -23,10 +23,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/*
- * transfer.c
- */
-
 #include "transfer.h"
 
 #include <errno.h>
@@ -76,11 +72,13 @@ static char *build_destinations_json(const struct transfer_destination *destinat
 static int run_transfer(const struct Config *config,
                         const struct transfer_destination *destinations, size_t count);
 static char *extract_tx_hash(const struct rpc_wallet *wallet);
+static char *read_stdin_uri(void);
 
 /**
  * Handles the transfer subcommand.
  *
- * Supports either Monero payment URIs or repeated address/amount pairs.
+ * Supports Monero payment URIs, repeated address/amount pairs, or one
+ * payment URI read from standard input.
  *
  * @param argc The number of command-line arguments.
  * @param argv The command-line argument vector.
@@ -91,6 +89,7 @@ int transfer_main(int argc, char **argv)
     struct Config config = {0};
     struct transfer_destination *destinations = NULL;
     char *config_path = NULL;
+    char *stdin_uri = NULL;
     size_t destination_count = 0;
     int address_mode;
     int status = EXIT_FAILURE;
@@ -101,11 +100,6 @@ int transfer_main(int argc, char **argv)
          strcmp(argv[1], "-h") == 0)) {
         transfer_help(stdout, argv[0]);
         return EXIT_SUCCESS;
-    }
-
-    if (argc < 2) {
-        fprintf(stderr, "Try 'mnp transfer help' for usage.\n");
-        return EXIT_FAILURE;
     }
 
     config_path = get_config_path();
@@ -128,26 +122,57 @@ int transfer_main(int argc, char **argv)
         goto done;
     }
 
-    address_mode = strcmp(argv[1], "--address") == 0;
+    if (argc == 1) {
+        stdin_uri = read_stdin_uri();
 
-    if (address_mode) {
-        if (parse_address_arguments(
-                argc,
-                argv,
-                &destinations,
-                &destination_count
+        if (stdin_uri == NULL) {
+            fprintf(stderr, "mnp transfer: payment URI is required\n");
+            goto done;
+        }
+
+        if (strncmp(stdin_uri, "monero:", 7) != 0) {
+            fprintf(stderr, "mnp transfer: invalid Monero URI '%s'\n", stdin_uri);
+            goto done;
+        }
+
+        destinations = calloc(1, sizeof(*destinations));
+
+        if (destinations == NULL) {
+            fprintf(stderr, "mnp transfer: out of memory\n");
+            goto done;
+        }
+
+        if (parse_transfer_uri(
+                &config,
+                stdin_uri,
+                &destinations[0]
             ) == -1) {
             goto done;
         }
+
+        destination_count = 1;
     } else {
-        if (parse_uri_arguments(
-                &config,
-                argc,
-                argv,
-                &destinations,
-                &destination_count
-            ) == -1) {
-            goto done;
+        address_mode = strcmp(argv[1], "--address") == 0;
+
+        if (address_mode) {
+            if (parse_address_arguments(
+                    argc,
+                    argv,
+                    &destinations,
+                    &destination_count
+                ) == -1) {
+                goto done;
+            }
+        } else {
+            if (parse_uri_arguments(
+                    &config,
+                    argc,
+                    argv,
+                    &destinations,
+                    &destination_count
+                ) == -1) {
+                goto done;
+            }
         }
     }
 
@@ -166,6 +191,7 @@ int transfer_main(int argc, char **argv)
     status = EXIT_SUCCESS;
 
 done:
+    free(stdin_uri);
     free(config_path);
     free_destinations(destinations, destination_count);
     free(destinations);
@@ -188,6 +214,7 @@ void transfer_help(FILE *stream, const char *program)
         "  %s transfer URI [URI ...]\n"
         "  %s transfer --address ADDRESS --amount AMOUNT\n"
         "               [--address ADDRESS --amount AMOUNT ...]\n"
+        "  printf '%%s\\n' URI | %s transfer\n"
         "\n"
         "Send Monero to one or more destinations.\n"
         "\n"
@@ -197,6 +224,9 @@ void transfer_help(FILE *stream, const char *program)
         "  %s transfer \\\n"
         "      'monero:ADDRESS1?tx_amount=0.000000483949' \\\n"
         "      'monero:ADDRESS2?tx_amount=0.000000000006'\n"
+        "\n"
+        "Pipe example:\n"
+        "  %s payment new --amount 66565 | %s transfer\n"
         "\n"
         "Address examples:\n"
         "  %s transfer --address ADDRESS --amount 66565\n"
@@ -210,6 +240,9 @@ void transfer_help(FILE *stream, const char *program)
         "\n"
         "Output:\n"
         "  TXID\n",
+        program,
+        program,
+        program,
         program,
         program,
         program,
@@ -981,4 +1014,33 @@ static char *extract_tx_hash(const struct rpc_wallet *wallet)
     }
 
     return duplicate_string(tx_hash->valuestring, 64);
+}
+
+/**
+ * Reads one Monero payment URI from standard input.
+ *
+ * Exactly one trailing newline is removed. Other whitespace is preserved.
+ *
+ * @return A dynamically allocated URI, or NULL on empty input or failure.
+ */
+static char *read_stdin_uri(void)
+{
+    char buffer[MAX_DATA_SIZE + 2];
+    size_t length;
+
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        return NULL;
+    }
+
+    length = strlen(buffer);
+
+    if (length > 0 && buffer[length - 1] == '\n') {
+        buffer[--length] = '\0';
+    }
+
+    if (length == 0 || length > MAX_DATA_SIZE) {
+        return NULL;
+    }
+
+    return duplicate_string(buffer, MAX_DATA_SIZE);
 }
