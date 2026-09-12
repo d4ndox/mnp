@@ -34,10 +34,14 @@
 
 #include "globaldefs.h"
 
+static int is_transfer_request(const char *cmd);
 static size_t write_memory_callback(void *contents, size_t size, size_t nmemb, void *userp);
 
 /**
  * Performs an HTTP POST request to monero-wallet-rpc.
+ *
+ * Transfer requests use a longer timeout because hardware wallets may require
+ * interactive confirmation before monero-wallet-rpc can return.
  *
  * @param urlport The complete wallet RPC endpoint URL.
  * @param cmd The JSON-RPC request body.
@@ -51,6 +55,7 @@ int wallet(const char *urlport, const char *cmd, const char *userpwd, char **ans
     CURLcode curl_result;
     struct curl_slist *headers = NULL;
     struct MemoryStruct chunk = {0};
+    long timeout;
     int result = -1;
 
     if (urlport == NULL ||
@@ -61,6 +66,7 @@ int wallet(const char *urlport, const char *cmd, const char *userpwd, char **ans
     }
 
     *answer = NULL;
+    timeout = is_transfer_request(cmd) ? TRANSFER_TIMEOUT : RES_TIMEOUT;
 
     if (curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
         fprintf(stderr, "mnp: curl global initialization failed\n");
@@ -99,7 +105,7 @@ int wallet(const char *urlport, const char *cmd, const char *userpwd, char **ans
         curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, (long)CURLAUTH_DIGEST) != CURLE_OK ||
         curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "POST") != CURLE_OK ||
         curl_easy_setopt(curl_handle, CURLOPT_USE_SSL, CURLUSESSL_TRY) != CURLE_OK ||
-        curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, RES_TIMEOUT) != CURLE_OK ||
+        curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, timeout) != CURLE_OK ||
         curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, CONNECTTIMEOUT) != CURLE_OK ||
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_memory_callback) != CURLE_OK ||
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &chunk) != CURLE_OK ||
@@ -140,6 +146,24 @@ done:
     curl_global_cleanup();
 
     return result;
+}
+
+/**
+ * Determines whether an RPC request may require interactive transaction signing.
+ *
+ * @param cmd The JSON-RPC request body.
+ * @return Non-zero for transfer requests, otherwise zero.
+ */
+static int is_transfer_request(const char *cmd)
+{
+    if (cmd == NULL) {
+        return 0;
+    }
+
+    return strstr(cmd, "\"method\":\"transfer\"") != NULL ||
+           strstr(cmd, "\"method\": \"transfer\"") != NULL ||
+           strstr(cmd, "\"method\":\"transfer_split\"") != NULL ||
+           strstr(cmd, "\"method\": \"transfer_split\"") != NULL;
 }
 
 /**
