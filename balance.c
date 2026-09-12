@@ -163,7 +163,10 @@ void balance_help(FILE *stream, const char *program)
         "  --unlocked    Print only the unlocked wallet balance.\n"
         "\n"
         "Output:\n"
-        "  The raw wallet balance is written to stdout.\n",
+        "  The raw wallet balance is written to stdout.\n"
+	"\n"
+        "Examples:\n"
+	"mnp balance | awk '{ printf \"%%.12g XMR\\n\", $1 / 1000000000000 }'\n",
         program,
         program
     );
