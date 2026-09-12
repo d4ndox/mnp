@@ -78,5 +78,6 @@ enum notify {
 #define JSON_RPC        "2.0"
 #define POLL_INTERVAL   (5)
 #define RES_TIMEOUT     (10)
+#define TRANSFER_TIMEOUT (600)
 #define CONNECTTIMEOUT  (5)
 #endif
